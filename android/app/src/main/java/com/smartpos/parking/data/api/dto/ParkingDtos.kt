@@ -72,8 +72,9 @@ data class ParkingTariffDto(
     val id: String,
     val name: String,
     val billingType: String,
-    val hourlyRate: Double?,
-    val dailyRate: Double?,
+    val price: String?,
+    val hourlyRate: Double? = null,
+    val dailyRate: Double? = null,
     val active: Boolean = true
 )
 
@@ -148,6 +149,7 @@ data class QuoteAmountDto(
 )
 
 data class ApiErrorDto(
-    val message: String?,
-    val statusCode: Int?
+    val statusCode: Int? = null,
+    val message: Any? = null,
+    val error: String? = null
 )

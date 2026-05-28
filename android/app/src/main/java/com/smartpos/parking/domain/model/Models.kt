@@ -117,9 +117,16 @@ data class ValetQuote(
     val waived: Boolean
 )
 
+/** Metadados retornados pelo PlugPag após transação no terminal PagBank. */
 data class PagBankTransactionMeta(
-    val transactionCode: String? = null,
     val transactionId: String? = null,
+    val transactionCode: String? = null,
+    val hostNsu: String? = null,
+    val nsu: String? = null,
+    val autoCode: String? = null,
+    val cardBrand: String? = null,
+    val pixTxIdCode: String? = null,
+    val plugPagPaymentType: Int? = null,
     val processedOnTerminal: Boolean = true
 )
 

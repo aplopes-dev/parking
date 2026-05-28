@@ -1,7 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
-import { MobileModule } from '../mobile/mobile.module';
+import { MobileRealtimeModule } from '../mobile/mobile-realtime.module';
 import { CrmModule } from '../crm/crm.module';
 import { FinanceModule } from '../finance/finance.module';
 import { PaymentsModule } from '../payments/payments.module';
@@ -44,6 +44,7 @@ import { ParkingBillingService } from './parking-billing.service';
 import { ParkingTicketService } from './parking-ticket.service';
 import { ParkingPagbankSettlementService } from './parking-pagbank-settlement.service';
 import { ParkingDeviceGuard } from './parking-device.guard';
+import { ParkingValetBroadcastService } from './parking-valet-broadcast.service';
 
 @Module({
   imports: [
@@ -71,7 +72,7 @@ import { ParkingDeviceGuard } from './parking-device.guard';
       User,
     ]),
     AuthModule,
-    forwardRef(() => MobileModule),
+    MobileRealtimeModule,
     CrmModule,
     FinanceModule,
     forwardRef(() => PaymentsModule),
@@ -99,6 +100,7 @@ import { ParkingDeviceGuard } from './parking-device.guard';
     ParkingTicketService,
     ParkingPagbankSettlementService,
     ParkingDeviceGuard,
+    ParkingValetBroadcastService,
   ],
   exports: [
     ParkingService,

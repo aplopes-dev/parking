@@ -75,6 +75,15 @@ export class ParkingValetService {
     return users.map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role }));
   }
 
+  async getActiveQueuePayload(tenantId: string, facilityId?: string) {
+    const [queue, tickets, valets] = await Promise.all([
+      this.getQueueSummary(tenantId, facilityId),
+      this.listTickets(tenantId, { facilityId, queue: 'active' }),
+      this.listValets(tenantId),
+    ]);
+    return { queue, tickets, valets };
+  }
+
   async getQueueSummary(tenantId: string, facilityId?: string) {
     const where: Record<string, unknown> = { tenantId };
     if (facilityId) where.facilityId = facilityId;
@@ -99,13 +108,12 @@ export class ParkingValetService {
     const qb = this.ticketsRepo
       .createQueryBuilder('t')
       .leftJoinAndSelect('t.facility', 'facility')
-      .leftJoinAndSelect('t.session', 'session')
       .leftJoinAndSelect('t.assignedValet', 'assignedValet')
       .leftJoinAndSelect('t.parkedSpot', 'parkedSpot')
-      .where('t.tenant_id = :tenantId', { tenantId });
+      .where('t.tenantId = :tenantId', { tenantId });
 
     if (query.facilityId) {
-      qb.andWhere('t.facility_id = :facilityId', { facilityId: query.facilityId });
+      qb.andWhere('t.facilityId = :facilityId', { facilityId: query.facilityId });
     }
     if (query.status) {
       qb.andWhere('t.status = :status', { status: query.status });
@@ -116,19 +124,19 @@ export class ParkingValetService {
 
     if (query.queue === 'intake') {
       qb.andWhere('t.status IN (:...intake)', { intake: INTAKE_STATUSES });
-      qb.orderBy('t.received_at', 'ASC');
+      qb.orderBy('t.receivedAt', 'ASC');
     } else if (query.queue === 'delivery') {
       qb.andWhere('t.status IN (:...delivery)', { delivery: DELIVERY_STATUSES });
-      qb.orderBy('t.requested_at', 'ASC', 'NULLS LAST');
-      qb.addOrderBy('t.received_at', 'ASC');
+      qb.orderBy('t.requestedAt', 'ASC', 'NULLS LAST');
+      qb.addOrderBy('t.receivedAt', 'ASC');
     } else if (query.queue === 'parked') {
       qb.andWhere('t.status = :parked', { parked: ValetTicketStatus.PARKED });
-      qb.orderBy('t.parked_at', 'DESC');
+      qb.orderBy('t.parkedAt', 'DESC');
     } else if (query.queue === 'active') {
       qb.andWhere('t.status IN (:...active)', { active: ACTIVE_VALET_STATUSES });
-      qb.orderBy('t.received_at', 'DESC');
+      qb.orderBy('t.receivedAt', 'DESC');
     } else {
-      qb.orderBy('t.received_at', 'DESC');
+      qb.orderBy('t.receivedAt', 'DESC');
     }
 
     return qb.take(200).getMany();
@@ -363,7 +371,7 @@ export class ParkingValetService {
   private async getTicketOrThrow(tenantId: string, id: string) {
     const ticket = await this.ticketsRepo.findOne({
       where: { id, tenantId },
-      relations: ['facility', 'session', 'assignedValet', 'parkedSpot'],
+      relations: ['facility', 'assignedValet', 'parkedSpot'],
     });
     if (!ticket) throw new NotFoundException('Ticket valet não encontrado');
     return ticket;

@@ -2,13 +2,11 @@ import {
   Body,
   Controller,
   Get,
-  Inject,
   Param,
   Patch,
   Post,
   Query,
   UseGuards,
-  forwardRef,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -16,7 +14,6 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { User, UserRole } from '../users/entities/user.entity';
-import { MobileParkingService } from '../mobile/mobile-parking.service';
 import {
   AssignValetDto,
   CreateValetTicketDto,
@@ -25,6 +22,7 @@ import {
   ParkValetVehicleDto,
   UpdateValetTicketDto,
 } from './dto/parking-valet.dto';
+import { ParkingValetBroadcastService } from './parking-valet-broadcast.service';
 import { ParkingValetService } from './parking-valet.service';
 
 const PARKING_ROLES = Object.values(UserRole);
@@ -37,8 +35,7 @@ const PARKING_ROLES = Object.values(UserRole);
 export class ParkingValetController {
   constructor(
     private readonly valetService: ParkingValetService,
-    @Inject(forwardRef(() => MobileParkingService))
-    private readonly mobileParking: MobileParkingService,
+    private readonly valetBroadcast: ParkingValetBroadcastService,
   ) {}
 
   @Get('valets')
@@ -59,7 +56,7 @@ export class ParkingValetController {
   @Post('tickets')
   async receiveVehicle(@CurrentUser() user: User, @Body() dto: CreateValetTicketDto) {
     const ticket = await this.valetService.receiveVehicle(user.tenantId, dto);
-    await this.mobileParking.broadcastValetUpdated(user.tenantId, dto.facilityId, 'receive');
+    await this.valetBroadcast.notify(user.tenantId, dto.facilityId, 'receive');
     return ticket;
   }
 
@@ -70,7 +67,7 @@ export class ParkingValetController {
     @Body() dto: UpdateValetTicketDto,
   ) {
     const ticket = await this.valetService.updateTicket(user.tenantId, id, dto);
-    await this.mobileParking.broadcastValetUpdated(user.tenantId, ticket.facilityId, 'update');
+    await this.valetBroadcast.notify(user.tenantId, ticket.facilityId, 'update');
     return ticket;
   }
 
@@ -85,7 +82,7 @@ export class ParkingValetController {
       id,
       dto.assignedValetId ?? undefined,
     );
-    await this.mobileParking.broadcastValetUpdated(user.tenantId, ticket.facilityId, 'parkStart');
+    await this.valetBroadcast.notify(user.tenantId, ticket.facilityId, 'parkStart');
     return ticket;
   }
 
@@ -96,14 +93,14 @@ export class ParkingValetController {
     @Body() dto: ParkValetVehicleDto,
   ) {
     const ticket = await this.valetService.markParked(user.tenantId, id, dto);
-    await this.mobileParking.broadcastValetUpdated(user.tenantId, ticket.facilityId, 'parked');
+    await this.valetBroadcast.notify(user.tenantId, ticket.facilityId, 'parked');
     return ticket;
   }
 
   @Post('tickets/:id/request')
   async requestRetrieval(@CurrentUser() user: User, @Param('id') id: string) {
     const ticket = await this.valetService.requestRetrieval(user.tenantId, id);
-    await this.mobileParking.broadcastValetUpdated(user.tenantId, ticket.facilityId, 'requested');
+    await this.valetBroadcast.notify(user.tenantId, ticket.facilityId, 'requested');
     return ticket;
   }
 
@@ -118,14 +115,14 @@ export class ParkingValetController {
       id,
       dto.assignedValetId ?? undefined,
     );
-    await this.mobileParking.broadcastValetUpdated(user.tenantId, ticket.facilityId, 'retrieveStart');
+    await this.valetBroadcast.notify(user.tenantId, ticket.facilityId, 'retrieveStart');
     return ticket;
   }
 
   @Post('tickets/:id/ready')
   async markReady(@CurrentUser() user: User, @Param('id') id: string) {
     const ticket = await this.valetService.markReady(user.tenantId, id);
-    await this.mobileParking.broadcastValetUpdated(user.tenantId, ticket.facilityId, 'ready');
+    await this.valetBroadcast.notify(user.tenantId, ticket.facilityId, 'ready');
     return ticket;
   }
 
@@ -136,14 +133,14 @@ export class ParkingValetController {
     @Body() dto: DeliverValetTicketDto,
   ) {
     const ticket = await this.valetService.deliverVehicle(user.tenantId, id, dto, user.id);
-    await this.mobileParking.broadcastValetUpdated(user.tenantId, ticket.facilityId, 'delivered');
+    await this.valetBroadcast.notify(user.tenantId, ticket.facilityId, 'delivered');
     return ticket;
   }
 
   @Post('tickets/:id/cancel')
   async cancelTicket(@CurrentUser() user: User, @Param('id') id: string) {
     const ticket = await this.valetService.cancelTicket(user.tenantId, id);
-    await this.mobileParking.broadcastValetUpdated(user.tenantId, ticket.facilityId, 'canceled');
+    await this.valetBroadcast.notify(user.tenantId, ticket.facilityId, 'canceled');
     return ticket;
   }
 }

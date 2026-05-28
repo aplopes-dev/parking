@@ -44,15 +44,7 @@ export class MobileParkingService {
   }
 
   async buildValetPayload(tenantId: string, facilityId?: string) {
-    const [queue, tickets, valets] = await Promise.all([
-      this.valetService.getQueueSummary(tenantId, facilityId),
-      this.valetService.listTickets(tenantId, {
-        facilityId,
-        queue: 'active',
-      }),
-      this.valetService.listValets(tenantId),
-    ]);
-    return { queue, tickets, valets };
+    return this.valetService.getActiveQueuePayload(tenantId, facilityId);
   }
 
   async broadcastValetUpdated(

@@ -56,13 +56,16 @@ object ApiMappers {
         zone = zone
     )
 
-    fun ParkingTariffDto.toDomain() = ParkingTariff(
-        id = id,
-        name = name,
-        billingType = billingType,
-        hourlyRate = hourlyRate,
-        dailyRate = dailyRate
-    )
+    fun ParkingTariffDto.toDomain(): ParkingTariff {
+        val parsedPrice = price?.toDoubleOrNull()
+        return ParkingTariff(
+            id = id,
+            name = name,
+            billingType = billingType,
+            hourlyRate = hourlyRate ?: parsedPrice,
+            dailyRate = dailyRate ?: parsedPrice
+        )
+    }
 
     fun ValetTicketDto.toDomain() = ValetTicket(
         id = id,
