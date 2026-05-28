@@ -1,0 +1,138 @@
+/* Modal divisão de conta — largo e alto o suficiente para evitar scroll interno */
+
+.pdv-bill-split-modal.finance-tx-modal.app-modal {
+  width: min(920px, calc(100vw - 32px));
+  max-height: 94vh;
+  height: auto;
+}
+
+.pdv-bill-split-modal .finance-tx-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 24px 8px;
+}
+
+.pdv-bill-split-modal .finance-toolbar {
+  overflow: visible;
+}
+
+.pdv-bill-split-modal .finance-toolbar .form-group {
+  max-width: none;
+  flex: 1 1 280px;
+}
+
+.pdv-bill-split-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pdv-bill-split-modal__hint {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  color: var(--text-muted, #6b6b6b);
+  line-height: 1.5;
+}
+
+.pdv-bill-split-modal__footer {
+  margin-top: 0;
+  padding: 16px 0 20px;
+  flex-wrap: wrap;
+}
+
+.pdv-bill-split-order-total {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--brand-primary, #ea1d2c);
+}
+
+.pdv-bill-split-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pdv-bill-split-stats .catalog-stat-card {
+  padding: 12px 16px;
+}
+
+.pdv-bill-split-stats .catalog-stat-card p {
+  margin-top: 6px;
+  font-size: 0.82rem;
+}
+
+.pdv-bill-split-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pdv-bill-split-row {
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--border-default, #e5e5e5);
+}
+
+.pdv-bill-split-modal .pdv-bill-split-row.catalog-form-grid {
+  grid-template-columns: 1fr minmax(140px, 200px) auto;
+  gap: 12px 16px;
+  align-items: end;
+}
+
+.pdv-bill-split-row__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-bottom: 4px;
+  padding: 0;
+  border: 1px solid var(--border-default, #e5e5e5);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--brand-primary, #ea1d2c);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.pdv-bill-split-row__remove:hover:not(:disabled) {
+  background: rgba(234, 29, 44, 0.08);
+  border-color: var(--brand-primary, #ea1d2c);
+}
+
+.pdv-bill-split-row__remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pdv-bill-split-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.pdv-bill-split-form .pdv-bill-split-row.catalog-form-grid {
+  grid-template-columns: 1fr minmax(140px, 200px) auto;
+  align-items: end;
+}
+
+.pdv-bill-split-form .finance-form-actions {
+  margin-top: 8px;
+}
+
+@media (max-width: 640px) {
+  .pdv-bill-split-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .pdv-bill-split-modal__footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pdv-bill-split-modal__footer .catalog-form-footer-btn {
+    width: 100%;
+  }
+}

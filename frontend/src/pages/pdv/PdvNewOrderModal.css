@@ -1,0 +1,109 @@
+.pdv-new-order-modal {
+  width: min(860px, 100%);
+}
+
+.pdv-new-order-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pdv-new-order-modal .app-modal-header {
+  padding: 12px 20px 8px;
+}
+
+.pdv-new-order-modal .app-modal-subtitle {
+  margin-top: 4px;
+  font-size: 0.84rem;
+}
+
+.pdv-new-order-modal .app-modal-body {
+  padding: 12px 20px;
+  overflow: hidden;
+}
+
+.pdv-new-order-modal .catalog-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+
+.pdv-new-order-modal .form-group label {
+  margin-bottom: 4px;
+}
+
+.pdv-new-order-modal .premium-text-input,
+.pdv-new-order-modal .searchable-select-input {
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
+}
+
+.pdv-new-order-modal .searchable-select-input {
+  border: 1px solid var(--border-default, #e5e5e5);
+  box-shadow: var(--premium-shadow-field);
+}
+
+.pdv-new-order-modal__delivery-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 10px 14px;
+}
+
+.pdv-new-order-modal__delivery-grid .form-group {
+  min-width: 0;
+}
+
+.pdv-new-order-modal__delivery-street {
+  grid-column: 1 / 2;
+}
+
+.pdv-new-order-modal__delivery-number {
+  grid-column: 2 / 3;
+}
+
+.pdv-new-order-modal__delivery-grid .form-group:nth-child(3),
+.pdv-new-order-modal__delivery-grid .form-group:nth-child(4) {
+  grid-column: 1 / -1;
+}
+
+.pdv-new-order-modal__delivery-grid .form-group:nth-child(3) {
+  grid-column: 1 / 2;
+}
+
+.pdv-new-order-modal__delivery-grid .form-group:nth-child(4) {
+  grid-column: 2 / 3;
+}
+
+.pdv-new-order-modal__footer {
+  margin-top: 4px;
+  padding: 10px 20px 14px;
+}
+
+@media (max-width: 900px) {
+  .pdv-new-order-modal {
+    width: min(680px, 100%);
+  }
+
+  .pdv-new-order-modal .catalog-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pdv-new-order-modal__delivery-grid {
+    grid-template-columns: minmax(0, 1fr) 120px;
+  }
+
+  .pdv-new-order-modal__delivery-grid .form-group:nth-child(3),
+  .pdv-new-order-modal__delivery-grid .form-group:nth-child(4) {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .pdv-new-order-modal .app-modal-body {
+    overflow-y: auto;
+  }
+
+  .pdv-new-order-modal__delivery-grid {
+    grid-template-columns: 1fr;
+  }
+}

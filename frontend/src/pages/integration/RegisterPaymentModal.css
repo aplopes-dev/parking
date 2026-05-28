@@ -1,0 +1,130 @@
+/* Conteúdo específico — shell em AppModal.css */
+
+.payment-register-modal {
+  width: min(480px, 100%);
+}
+
+.payment-register-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.payment-register-amounts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: #fafafa;
+  border: 1px solid var(--border-default, #e5e5e5);
+}
+
+.payment-register-amount-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.88rem;
+  color: var(--text-muted, #6b6b6b);
+}
+
+.payment-register-amount-row strong {
+  color: var(--text-primary, #1a1a1a);
+  font-size: 0.95rem;
+}
+
+.payment-register-amount-row--due strong {
+  color: var(--brand-primary, #ea1d2c);
+  font-size: 1.1rem;
+}
+
+.payment-register-label {
+  margin: 0 0 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted, #6b6b6b);
+}
+
+.payment-register-methods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.payment-register-method {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-default, #e5e5e5);
+  border-radius: var(--radius-md, 6px);
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.payment-register-method:hover:not(:disabled):not(.is-selected) {
+  border-color: #d4d4d4;
+  background: #fafafa;
+}
+
+.payment-register-method.is-selected {
+  border-color: var(--brand-primary, #ea1d2c);
+  background: rgba(234, 29, 44, 0.06);
+  box-shadow: 0 0 0 1px rgba(234, 29, 44, 0.12);
+}
+
+.payment-register-method:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.payment-register-method-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.payment-register-method-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted, #6b6b6b);
+  line-height: 1.3;
+}
+
+.payment-register-hint {
+  margin: 14px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted, #6b6b6b);
+  line-height: 1.45;
+}
+
+.payment-register-hint--warn {
+  color: var(--brand-primary-dark, #c41a26);
+}
+
+.payment-register-modal-footer {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 400px) {
+  .payment-register-methods {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-register-modal-footer {
+    flex-direction: column-reverse;
+  }
+
+  .payment-register-modal-footer .catalog-form-footer-btn {
+    width: 100%;
+  }
+}

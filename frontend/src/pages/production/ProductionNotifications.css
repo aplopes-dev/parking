@@ -1,0 +1,73 @@
+.production-notifications-page .catalog-stats-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .production-notifications-page .catalog-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.production-notifications-page .catalog-stat-card strong.is-alert {
+  color: #b91c1c;
+}
+
+.production-notifications-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.production-notifications-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.production-notifications-table th,
+.production-notifications-table td {
+  padding: 12px 24px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-default, #e5e5e5);
+  vertical-align: middle;
+}
+
+.production-notifications-table th {
+  background: #fafafa;
+  color: var(--text-muted, #6b6b6b);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.production-notifications-table tbody tr:hover {
+  background: #fcfcfc;
+}
+
+.production-notifications-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.production-notifications-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.production-notifications-checkboxes label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 650;
+  color: var(--text-primary, #1a1a1a);
+  cursor: pointer;
+}
+
+.production-notifications-checkboxes input[type='checkbox'] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--brand-primary, #ea1d2c);
+}

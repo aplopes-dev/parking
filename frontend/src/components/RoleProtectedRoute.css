@@ -1,0 +1,19 @@
+.role-denied {
+  max-width: 28rem;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  border-radius: var(--radius-lg, 12px);
+  background: var(--surface-elevated, #fff);
+  border: 1px solid var(--border-subtle, #e8e4df);
+  text-align: center;
+}
+
+.role-denied h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+}
+
+.role-denied p {
+  margin: 0;
+  color: var(--text-muted, #5c574f);
+}

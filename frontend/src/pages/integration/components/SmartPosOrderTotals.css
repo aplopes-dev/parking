@@ -1,0 +1,35 @@
+.smartpos-totals-hint {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.smartpos-totals-status {
+  margin: 10px 0 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.smartpos-totals-status--pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.smartpos-totals-status--paid {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.smartpos-totals-row.is-due strong {
+  color: #9a3412;
+}

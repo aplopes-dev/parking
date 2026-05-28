@@ -1,0 +1,21 @@
+/* Alertas — shell em AppModal.css; portal no body para centralizar na viewport */
+
+.alert-modal {
+  width: min(480px, 100%);
+}
+
+.alert-modal .app-modal-body p {
+  margin: 0;
+  color: var(--text-primary, #1a1a1a);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.alert-modal .app-modal-footer {
+  justify-content: flex-end;
+}
+
+.alert-modal .catalog-section-kicker {
+  display: inline-block;
+  margin-bottom: 8px;
+}

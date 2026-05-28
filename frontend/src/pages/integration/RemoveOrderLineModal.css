@@ -1,0 +1,99 @@
+/* Conteúdo específico — shell em AppModal.css */
+
+.remove-line-modal {
+  width: min(520px, 100%);
+}
+
+.remove-line-modal-body {
+  max-height: min(50vh, 420px);
+}
+
+.remove-line-modal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.remove-line-modal-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-default, #e5e5e5);
+  border-radius: 8px;
+  background: #ffffff;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.remove-line-modal-row:hover {
+  background: #fcfcfc;
+}
+
+.remove-line-qty-btn {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--border-default, #e5e5e5);
+  border-radius: var(--radius-md, 6px);
+  background: #ffffff;
+  color: var(--text-primary, #1a1a1a);
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.remove-line-qty-btn.is-minus:hover:not(:disabled) {
+  border-color: var(--brand-primary, #ea1d2c);
+  background: rgba(234, 29, 44, 0.08);
+  color: var(--brand-primary, #ea1d2c);
+}
+
+.remove-line-qty-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.remove-line-modal-label {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-primary, #1a1a1a);
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+
+.remove-line-modal-qty {
+  display: inline-block;
+  min-width: 1.75rem;
+  margin-right: 6px;
+  color: var(--text-muted, #6b6b6b);
+  font-weight: 700;
+}
+
+.remove-line-modal-price {
+  flex-shrink: 0;
+  color: var(--text-muted, #6b6b6b);
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.remove-line-qty-btn:focus-visible {
+  outline: var(--brand-focus-ring, 0 0 0 4px rgba(234, 29, 44, 0.22));
+  outline-offset: 2px;
+}
+
+.remove-line-qty-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}

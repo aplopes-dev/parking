@@ -1,0 +1,71 @@
+/* Container define o volume; a imagem preenche com cover + center */
+.fit-image-preview {
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #f1f5f9;
+  border-radius: 14px;
+}
+
+.fit-image-preview__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.fit-image-preview__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(145deg, #f1f5f9 0%, #e2e8f0 100%);
+  color: #94a3b8;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.fit-image-preview__placeholder-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+/* Tamanhos pré-definidos */
+.fit-image-preview--size-sm {
+  width: 96px;
+  height: 96px;
+}
+
+.fit-image-preview--size-md {
+  width: 100%;
+  height: 220px;
+  max-height: 220px;
+}
+
+.fit-image-preview--size-card {
+  width: 100%;
+  height: 160px;
+  max-height: 160px;
+}
+
+.fit-image-preview--size-square {
+  width: 100%;
+  aspect-ratio: 1;
+  height: auto;
+}
+
+.fit-image-preview--size-square .fit-image-preview__placeholder {
+  position: absolute;
+  inset: 0;
+}
+
+.fit-image-preview--rounded-lg {
+  border-radius: 16px;
+}
+
+.fit-image-preview--rounded-md {
+  border-radius: 14px;
+}

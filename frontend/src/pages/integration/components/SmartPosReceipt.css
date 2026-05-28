@@ -1,0 +1,153 @@
+/* Oculto na interface — só o cupom aparece na impressão */
+.receipt-print {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 80mm;
+  max-width: 80mm;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.receipt-print__inner {
+  width: 80mm;
+  padding: 4mm 3mm;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #000;
+  background: #fff;
+}
+
+.receipt-print__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.receipt-print__brand {
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+.receipt-print__title {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.receipt-print__subtitle {
+  font-size: 9px;
+  text-align: center;
+  opacity: 0.85;
+}
+
+.receipt-print__row--due {
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.receipt-print__meta,
+.receipt-print__totals,
+.receipt-print__payments {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.receipt-print__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.receipt-print__row--total {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.receipt-print__divider {
+  border-top: 1px dashed #000;
+  margin: 8px 0;
+}
+
+.receipt-print__items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.receipt-print__item-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.receipt-print__item-sub {
+  font-size: 9px;
+  opacity: 0.85;
+}
+
+.receipt-print__section-label {
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.receipt-print__footer {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 10px;
+}
+
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  body {
+    margin: 0;
+    background: #fff;
+  }
+
+  /* Interface principal do PDV e modais fora do cupom */
+  .smartpos-page,
+  dialog,
+  [role='dialog'] {
+    display: none !important;
+  }
+
+  /* Esconde o restante; só o cupom permanece visível */
+  body * {
+    visibility: hidden;
+  }
+
+  #receipt-print,
+  #receipt-print * {
+    visibility: visible;
+  }
+
+  #receipt-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: block !important;
+    width: 80mm;
+    max-width: 80mm;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    pointer-events: auto;
+    z-index: 99999;
+  }
+
+  .receipt-print__inner {
+    width: 80mm;
+    margin: 0;
+    padding: 2mm;
+  }
+}

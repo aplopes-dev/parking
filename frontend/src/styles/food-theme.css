@@ -1,0 +1,33 @@
+/* Paleta Aplopes Estacionamento — azul profissional */
+:root {
+  --brand-primary: #2563eb;
+  --brand-primary-hover: #1d4ed8;
+  --brand-primary-dark: #1e40af;
+  --brand-on-primary: #ffffff;
+  --surface-page: #f7f7f7;
+  --surface-card: #ffffff;
+  --border-default: #e5e5e5;
+  --text-primary: #1a1a1a;
+  --text-muted: #6b6b6b;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --brand-focus-ring: 0 0 0 4px rgba(37, 99, 235, 0.22);
+
+  --food-brand-50: #eff6ff;
+  --food-brand-100: #dbeafe;
+  --food-brand-200: #bfdbfe;
+  --food-brand-400: #60a5fa;
+  --food-brand-500: #3b82f6;
+  --food-brand-600: var(--brand-primary);
+  --food-brand-700: var(--brand-primary-dark);
+  --food-surface-dark: #0f172a;
+  --food-surface-dark-2: #1e293b;
+  --food-surface-dark-3: #334155;
+  --food-text-on-dark: #ffffff;
+  --food-text-muted-on-dark: #94a3b8;
+  --food-gradient-brand: var(--brand-primary);
+  --food-shadow-brand: 0 2px 8px rgba(37, 99, 235, 0.2);
+  --food-radius-lg: 8px;
+  --food-radius-xl: 8px;
+}

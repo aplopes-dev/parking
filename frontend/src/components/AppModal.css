@@ -1,0 +1,168 @@
+/* Shell compartilhado — modais de cadastro (padrão iFood) */
+.app-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.app-modal {
+  width: min(520px, 100%);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border-default, #e5e5e5);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--shadow-card, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.app-modal--wide {
+  width: min(920px, 100%);
+  max-height: 92vh;
+}
+
+.app-modal--wide .app-modal-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.app-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px 10px;
+  border-bottom: 1px solid var(--border-default, #e5e5e5);
+}
+
+.app-modal-header .catalog-badge {
+  margin-bottom: 10px;
+}
+
+.app-modal-header h3 {
+  margin: 0;
+  color: var(--text-primary, #1a1a1a);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.app-modal-subtitle {
+  margin: 6px 0 0;
+  color: var(--text-muted, #6b6b6b);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.app-modal-subtitle strong {
+  color: var(--text-primary, #1a1a1a);
+  font-weight: 700;
+}
+
+.app-modal-close {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--radius-md, 6px);
+  background: #fafafa;
+  color: var(--text-muted, #6b6b6b);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.app-modal-close:hover:not(:disabled) {
+  background: #f0f0f0;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.app-modal-close:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.app-modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+
+.app-modal-body p {
+  margin: 0;
+  color: var(--text-primary, #1a1a1a);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.app-modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 14px 24px 18px;
+  border-top: 1px solid var(--border-default, #e5e5e5);
+}
+
+/* Botões de rodapé (compartilhados com formulários de catálogo) */
+.catalog-form-footer-btn {
+  min-height: var(--premium-field-height, 52px);
+  padding: 0 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: var(--radius-md, 6px);
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.catalog-form-footer-btn--ghost {
+  border: 1px solid var(--border-default, #e5e5e5);
+  background: #ffffff;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.catalog-form-footer-btn--ghost:hover:not(:disabled) {
+  border-color: #d4d4d4;
+  background: #fafafa;
+}
+
+.catalog-form-footer-btn--primary {
+  border: 0;
+  background: var(--brand-primary, #ea1d2c);
+  color: #ffffff;
+}
+
+.catalog-form-footer-btn--primary:hover:not(:disabled) {
+  background: var(--brand-primary-hover, #d41928);
+}
+
+.catalog-form-footer-btn--primary.is-loading {
+  cursor: wait;
+  opacity: 0.96;
+}
+
+.catalog-form-footer-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+@media (max-width: 520px) {
+  .app-modal-footer {
+    flex-direction: column-reverse;
+  }
+
+  .app-modal-footer .catalog-form-footer-btn {
+    width: 100%;
+  }
+}

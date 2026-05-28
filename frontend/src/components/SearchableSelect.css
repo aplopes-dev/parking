@@ -1,0 +1,9 @@
+.searchable-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* Lista renderizada no body (modais) — posição via inline style */
+.searchable-select-dropdown--portal {
+  position: fixed;
+}

@@ -1,0 +1,54 @@
+.stock-movements-toolbar__field {
+  margin-bottom: 0;
+  min-width: 220px;
+}
+
+.catalog-registry-table--stock-movements .catalog-registry-table__head,
+.catalog-registry-table--stock-movements .catalog-registry-row {
+  grid-template-columns:
+    156px
+    minmax(160px, 0.95fr)
+    minmax(180px, 1fr)
+    120px
+    minmax(170px, 0.9fr)
+    minmax(220px, 1.2fr);
+  justify-items: center;
+}
+
+.catalog-registry-table--stock-movements .catalog-registry-table__head .catalog-sortable-th {
+  justify-content: center;
+  width: 100%;
+  text-align: center;
+}
+
+.catalog-registry-table--stock-movements .catalog-registry-contact {
+  white-space: nowrap;
+  text-align: center;
+}
+
+.stock-movements-table__reason {
+  color: var(--text-primary, #1a1a1a);
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .catalog-registry-table--stock-movements .catalog-registry-table__head {
+    display: none;
+  }
+
+  .catalog-registry-table--stock-movements .catalog-registry-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .catalog-registry-table--stock-movements .stock-movements-table__reason {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+}

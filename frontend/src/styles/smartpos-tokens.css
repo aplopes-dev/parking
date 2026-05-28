@@ -1,0 +1,33 @@
+/* Tokens SmartPOS — interação, foco e superfícies (reutilizáveis no painel salão) */
+:root {
+  --smartpos-transition: all 0.2s ease-in-out;
+  --smartpos-focus-ring: 0 0 0 3px rgba(234, 88, 12, 0.45);
+  --smartpos-focus-outline: 2px solid var(--food-brand-500, #f97316);
+  --smartpos-focus-offset: 2px;
+
+  --smartpos-surface-hero: #1a1510;
+  --smartpos-surface-panel: rgba(255, 255, 255, 0.96);
+  --smartpos-text-primary: #1a1510;
+  --smartpos-text-muted: #64748b;
+  --smartpos-text-on-hero: #faf8f5;
+  --smartpos-text-muted-hero: #d6cfc0;
+  --smartpos-border: #e2e8f0;
+  --smartpos-border-panel: rgba(191, 219, 254, 0.85);
+
+  /* Toasts usam Toast.css alinhado ao catálogo (surface branca + faixa lateral) */
+  --toast-success-bg: #ffffff;
+  --toast-success-border: var(--border-default, #e5e5e5);
+  --toast-success-text: var(--text-primary, #1a1a1a);
+  --toast-error-bg: #ffffff;
+  --toast-error-border: var(--border-default, #e5e5e5);
+  --toast-error-text: var(--text-primary, #1a1a1a);
+  --toast-info-bg: #ffffff;
+  --toast-info-border: var(--border-default, #e5e5e5);
+  --toast-info-text: var(--text-primary, #1a1a1a);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --smartpos-transition: none;
+  }
+}

@@ -1,0 +1,50 @@
+.loading-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loading-spinner__svg {
+  animation: loading-spinner-rotate 0.8s linear infinite;
+}
+
+.loading-spinner--sm .loading-spinner__svg {
+  width: 18px;
+  height: 18px;
+}
+
+.loading-spinner--md .loading-spinner__svg {
+  width: 24px;
+  height: 24px;
+}
+
+.loading-spinner--lg .loading-spinner__svg {
+  width: 32px;
+  height: 32px;
+}
+
+.loading-spinner__track {
+  stroke: rgba(148, 163, 184, 0.35);
+}
+
+.loading-spinner__arc {
+  stroke: var(--food-brand-500, #f97316);
+  stroke-dasharray: 48 120;
+}
+
+.loading-spinner__label {
+  font-size: 0.82rem;
+  color: var(--smartpos-text-muted, #64748b);
+}
+
+@keyframes loading-spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner__svg {
+    animation: none;
+  }
+}

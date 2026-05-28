@@ -1,0 +1,101 @@
+/* Notificações — mesmo visual de catalog-surface / app-modal (não banner colorido SmartPOS) */
+
+.toast-viewport {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: min(400px, calc(100vw - 40px));
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #ffffff;
+  box-shadow: var(--shadow-card, 0 2px 8px rgba(0, 0, 0, 0.08));
+  color: var(--text-primary, #1a1a1a);
+  pointer-events: auto;
+  animation: toast-enter 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toast--success,
+.toast--error,
+.toast--info {
+  box-shadow: var(--shadow-card, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.toast__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast__kicker {
+  display: inline-block;
+  margin-bottom: 6px;
+}
+
+.toast__message {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.toast__dismiss {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius-md, 6px);
+  background: #fafafa;
+  color: var(--text-muted, #6b6b6b);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.toast__dismiss:hover {
+  background: #f0f0f0;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.toast__dismiss:focus-visible {
+  outline: 2px solid var(--brand-primary, #ea1d2c);
+  outline-offset: 2px;
+}
+
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .toast-viewport {
+    left: 16px;
+    right: 16px;
+    max-width: none;
+  }
+}

@@ -1,0 +1,120 @@
+.multistore-page .catalog-stats-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .multistore-page .catalog-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .multistore-page .catalog-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.multistore-code-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  background: #fafafa;
+  border: 1px dashed var(--border-default, #e5e5e5);
+  margin-top: 8px;
+}
+
+.multistore-code-box code {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--brand-primary, #ea1d2c);
+}
+
+.multistore-units-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.multistore-unit-card {
+  padding: 16px 18px;
+  border: 1px solid var(--border-default, #e5e5e5);
+  border-radius: 8px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.multistore-unit-card.is-current {
+  border-color: var(--brand-primary, #ea1d2c);
+  box-shadow: 0 0 0 1px rgba(234, 29, 44, 0.12);
+}
+
+.multistore-unit-card strong {
+  font-size: 1rem;
+}
+
+.multistore-unit-card span {
+  font-size: 0.85rem;
+  color: var(--text-muted, #6b6b6b);
+}
+
+.multistore-period-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px 20px;
+}
+
+.multistore-period-bar .form-group {
+  margin: 0;
+  flex: 1 1 140px;
+  max-width: 200px;
+}
+
+.multistore-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.multistore-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.multistore-table th,
+.multistore-table td {
+  padding: 12px 24px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-default, #e5e5e5);
+}
+
+.multistore-table th {
+  background: #fafafa;
+  color: var(--text-muted, #6b6b6b);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.multistore-table tbody tr:hover {
+  background: #fcfcfc;
+}
+
+.multistore-chart-wrap {
+  width: 100%;
+  height: 280px;
+  margin-top: 8px;
+}
+
+.multistore-report-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}

@@ -1,0 +1,85 @@
+# Estacionamento — API + painel web (cópia do stack Aplopes Food).
+#
+# Dependências FORA deste arquivo (rede compartilhada feedback_feedback_network):
+#   - PostgreSQL  → hostname: postgres  (porta 5439 no host)
+#   - MinIO       → hostname: minio      (API :9008, console :9009)
+#
+# Portas no host (sem conflito com bomdepreco 3082/3083, essap 3080/3081, food 3070/3071):
+#   frontend 3084, backend 3085
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: estacionamento_backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      TYPEORM_SYNCHRONIZE: ${TYPEORM_SYNCHRONIZE:-false}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-feedback_user}:${POSTGRES_PASSWORD:-feedback_pass}@postgres:5432/${POSTGRES_DB:-estacionamento_db}
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      MINIO_BUCKET: ${MINIO_BUCKET:-estacionamento-files}
+      EMAIL_HOST: ${EMAIL_HOST:-smtp.gmail.com}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_USER: ${EMAIL_USER:-}
+      EMAIL_PASS: ${EMAIL_PASS:-}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3084}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3084,https://estacionamento.aplopes.com}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_API_URL: ${AI_API_URL:-https://api.openai.com/v1/chat/completions}
+      AI_MODEL: ${AI_MODEL:-gpt-4o-mini}
+      AI_SYSTEM_PROMPT: ${AI_SYSTEM_PROMPT:-}
+    ports:
+      - "3085:3000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - estacionamento_network
+      - shared_feedback_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    command: sh -c "npm run migration:run && npm run start:dev"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: estacionamento_frontend
+    restart: unless-stopped
+    environment:
+      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:3085}
+    ports:
+      - "3084:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - estacionamento_network
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    command: npm start
+
+networks:
+  estacionamento_network:
+    driver: bridge
+  shared_feedback_network:
+    external: true
+    name: feedback_feedback_network

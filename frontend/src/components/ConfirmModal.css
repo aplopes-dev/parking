@@ -1,0 +1,12 @@
+.app-modal-body p {
+  color: var(--text-muted, #6b6b6b);
+}
+
+.catalog-form-footer-btn--danger {
+  background: var(--brand-primary, #ea1d2c);
+  color: #ffffff;
+}
+
+.catalog-form-footer-btn--danger:hover:not(:disabled) {
+  background: var(--brand-primary-hover, #d41928);
+}
