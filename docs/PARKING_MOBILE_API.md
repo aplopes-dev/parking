@@ -75,6 +75,8 @@ O painel web em `/estacionamento/valet` e o app Android consomem os mesmos event
 
 Na entrega (`deliver`), informe `paymentMethod`: `cash`, `pix`, `credit` ou `debit`. O app Android processa PIX/cartão via PlugPag antes de chamar a API.
 
+O backend **abre automaticamente o caixa do operador** na entrega valet (SmartPOS), usando a primeira conta financeira do tipo Caixa do tenant, se ainda não houver sessão aberta.
+
 ## Portas locais (Docker) vs produção
 
 | Ambiente | API | Painel |

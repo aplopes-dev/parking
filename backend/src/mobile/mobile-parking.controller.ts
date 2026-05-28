@@ -139,7 +139,7 @@ export class MobileParkingController {
     @Param('id') id: string,
     @Body() dto: DeliverValetTicketDto,
   ) {
-    const ticket = await this.valetService.deliverVehicle(user.tenantId, id, dto, user.id);
+    const ticket = await this.valetService.deliverVehicle(user.tenantId, id, dto, user);
     await this.mobileParking.broadcastValetUpdated(user.tenantId, ticket.facilityId, 'delivered');
     return ticket;
   }

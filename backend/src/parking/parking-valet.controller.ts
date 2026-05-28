@@ -132,7 +132,7 @@ export class ParkingValetController {
     @Param('id') id: string,
     @Body() dto: DeliverValetTicketDto,
   ) {
-    const ticket = await this.valetService.deliverVehicle(user.tenantId, id, dto, user.id);
+    const ticket = await this.valetService.deliverVehicle(user.tenantId, id, dto, user);
     await this.valetBroadcast.notify(user.tenantId, ticket.facilityId, 'delivered');
     return ticket;
   }

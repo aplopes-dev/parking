@@ -113,6 +113,37 @@ export class ParkingCashService {
     return session;
   }
 
+  /** Abre o caixa do operador se ainda não houver sessão aberta (SmartPOS / valet). */
+  async ensureOpenCashSession(user: User, facilityId?: string) {
+    const existing = await this.financeOps.getOpenCashSessionForUser(user.tenantId, user.id);
+    if (existing) return existing;
+
+    const account = await this.resolveDefaultCashAccount(user.tenantId);
+    if (!account) {
+      throw new BadRequestException(
+        'Cadastre uma conta financeira do tipo Caixa em Gestão financeira',
+      );
+    }
+
+    return this.financeOps.openOperatorCashSession(
+      user,
+      account.id,
+      0,
+      facilityId,
+      'Caixa aberto automaticamente — SmartPOS Valet',
+    );
+  }
+
+  async checkoutWithAutoCash(
+    user: User,
+    sessionId: string,
+    dto: ParkingCheckoutDto,
+    facilityId?: string,
+  ) {
+    await this.ensureOpenCashSession(user, facilityId);
+    return this.checkout(user.tenantId, user.id, sessionId, dto);
+  }
+
   async closeMyCashSession(user: User, sessionId: string, countedBalance: number, notes?: string) {
     const open = await this.cashSessionsRepo.findOne({
       where: {

@@ -253,18 +253,18 @@ export class ParkingValetService {
     tenantId: string,
     ticketId: string,
     dto: DeliverValetTicketDto,
-    userId: string,
+    user: User,
   ) {
     const ticket = await this.getTicketOrThrow(tenantId, ticketId);
     this.assertStatus(ticket, [ValetTicketStatus.READY]);
 
     if (ticket.sessionId) {
-      await this.cashService.checkout(tenantId, userId, ticket.sessionId, {
+      await this.cashService.checkoutWithAutoCash(user, ticket.sessionId, {
         tariffId: dto.tariffId,
         paymentMethod: dto.paymentMethod,
         accountId: dto.accountId,
         notes: dto.notes?.trim() || 'Entrega valet',
-      });
+      }, ticket.facilityId);
     }
 
     ticket.status = ValetTicketStatus.DELIVERED;
