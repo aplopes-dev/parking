@@ -39,7 +39,7 @@ import { OrderPayment } from '../pdv/entities/order-payment.entity';
 
 @Module({
   imports: [
-    PdvModule,
+    forwardRef(() => PdvModule),
     forwardRef(() => ParkingModule),
     TypeOrmModule.forFeature([
       PaymentSettings,
