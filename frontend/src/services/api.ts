@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from 'axios';
 
 /**
- * Produção: proxy expõe `/api` → backend (ex.: https://food.aplopes.com/api).
+ * Produção: https://estacionamento.aplopes.com/api
  * Docker/local: backend direto em :3071, sem prefixo `/api`.
  */
 const api: AxiosInstance = axios.create({

@@ -10,6 +10,7 @@ import { Server, WebSocket } from 'ws';
 import { IncomingMessage } from 'http';
 import { MobileRealtimeService } from './mobile-realtime.service';
 import { MobileService } from './mobile.service';
+import { MobileParkingService } from './mobile-parking.service';
 import { WaiterNotificationService } from './waiter-notification.service';
 
 type ClientMeta = WebSocket & { tenantId?: string; userId?: string };
@@ -25,6 +26,7 @@ export class MobileRealtimeGateway implements OnGatewayConnection, OnGatewayDisc
     private readonly realtime: MobileRealtimeService,
     private readonly jwtService: JwtService,
     private readonly mobileService: MobileService,
+    private readonly mobileParking: MobileParkingService,
     private readonly waiterNotifications: WaiterNotificationService,
   ) {}
 
@@ -74,6 +76,17 @@ export class MobileRealtimeGateway implements OnGatewayConnection, OnGatewayDisc
           }),
         );
       }
+
+      const valetPayload = await this.mobileParking.buildValetPayload(payload.tid);
+      client.send(
+        JSON.stringify({
+          event: 'parking.valet.snapshot',
+          data: {
+            ...valetPayload,
+            facilityId: null,
+          },
+        }),
+      );
 
       this.logger.log(`WS conectado — tenant ${payload.tid} user ${payload.sub}`);
     } catch {

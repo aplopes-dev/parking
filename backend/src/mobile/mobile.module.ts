@@ -1,4 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { ParkingModule } from '../parking/parking.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -15,9 +16,12 @@ import { MobileController } from './mobile.controller';
 import { MobileRealtimeService } from './mobile-realtime.service';
 import { MobileRealtimeGateway } from './mobile-realtime.gateway';
 import { WaiterNotificationService } from './waiter-notification.service';
+import { MobileParkingService } from './mobile-parking.service';
+import { MobileParkingController } from './mobile-parking.controller';
 
 @Module({
   imports: [
+    forwardRef(() => ParkingModule),
     TypeOrmModule.forFeature([
       RestaurantTable,
       ProductGroup,
@@ -36,13 +40,14 @@ import { WaiterNotificationService } from './waiter-notification.service';
       inject: [ConfigService],
     }),
   ],
-  controllers: [MobileController],
+  controllers: [MobileController, MobileParkingController],
   providers: [
     MobileService,
+    MobileParkingService,
     MobileRealtimeService,
     MobileRealtimeGateway,
     WaiterNotificationService,
   ],
-  exports: [MobileService, MobileRealtimeService],
+  exports: [MobileService, MobileParkingService, MobileRealtimeService],
 })
 export class MobileModule {}

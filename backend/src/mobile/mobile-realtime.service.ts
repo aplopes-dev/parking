@@ -6,7 +6,24 @@ export type MobileRealtimeEvent =
   | { event: 'tables.updated'; data: { tables: unknown[]; source?: string } }
   | { event: 'kitchen.updated'; data: { source?: string } }
   | { event: 'waiter.notification'; data: { notification: unknown } }
-  | { event: 'waiter.notifications.snapshot'; data: { notifications: unknown[] } };
+  | { event: 'waiter.notifications.snapshot'; data: { notifications: unknown[] } }
+  | {
+      event: 'parking.valet.snapshot';
+      data: {
+        queue: unknown;
+        tickets: unknown[];
+        facilityId?: string | null;
+      };
+    }
+  | {
+      event: 'parking.valet.updated';
+      data: {
+        queue: unknown;
+        tickets: unknown[];
+        facilityId?: string | null;
+        source?: string;
+      };
+    };
 
 type TrackedClient = {
   socket: WebSocket;

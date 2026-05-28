@@ -43,7 +43,7 @@ const MobileIntegration: React.FC = () => {
   const showKitchenDotOnTables = true;
   const showWaiterDeliveryPanel = true;
   const toast = useToast();
-  const apiBase = process.env.REACT_APP_API_URL || 'https://food.aplopes.com/api';
+  const apiBase = process.env.REACT_APP_API_URL || 'https://estacionamento.aplopes.com/api';
 
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [removeModalOpen, setRemoveModalOpen] = useState(false);

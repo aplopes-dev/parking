@@ -103,7 +103,7 @@ const PdvWorkspace: React.FC<Props> = ({
   const [editOrderModalOpen, setEditOrderModalOpen] = useState(false);
   const orderStatusPanelRef = useRef<HTMLDivElement>(null);
   const [tableOptions, setTableOptions] = useState<{ value: string; label: string }[]>([]);
-  const apiBase = process.env.REACT_APP_API_URL || 'https://food.aplopes.com/api';
+  const apiBase = process.env.REACT_APP_API_URL || 'https://estacionamento.aplopes.com/api';
 
   const canOperate = Boolean(user);
 

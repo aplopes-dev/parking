@@ -2,11 +2,13 @@ import {
   Body,
   Controller,
   Get,
+  Inject,
   Param,
   Patch,
   Post,
   Query,
   UseGuards,
+  forwardRef,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -14,6 +16,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { User, UserRole } from '../users/entities/user.entity';
+import { MobileParkingService } from '../mobile/mobile-parking.service';
 import {
   AssignValetDto,
   CreateValetTicketDto,
@@ -32,7 +35,11 @@ const PARKING_ROLES = Object.values(UserRole);
 @Roles(...PARKING_ROLES)
 @ApiBearerAuth()
 export class ParkingValetController {
-  constructor(private readonly valetService: ParkingValetService) {}
+  constructor(
+    private readonly valetService: ParkingValetService,
+    @Inject(forwardRef(() => MobileParkingService))
+    private readonly mobileParking: MobileParkingService,
+  ) {}
 
   @Get('valets')
   listValets(@CurrentUser() user: User) {
@@ -50,67 +57,93 @@ export class ParkingValetController {
   }
 
   @Post('tickets')
-  receiveVehicle(@CurrentUser() user: User, @Body() dto: CreateValetTicketDto) {
-    return this.valetService.receiveVehicle(user.tenantId, dto);
+  async receiveVehicle(@CurrentUser() user: User, @Body() dto: CreateValetTicketDto) {
+    const ticket = await this.valetService.receiveVehicle(user.tenantId, dto);
+    await this.mobileParking.broadcastValetUpdated(user.tenantId, dto.facilityId, 'receive');
+    return ticket;
   }
 
   @Patch('tickets/:id')
-  updateTicket(
+  async updateTicket(
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() dto: UpdateValetTicketDto,
   ) {
-    return this.valetService.updateTicket(user.tenantId, id, dto);
+    const ticket = await this.valetService.updateTicket(user.tenantId, id, dto);
+    await this.mobileParking.broadcastValetUpdated(user.tenantId, ticket.facilityId, 'update');
+    return ticket;
   }
 
   @Post('tickets/:id/park/start')
-  startParking(
+  async startParking(
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() dto: AssignValetDto,
   ) {
-    return this.valetService.startParking(user.tenantId, id, dto.assignedValetId ?? undefined);
+    const ticket = await this.valetService.startParking(
+      user.tenantId,
+      id,
+      dto.assignedValetId ?? undefined,
+    );
+    await this.mobileParking.broadcastValetUpdated(user.tenantId, ticket.facilityId, 'parkStart');
+    return ticket;
   }
 
   @Post('tickets/:id/park/complete')
-  markParked(
+  async markParked(
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() dto: ParkValetVehicleDto,
   ) {
-    return this.valetService.markParked(user.tenantId, id, dto);
+    const ticket = await this.valetService.markParked(user.tenantId, id, dto);
+    await this.mobileParking.broadcastValetUpdated(user.tenantId, ticket.facilityId, 'parked');
+    return ticket;
   }
 
   @Post('tickets/:id/request')
-  requestRetrieval(@CurrentUser() user: User, @Param('id') id: string) {
-    return this.valetService.requestRetrieval(user.tenantId, id);
+  async requestRetrieval(@CurrentUser() user: User, @Param('id') id: string) {
+    const ticket = await this.valetService.requestRetrieval(user.tenantId, id);
+    await this.mobileParking.broadcastValetUpdated(user.tenantId, ticket.facilityId, 'requested');
+    return ticket;
   }
 
   @Post('tickets/:id/retrieve/start')
-  startRetrieval(
+  async startRetrieval(
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() dto: AssignValetDto,
   ) {
-    return this.valetService.startRetrieval(user.tenantId, id, dto.assignedValetId ?? undefined);
+    const ticket = await this.valetService.startRetrieval(
+      user.tenantId,
+      id,
+      dto.assignedValetId ?? undefined,
+    );
+    await this.mobileParking.broadcastValetUpdated(user.tenantId, ticket.facilityId, 'retrieveStart');
+    return ticket;
   }
 
   @Post('tickets/:id/ready')
-  markReady(@CurrentUser() user: User, @Param('id') id: string) {
-    return this.valetService.markReady(user.tenantId, id);
+  async markReady(@CurrentUser() user: User, @Param('id') id: string) {
+    const ticket = await this.valetService.markReady(user.tenantId, id);
+    await this.mobileParking.broadcastValetUpdated(user.tenantId, ticket.facilityId, 'ready');
+    return ticket;
   }
 
   @Post('tickets/:id/deliver')
-  deliverVehicle(
+  async deliverVehicle(
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() dto: DeliverValetTicketDto,
   ) {
-    return this.valetService.deliverVehicle(user.tenantId, id, dto, user.id);
+    const ticket = await this.valetService.deliverVehicle(user.tenantId, id, dto, user.id);
+    await this.mobileParking.broadcastValetUpdated(user.tenantId, ticket.facilityId, 'delivered');
+    return ticket;
   }
 
   @Post('tickets/:id/cancel')
-  cancelTicket(@CurrentUser() user: User, @Param('id') id: string) {
-    return this.valetService.cancelTicket(user.tenantId, id);
+  async cancelTicket(@CurrentUser() user: User, @Param('id') id: string) {
+    const ticket = await this.valetService.cancelTicket(user.tenantId, id);
+    await this.mobileParking.broadcastValetUpdated(user.tenantId, ticket.facilityId, 'canceled');
+    return ticket;
   }
 }

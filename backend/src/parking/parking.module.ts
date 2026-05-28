@@ -1,6 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
+import { MobileModule } from '../mobile/mobile.module';
 import { CrmModule } from '../crm/crm.module';
 import { FinanceModule } from '../finance/finance.module';
 import { PaymentsModule } from '../payments/payments.module';
@@ -70,6 +71,7 @@ import { ParkingDeviceGuard } from './parking-device.guard';
       User,
     ]),
     AuthModule,
+    forwardRef(() => MobileModule),
     CrmModule,
     FinanceModule,
     forwardRef(() => PaymentsModule),

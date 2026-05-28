@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
 import AlertModal from '../../components/AlertModal';
+import { useMobileRealtime } from '../integration/useMobileRealtime';
 import {
   cancelValetTicket,
   completeValetParking,
@@ -299,12 +300,21 @@ export const ParkingValetPage: React.FC = () => {
       .finally(() => setLoading(false));
   }, [load]);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      load().catch(() => undefined);
-    }, 30000);
-    return () => clearInterval(timer);
-  }, [load]);
+  useMobileRealtime({
+    enabled: Boolean(localStorage.getItem('token') && facilityId),
+    onValetUpdate: (payload) => {
+      if (payload.facilityId && payload.facilityId !== facilityId) return;
+      setSummary(payload.queue);
+      const tickets = payload.tickets as ValetTicket[];
+      setIntake(tickets.filter((t) => t.status === 'received' || t.status === 'parking'));
+      setParked(tickets.filter((t) => t.status === 'parked'));
+      setDelivery(
+        tickets.filter((t) =>
+          ['requested', 'retrieving', 'ready'].includes(t.status),
+        ),
+      );
+    },
+  });
 
   const handleReceive = async (e: React.FormEvent) => {
     e.preventDefault();

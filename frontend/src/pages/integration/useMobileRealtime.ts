@@ -3,7 +3,7 @@ import { MobileTable, WsConnectionState } from './smartPosTypes';
 import { WaiterNotification } from './waiterNotificationTypes';
 
 export function buildMobileWsUrl(token: string): string {
-  const apiBase = process.env.REACT_APP_API_URL || 'http://localhost:3071';
+  const apiBase = process.env.REACT_APP_API_URL || 'https://estacionamento.aplopes.com/api';
   const url = new URL(apiBase);
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   const basePath = url.pathname.replace(/\/$/, '');
@@ -14,11 +14,17 @@ export function buildMobileWsUrl(token: string): string {
 
 type Options = {
   enabled: boolean;
-  onTablesUpdate: (tables: MobileTable[], source?: string) => void;
+  onTablesUpdate?: (tables: MobileTable[], source?: string) => void;
   onWaiterNotification?: (payload: WaiterNotification | WaiterNotification[]) => void;
+  onValetUpdate?: (payload: {
+    queue: { intake: number; parked: number; delivery: number; totalActive: number };
+    tickets: unknown[];
+    facilityId?: string | null;
+    source?: string;
+  }) => void;
 };
 
-export function useMobileRealtime({ enabled, onTablesUpdate, onWaiterNotification }: Options) {
+export function useMobileRealtime({ enabled, onTablesUpdate, onWaiterNotification, onValetUpdate }: Options) {
   const [wsState, setWsState] = useState<WsConnectionState>('offline');
   const [lastEvent, setLastEvent] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -27,6 +33,8 @@ export function useMobileRealtime({ enabled, onTablesUpdate, onWaiterNotificatio
   onTablesRef.current = onTablesUpdate;
   const onWaiterRef = useRef(onWaiterNotification);
   onWaiterRef.current = onWaiterNotification;
+  const onValetRef = useRef(onValetUpdate);
+  onValetRef.current = onValetUpdate;
 
   const disconnect = useCallback(() => {
     if (retryRef.current) {
@@ -64,6 +72,9 @@ export function useMobileRealtime({ enabled, onTablesUpdate, onWaiterNotificatio
             source?: string;
             notification?: WaiterNotification;
             notifications?: WaiterNotification[];
+            queue?: { intake: number; parked: number; delivery: number; totalActive: number };
+            tickets?: unknown[];
+            facilityId?: string | null;
           };
         };
         if (
@@ -71,7 +82,20 @@ export function useMobileRealtime({ enabled, onTablesUpdate, onWaiterNotificatio
           msg.data?.tables
         ) {
           setLastEvent(msg.data.source ?? msg.event);
-          onTablesRef.current(msg.data.tables, msg.data.source);
+          onTablesRef.current?.(msg.data.tables, msg.data.source);
+        }
+        if (
+          (msg.event === 'parking.valet.updated' || msg.event === 'parking.valet.snapshot') &&
+          msg.data?.queue &&
+          msg.data.tickets
+        ) {
+          setLastEvent(msg.data.source ?? msg.event);
+          onValetRef.current?.({
+            queue: msg.data.queue,
+            tickets: msg.data.tickets,
+            facilityId: msg.data.facilityId,
+            source: msg.data.source,
+          });
         }
         if (msg.event === 'waiter.notification' && msg.data?.notification) {
           onWaiterRef.current?.(msg.data.notification);
