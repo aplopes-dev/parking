@@ -10,7 +10,7 @@ import { User } from '../users/entities/user.entity';
 import { ParkingFacility } from './entities/parking-facility.entity';
 import { ParkingSpot } from './entities/parking-spot.entity';
 import { ParkingValetTicket } from './entities/parking-valet-ticket.entity';
-import { ValetTicketStatus, VehicleType } from './entities/parking.enums';
+import { ValetTicketStatus, VehicleType, ParkingSpotStatus } from './entities/parking.enums';
 import { ParkingService } from './parking.service';
 import { ParkingCashService } from './parking-cash.service';
 import {
@@ -207,8 +207,13 @@ export class ParkingValetService {
         where: { id: dto.parkedSpotId, tenantId, facilityId: ticket.facilityId },
       });
       if (!spot) throw new NotFoundException('Vaga não encontrada');
+      if (spot.status !== ParkingSpotStatus.AVAILABLE) {
+        throw new BadRequestException('A vaga selecionada não está disponível');
+      }
       ticket.parkedSpotId = spot.id;
       if (!dto.parkedLocation) ticket.parkedLocation = spot.code;
+      spot.status = ParkingSpotStatus.OCCUPIED;
+      await this.spotsRepo.save(spot);
     }
     if (dto.parkedLocation?.trim()) {
       ticket.parkedLocation = dto.parkedLocation.trim();
@@ -267,6 +272,8 @@ export class ParkingValetService {
       }, ticket.facilityId);
     }
 
+    await this.releaseParkedSpot(tenantId, ticket.parkedSpotId);
+
     ticket.status = ValetTicketStatus.DELIVERED;
     ticket.deliveredAt = new Date();
     if (dto.notes?.trim()) {
@@ -320,8 +327,17 @@ export class ParkingValetService {
       throw new BadRequestException('Ticket já encerrado');
     }
     ticket.status = ValetTicketStatus.CANCELED;
+    await this.releaseParkedSpot(tenantId, ticket.parkedSpotId);
     await this.ticketsRepo.save(ticket);
     return this.getTicketOrThrow(tenantId, ticketId);
+  }
+
+  private async releaseParkedSpot(tenantId: string, spotId: string | null) {
+    if (!spotId) return;
+    const spot = await this.spotsRepo.findOne({ where: { id: spotId, tenantId } });
+    if (!spot) return;
+    spot.status = ParkingSpotStatus.AVAILABLE;
+    await this.spotsRepo.save(spot);
   }
 
   private validateTransition(from: ValetTicketStatus, to: ValetTicketStatus) {

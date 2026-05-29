@@ -65,7 +65,8 @@ data class ParkingSpotDto(
     val id: String,
     val code: String,
     val floor: String?,
-    val zone: String?
+    val zone: String?,
+    val status: String? = "available"
 )
 
 data class ParkingTariffDto(

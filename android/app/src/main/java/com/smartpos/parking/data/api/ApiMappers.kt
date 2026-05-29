@@ -53,7 +53,8 @@ object ApiMappers {
         id = id,
         code = code,
         floor = floor,
-        zone = zone
+        zone = zone,
+        status = status ?: "available"
     )
 
     fun ParkingTariffDto.toDomain(): ParkingTariff {

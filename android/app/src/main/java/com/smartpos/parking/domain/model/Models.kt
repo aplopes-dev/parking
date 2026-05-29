@@ -69,8 +69,11 @@ data class ParkingSpot(
     val id: String,
     val code: String,
     val floor: String?,
-    val zone: String?
-)
+    val zone: String?,
+    val status: String = "available"
+) {
+    val isAvailable: Boolean get() = status.equals("available", ignoreCase = true)
+}
 
 data class ParkingTariff(
     val id: String,

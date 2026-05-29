@@ -95,34 +95,33 @@ fun TicketDetailScreen(
             when (ticket.status) {
                 ValetTicketStatus.RECEIVED -> {
                     GoldGradientButton("Iniciar manobra", viewModel::startParking, loading = state.loading)
+                    AvailableSpotPicker(
+                        spots = state.spots,
+                        loading = state.loading,
+                        onParkInSpot = { viewModel.parkInSpot(it.id, it.code) }
+                    )
                     OutlinedTextField(
                         value = state.parkedLocation,
                         onValueChange = viewModel::setParkedLocation,
-                        label = { Text("Local estacionado") },
+                        label = { Text("Local estacionado (manual)") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = fieldColors()
                     )
                     GoldGradientButton("Marcar estacionado", viewModel::completeParking, loading = state.loading)
                 }
                 ValetTicketStatus.PARKING -> {
+                    AvailableSpotPicker(
+                        spots = state.spots,
+                        loading = state.loading,
+                        onParkInSpot = { viewModel.parkInSpot(it.id, it.code) }
+                    )
                     OutlinedTextField(
                         value = state.parkedLocation,
                         onValueChange = viewModel::setParkedLocation,
-                        label = { Text("Local estacionado") },
+                        label = { Text("Local estacionado (manual)") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = fieldColors()
                     )
-                    if (state.spots.isNotEmpty()) {
-                        Text("Vaga cadastrada", color = TextSecondary)
-                        state.spots.forEach { spot ->
-                            GoldGradientButton(
-                                text = spot.code,
-                                onClick = { viewModel.setSpotId(spot.id) },
-                                enabled = !state.loading,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    }
                     GoldGradientButton("Marcar estacionado", viewModel::completeParking, loading = state.loading)
                 }
                 ValetTicketStatus.PARKED -> {
@@ -149,6 +148,26 @@ fun TicketDetailScreen(
                 GoldGradientButton("Cancelar ticket", viewModel::cancelTicket, loading = state.loading)
             }
         }
+    }
+}
+
+@Composable
+private fun AvailableSpotPicker(
+    spots: List<com.smartpos.parking.domain.model.ParkingSpot>,
+    loading: Boolean,
+    onParkInSpot: (com.smartpos.parking.domain.model.ParkingSpot) -> Unit
+) {
+    val available = spots.filter { it.isAvailable }
+    if (available.isEmpty()) return
+
+    Text("Vagas disponíveis — toque para estacionar", color = TextSecondary)
+    available.forEach { spot ->
+        GoldGradientButton(
+            text = spot.code,
+            onClick = { onParkInSpot(spot) },
+            loading = loading,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 

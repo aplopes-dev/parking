@@ -54,6 +54,16 @@ class TicketDetailViewModel(
     fun setParkedLocation(value: String) = _ui.update { it.copy(parkedLocation = value) }
     fun setSpotId(id: String) = _ui.update { it.copy(selectedSpotId = id) }
 
+    fun parkInSpot(spotId: String, spotCode: String) = runAction(refreshSpots = true) {
+        _ui.update { it.copy(selectedSpotId = spotId, parkedLocation = spotCode) }
+        repository.completeParking(
+            ticketId,
+            spotCode,
+            spotId,
+            _ui.value.selectedValetId.takeIf { it.isNotBlank() }
+        )
+    }
+
     fun startParking() = runAction {
         repository.startParking(ticketId, _ui.value.selectedValetId.takeIf { it.isNotBlank() })
     }
@@ -79,11 +89,17 @@ class TicketDetailViewModel(
 
     fun clearMessage() = _ui.update { it.copy(message = null, error = null) }
 
-    private fun runAction(block: suspend () -> Result<ValetTicket>) {
+    private fun runAction(
+        refreshSpots: Boolean = false,
+        block: suspend () -> Result<ValetTicket>
+    ) {
         viewModelScope.launch {
             _ui.update { it.copy(loading = true, error = null) }
             block()
                 .onSuccess { ticket ->
+                    if (refreshSpots) {
+                        repository.refreshFromServer()
+                    }
                     _ui.update {
                         it.copy(loading = false, message = "Status: ${ticket.status.label}")
                     }
