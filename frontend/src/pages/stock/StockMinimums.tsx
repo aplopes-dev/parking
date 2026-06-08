@@ -8,6 +8,9 @@ import { AlertState, StockMinimum } from '../../types';
 import { useStockCatalog } from './useStockCatalog';
 import { formatQty } from './stockUtils';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import RegistryFormModal, { registryModalFooterButtons } from '../../components/RegistryFormModal';
+
+const EMPTY_MINIMUM_FORM = { productId: '', locationId: '', minimumQuantity: '0', active: true };
 
 const StockMinimumsPage: React.FC = () => {
   const { user } = useContext(AuthContext) || {};
@@ -16,7 +19,7 @@ const StockMinimumsPage: React.FC = () => {
   const [alerts, setAlerts] = useState<StockMinimum[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ productId: '', locationId: '', minimumQuantity: '0', active: true });
+  const [form, setForm] = useState(EMPTY_MINIMUM_FORM);
   const [isSaving, setIsSaving] = useState(false);
   const [alert, setAlert] = useState<AlertState>({ isOpen: false, message: '', type: 'error' });
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -48,8 +51,7 @@ const StockMinimumsPage: React.FC = () => {
         minimumQuantity: parseFloat(form.minimumQuantity),
         active: form.active,
       });
-      setShowForm(false);
-      setForm({ productId: '', locationId: '', minimumQuantity: '0', active: true });
+      closeForm();
       await load();
       setAlert({ isOpen: true, message: 'Estoque mínimo cadastrado!', type: 'success' });
     } catch (err: any) {
@@ -57,6 +59,17 @@ const StockMinimumsPage: React.FC = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const closeForm = () => {
+    if (isSaving) return;
+    setForm(EMPTY_MINIMUM_FORM);
+    setShowForm(false);
+  };
+
+  const openForm = () => {
+    setForm(EMPTY_MINIMUM_FORM);
+    setShowForm(true);
   };
 
   if (!canManage) return <div className="container">Acesso negado</div>;
@@ -70,8 +83,8 @@ const StockMinimumsPage: React.FC = () => {
       loading={loading}
       loadingDescription="Carregando estoque mínimo."
       actions={
-        <button type="button" className="catalog-action-button" onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'Fechar' : 'Novo mínimo'}
+        <button type="button" className="catalog-action-button" onClick={openForm}>
+          Novo mínimo
         </button>
       }
     >
@@ -94,23 +107,28 @@ const StockMinimumsPage: React.FC = () => {
         </section>
       )}
 
-      {showForm && !catalogLoading && (
-        <section className="catalog-surface catalog-form-surface--premium">
-          <form className="catalog-form" onSubmit={handleSubmit}>
-            <div className="catalog-form-grid">
-              <PremiumSelect label="Produto *" value={form.productId} options={[{ value: '', label: 'Selecione' }, ...productOptions]} onChange={(v) => setForm({ ...form, productId: v })} />
-              <PremiumSelect label="Local (vazio = global)" value={form.locationId} options={[{ value: '', label: 'Global' }, ...locationOptions]} onChange={(v) => setForm({ ...form, locationId: v })} />
-              <div className="form-group">
-                <label>Quantidade mínima *</label>
-                <input className="premium-text-input" type="number" min="0" step="0.0001" value={form.minimumQuantity} onChange={(e) => setForm({ ...form, minimumQuantity: e.target.value })} required />
-              </div>
-            </div>
-            <div className="catalog-form-footer">
-              <button type="submit" className="catalog-form-footer-btn catalog-form-footer-btn--primary" disabled={isSaving || !form.productId}>Salvar</button>
-            </div>
-          </form>
-        </section>
-      )}
+      <RegistryFormModal
+        isOpen={showForm && !catalogLoading}
+        title="Novo estoque mínimo"
+        subtitle="Defina limites de reposição por produto e local."
+        isSaving={isSaving}
+        onClose={closeForm}
+        onSubmit={handleSubmit}
+        footer={registryModalFooterButtons({
+          onClose: closeForm,
+          isSaving,
+          submitLabel: 'Salvar mínimo',
+        })}
+      >
+        <div className="catalog-form-grid">
+          <PremiumSelect label="Produto *" value={form.productId} options={[{ value: '', label: 'Selecione' }, ...productOptions]} onChange={(v) => setForm({ ...form, productId: v })} />
+          <PremiumSelect label="Local (vazio = global)" value={form.locationId} options={[{ value: '', label: 'Global' }, ...locationOptions]} onChange={(v) => setForm({ ...form, locationId: v })} />
+          <div className="form-group">
+            <label>Quantidade mínima *</label>
+            <input className="premium-text-input" type="number" min="0" step="0.0001" value={form.minimumQuantity} onChange={(e) => setForm({ ...form, minimumQuantity: e.target.value })} required />
+          </div>
+        </div>
+      </RegistryFormModal>
 
       <section className="catalog-surface">
         <div className="catalog-grid">

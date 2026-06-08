@@ -1,6 +1,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../services/api';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import RegistryFormModal, { registryModalFooterButtons } from '../../components/RegistryFormModal';
 import CatalogPagination from '../../components/catalog/CatalogPagination';
 import CatalogSortableTh from '../../components/catalog/CatalogSortableTh';
 import AlertModal from '../../components/AlertModal';
@@ -84,6 +85,8 @@ const ProductionNotificationsPage: React.FC = () => {
     autoRefreshSeconds: '30',
     notes: '',
   });
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
   const [alert, setAlert] = useState({ open: false, message: '' });
 
   const loadNotifications = useCallback(async () => {
@@ -192,38 +195,54 @@ const ProductionNotificationsPage: React.FC = () => {
       loadingDescription="Carregando notificações…"
       stats={!loading || overview ? stats : undefined}
       actions={
-        <button
-          type="button"
-          className="catalog-action-button is-secondary"
-          onClick={() => void loadNotifications()}
-        >
-          Atualizar
-        </button>
+        <>
+          <button
+            type="button"
+            className="catalog-action-button"
+            onClick={() => setSettingsModalOpen(true)}
+          >
+            Configurações
+          </button>
+          <button
+            type="button"
+            className="catalog-action-button is-secondary"
+            onClick={() => void loadNotifications()}
+          >
+            Atualizar
+          </button>
+        </>
       }
     >
-      <section className="catalog-surface catalog-form-surface--premium">
-        <div className="catalog-section-header">
-          <div>
-            <span className="catalog-section-kicker">Produção</span>
-            <h2>Configurações</h2>
-          </div>
-        </div>
-        <form
-          className="catalog-form"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            try {
-              await updateProductionSettings({
-                ...settings,
-                slaWarningMinutes: parseInt(settings.slaWarningMinutes, 10),
-                autoRefreshSeconds: parseInt(settings.autoRefreshSeconds, 10),
-              });
-              setAlert({ open: true, message: 'Configurações salvas.' });
-            } catch (err) {
-              setAlert({ open: true, message: errMsg(err) });
-            }
-          }}
-        >
+      <RegistryFormModal
+        isOpen={settingsModalOpen}
+        wide
+        title="Configurações de produção"
+        subtitle="Alertas para garçons e parâmetros de SLA."
+        isSaving={savingSettings}
+        onClose={() => !savingSettings && setSettingsModalOpen(false)}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setSavingSettings(true);
+          try {
+            await updateProductionSettings({
+              ...settings,
+              slaWarningMinutes: parseInt(settings.slaWarningMinutes, 10),
+              autoRefreshSeconds: parseInt(settings.autoRefreshSeconds, 10),
+            });
+            setSettingsModalOpen(false);
+            setAlert({ open: true, message: 'Configurações salvas.' });
+          } catch (err) {
+            setAlert({ open: true, message: errMsg(err) });
+          } finally {
+            setSavingSettings(false);
+          }
+        }}
+        footer={registryModalFooterButtons({
+          onClose: () => setSettingsModalOpen(false),
+          isSaving: savingSettings,
+          submitLabel: 'Salvar configuração',
+        })}
+      >
           <div className="production-notifications-checkboxes">
             <label>
               <input
@@ -293,20 +312,11 @@ const ProductionNotificationsPage: React.FC = () => {
               placeholder="Instruções para a equipe de salão"
             />
           </div>
-          <div className="catalog-form-footer">
-            <button
-              type="submit"
-              className="catalog-form-footer-btn catalog-form-footer-btn--primary"
-            >
-              Salvar configuração
-            </button>
-          </div>
-        </form>
-      </section>
+      </RegistryFormModal>
 
       <section className="catalog-surface">
-        <div className="catalog-toolbar" style={{ alignItems: 'flex-end', gap: 14 }}>
-          <div className="form-group catalog-search" style={{ marginBottom: 0 }}>
+        <div className="catalog-toolbar catalog-filter-toolbar">
+          <div className="form-group catalog-search catalog-filter-toolbar__search catalog-filter-toolbar__search--wide">
             <label htmlFor="prod-notif-search">Buscar</label>
             <input
               id="prod-notif-search"
@@ -317,7 +327,7 @@ const ProductionNotificationsPage: React.FC = () => {
               placeholder="Nº pedido, produto, mesa…"
             />
           </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
+          <div className="form-group catalog-filter-toolbar__field">
             <label htmlFor="prod-notif-date-from">De</label>
             <input
               id="prod-notif-date-from"
@@ -327,7 +337,7 @@ const ProductionNotificationsPage: React.FC = () => {
               onChange={(e) => handleDateFrom(e.target.value)}
             />
           </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
+          <div className="form-group catalog-filter-toolbar__field">
             <label htmlFor="prod-notif-date-to">Até</label>
             <input
               id="prod-notif-date-to"
@@ -339,16 +349,14 @@ const ProductionNotificationsPage: React.FC = () => {
           </div>
           <button
             type="button"
-            className="catalog-form-footer-btn catalog-form-footer-btn--primary"
-            style={{ marginBottom: 0 }}
+            className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action"
             onClick={() => { setSearchDebounced(search); setPage(1); }}
           >
             Buscar
           </button>
           <button
             type="button"
-            className="catalog-form-footer-btn catalog-form-footer-btn--ghost"
-            style={{ marginBottom: 0 }}
+            className="catalog-form-footer-btn catalog-form-footer-btn--ghost catalog-filter-toolbar__action"
             onClick={handleClear}
           >
             Limpar

@@ -15,6 +15,7 @@ import { formatQty, movementTypeLabel } from './stockUtils';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
 import CatalogPagination from '../../components/catalog/CatalogPagination';
 import CatalogSortableTh from '../../components/catalog/CatalogSortableTh';
+import RegistryFormModal, { registryModalFooterButtons } from '../../components/RegistryFormModal';
 import './StockMovements.css';
 
 const DEBOUNCE_MS = 250;
@@ -43,6 +44,7 @@ const StockMovementsPage: React.FC = () => {
     reason: '',
     notes: '',
   });
+  const [formModalOpen, setFormModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [alert, setAlert] = useState<AlertState>({ isOpen: false, message: '', type: 'error' });
 
@@ -97,6 +99,7 @@ const StockMovementsPage: React.FC = () => {
         notes: form.notes.trim() || undefined,
       });
       setForm((f) => ({ ...f, quantity: '1', reason: '', notes: '' }));
+      setFormModalOpen(false);
       setLoading(true);
       await load();
       setAlert({ isOpen: true, message: 'Movimentação registrada!', type: 'success' });
@@ -143,14 +146,32 @@ const StockMovementsPage: React.FC = () => {
       modulePath="/estoque/locais"
       title="Entrada e saída manual"
       description="Registre compras, perdas ou transferências manuais de estoque."
+      actions={
+        <button
+          type="button"
+          className="catalog-action-button"
+          onClick={() => setFormModalOpen(true)}
+          disabled={catalogLoading}
+        >
+          Nova movimentação
+        </button>
+      }
     >
-      <section className="catalog-surface catalog-form-surface--premium">
-        <h2>Nova movimentação</h2>
-        {catalogLoading ? (
-          <p>Carregando produtos e locais…</p>
-        ) : (
-          <form className="catalog-form" onSubmit={handleSubmit}>
-            <div className="catalog-form-grid">
+      <RegistryFormModal
+        isOpen={formModalOpen && !catalogLoading}
+        wide
+        title="Nova movimentação"
+        subtitle="Registre entrada ou saída manual de estoque."
+        isSaving={isSaving}
+        onClose={() => !isSaving && setFormModalOpen(false)}
+        onSubmit={handleSubmit}
+        footer={registryModalFooterButtons({
+          onClose: () => setFormModalOpen(false),
+          isSaving,
+          submitLabel: 'Registrar movimentação',
+        })}
+      >
+        <div className="catalog-form-grid">
               <PremiumSelect
                 label="Tipo *"
                 value={form.type}
@@ -195,27 +216,20 @@ const StockMovementsPage: React.FC = () => {
                 />
               </div>
             </div>
-            <div className="form-group">
-              <label>Observações</label>
-              <textarea
-                className="premium-text-input"
-                rows={2}
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              />
-            </div>
-            <div className="catalog-form-footer">
-              <button type="submit" className="catalog-form-footer-btn catalog-form-footer-btn--primary" disabled={isSaving || !form.productId || !form.locationId}>
-                {isSaving ? 'Registrando…' : 'Registrar'}
-              </button>
-            </div>
-          </form>
-        )}
-      </section>
+        <div className="form-group">
+          <label>Observações</label>
+          <textarea
+            className="premium-text-input"
+            rows={2}
+            value={form.notes}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          />
+        </div>
+      </RegistryFormModal>
 
       <section className="catalog-surface">
-        <div className="catalog-toolbar" style={{ alignItems: 'flex-end', gap: 14 }}>
-          <div className="form-group catalog-search" style={{ marginBottom: 0 }}>
+        <div className="catalog-toolbar catalog-filter-toolbar">
+          <div className="form-group catalog-search catalog-filter-toolbar__search catalog-filter-toolbar__search--wide">
             <label htmlFor="stock-mov-search">Buscar</label>
             <input
               id="stock-mov-search"
@@ -231,7 +245,7 @@ const StockMovementsPage: React.FC = () => {
               placeholder="Produto, local, tipo, motivo..."
             />
           </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
+          <div className="form-group catalog-filter-toolbar__field">
             <label htmlFor="stock-mov-date-from">De</label>
             <input
               id="stock-mov-date-from"
@@ -244,7 +258,7 @@ const StockMovementsPage: React.FC = () => {
               }}
             />
           </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
+          <div className="form-group catalog-filter-toolbar__field">
             <label htmlFor="stock-mov-date-to">Até</label>
             <input
               id="stock-mov-date-to"
@@ -261,7 +275,7 @@ const StockMovementsPage: React.FC = () => {
             label="Filtrar por local"
             value={filterLocation}
             options={[{ value: '', label: 'Todos' }, ...locationOptions]}
-            wrapperClassName="form-group stock-movements-toolbar__field"
+            wrapperClassName="form-group catalog-filter-toolbar__field"
             onChange={(v) => {
               setFilterLocation(v);
               setPage(1);
@@ -269,8 +283,7 @@ const StockMovementsPage: React.FC = () => {
           />
           <button
             type="button"
-            className="catalog-form-footer-btn catalog-form-footer-btn--primary"
-            style={{ marginBottom: 0 }}
+            className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action"
             onClick={() => {
               setSearchDebounced(search);
               setPage(1);
@@ -280,8 +293,7 @@ const StockMovementsPage: React.FC = () => {
           </button>
           <button
             type="button"
-            className="catalog-form-footer-btn catalog-form-footer-btn--ghost"
-            style={{ marginBottom: 0 }}
+            className="catalog-form-footer-btn catalog-form-footer-btn--ghost catalog-filter-toolbar__action"
             onClick={handleClear}
           >
             Limpar

@@ -7,6 +7,7 @@ import { AlertState, StockBalance } from '../../types';
 import { useStockCatalog } from './useStockCatalog';
 import { formatQty } from './stockUtils';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import RegistryFormModal, { registryModalFooterButtons } from '../../components/RegistryFormModal';
 
 const StockAdjustmentPage: React.FC = () => {
   const { user } = useContext(AuthContext) || {};
@@ -14,6 +15,7 @@ const StockAdjustmentPage: React.FC = () => {
   const [form, setForm] = useState({ productId: '', locationId: '', countedQuantity: '', notes: '' });
   const [currentQty, setCurrentQty] = useState<number | null>(null);
   const [recent, setRecent] = useState<StockBalance[]>([]);
+  const [formModalOpen, setFormModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [alert, setAlert] = useState<AlertState>({ isOpen: false, message: '', type: 'error' });
 
@@ -55,6 +57,7 @@ const StockAdjustmentPage: React.FC = () => {
       });
       setForm({ productId: '', locationId: '', countedQuantity: '', notes: '' });
       setCurrentQty(null);
+      setFormModalOpen(false);
       loadRecent();
       setAlert({ isOpen: true, message: 'Acerto de estoque registrado!', type: 'success' });
     } catch (err: any) {
@@ -72,55 +75,66 @@ const StockAdjustmentPage: React.FC = () => {
       modulePath="/estoque/locais"
       title="Acerto de estoque"
       description="Informe a quantidade contada no inventário para ajustar o saldo do sistema."
+      actions={
+        <button
+          type="button"
+          className="catalog-action-button"
+          onClick={() => setFormModalOpen(true)}
+          disabled={catalogLoading}
+        >
+          Novo acerto
+        </button>
+      }
     >
-      <section className="catalog-surface catalog-form-surface--premium">
-        <h2>Inventário / acerto</h2>
-        {catalogLoading ? (
-          <p>Carregando…</p>
-        ) : (
-          <form className="catalog-form" onSubmit={handleSubmit}>
-            <div className="catalog-form-grid">
-              <PremiumSelect
-                label="Produto *"
-                value={form.productId}
-                options={[{ value: '', label: 'Selecione' }, ...productOptions]}
-                onChange={(v) => setForm({ ...form, productId: v })}
-              />
-              <PremiumSelect
-                label="Local *"
-                value={form.locationId}
-                options={[{ value: '', label: 'Selecione' }, ...locationOptions]}
-                onChange={(v) => setForm({ ...form, locationId: v })}
-              />
-              <div className="form-group">
-                <label>Saldo no sistema</label>
-                <input className="premium-text-input" readOnly value={currentQty === null ? '—' : formatQty(currentQty)} />
-              </div>
-              <div className="form-group">
-                <label>Quantidade contada *</label>
-                <input
-                  className="premium-text-input"
-                  type="number"
-                  min="0"
-                  step="0.0001"
-                  value={form.countedQuantity}
-                  onChange={(e) => setForm({ ...form, countedQuantity: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-            <div className="form-group">
-              <label>Observações</label>
-              <textarea className="premium-text-input" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-            </div>
-            <div className="catalog-form-footer">
-              <button type="submit" className="catalog-form-footer-btn catalog-form-footer-btn--primary" disabled={isSaving || !form.productId || !form.locationId}>
-                {isSaving ? 'Salvando…' : 'Confirmar acerto'}
-              </button>
-            </div>
-          </form>
-        )}
-      </section>
+      <RegistryFormModal
+        isOpen={formModalOpen && !catalogLoading}
+        wide
+        title="Inventário / acerto"
+        subtitle="Informe a quantidade contada para ajustar o saldo."
+        isSaving={isSaving}
+        onClose={() => !isSaving && setFormModalOpen(false)}
+        onSubmit={handleSubmit}
+        footer={registryModalFooterButtons({
+          onClose: () => setFormModalOpen(false),
+          isSaving,
+          submitLabel: 'Confirmar acerto',
+        })}
+      >
+        <div className="catalog-form-grid">
+          <PremiumSelect
+            label="Produto *"
+            value={form.productId}
+            options={[{ value: '', label: 'Selecione' }, ...productOptions]}
+            onChange={(v) => setForm({ ...form, productId: v })}
+          />
+          <PremiumSelect
+            label="Local *"
+            value={form.locationId}
+            options={[{ value: '', label: 'Selecione' }, ...locationOptions]}
+            onChange={(v) => setForm({ ...form, locationId: v })}
+          />
+          <div className="form-group">
+            <label>Saldo no sistema</label>
+            <input className="premium-text-input" readOnly value={currentQty === null ? '—' : formatQty(currentQty)} />
+          </div>
+          <div className="form-group">
+            <label>Quantidade contada *</label>
+            <input
+              className="premium-text-input"
+              type="number"
+              min="0"
+              step="0.0001"
+              value={form.countedQuantity}
+              onChange={(e) => setForm({ ...form, countedQuantity: e.target.value })}
+              required
+            />
+          </div>
+        </div>
+        <div className="form-group">
+          <label>Observações</label>
+          <textarea className="premium-text-input" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+        </div>
+      </RegistryFormModal>
 
       {recent.length > 0 && (
         <section className="catalog-surface">
