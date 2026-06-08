@@ -11,6 +11,7 @@ import {
   YAxis,
 } from 'recharts';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import PremiumSelect from '../../components/PremiumSelect';
 import {
   fetchParkingFacilities,
   fetchParkingReportDaily,
@@ -117,20 +118,14 @@ export const ParkingReportsPage: React.FC = () => {
         onTo={setTo}
         extra={
           <>
-            <div className="form-group">
-              <label htmlFor="report-facility">Unidade</label>
-              <select
-                id="report-facility"
-                value={facilityId}
-                onChange={(e) => setFacilityId(e.target.value)}
-              >
-                {facilities.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <PremiumSelect
+              id="report-facility"
+              label="Unidade"
+              value={facilityId}
+              options={facilities.map((f) => ({ value: f.id, label: f.name }))}
+              wrapperClassName="form-group catalog-filter-toolbar__field"
+              onChange={setFacilityId}
+            />
             <button type="button" className="btn-primary" onClick={() => void load()} disabled={loading}>
               {loading ? 'Carregando…' : 'Atualizar'}
             </button>

@@ -1,7 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import RegistryFormModal, { registryModalFooterButtons } from '../../components/RegistryFormModal';
 import AlertModal from '../../components/AlertModal';
+import PremiumSelect from '../../components/PremiumSelect';
+import { useDebouncedRegistrySearch } from '../../hooks/useDebouncedRegistrySearch';
+import { getApiErrorMessage } from '../../utils/apiError';
 import {
   createParkingVehicle,
   fetchParkingVehicles,
@@ -14,16 +18,9 @@ import {
   ACCESS_TYPE_LABELS,
   CONTRACT_STATUS_LABELS,
   VEHICLE_TYPE_LABELS,
+  vehicleTypeSelectOptions,
 } from './parkingConstants';
 import './ParkingPages.css';
-
-function errMsg(e: unknown): string {
-  const ax = e as { response?: { data?: { message?: string | string[] } } };
-  const msg = ax.response?.data?.message;
-  if (Array.isArray(msg)) return msg.join(' ');
-  if (typeof msg === 'string') return msg;
-  return 'Erro ao processar.';
-}
 
 function normalizePlateInput(value: string): string {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -31,10 +28,17 @@ function normalizePlateInput(value: string): string {
 
 export const ParkingVehiclesPage: React.FC = () => {
   const [vehicles, setVehicles] = useState<ParkingVehicleRecord[]>([]);
-  const [search, setSearch] = useState('');
+  const {
+    search,
+    searchDebounced,
+    handleSearchChange,
+    applySearchNow,
+    clearSearch,
+  } = useDebouncedRegistrySearch();
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState({ open: false, message: '' });
-  const [showForm, setShowForm] = useState(false);
+  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [selected, setSelected] = useState<ParkingVehicleRecord | null>(null);
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerOptions, setCustomerOptions] = useState<CustomerOption[]>([]);
@@ -52,9 +56,9 @@ export const ParkingVehiclesPage: React.FC = () => {
   });
 
   const load = useCallback(async () => {
-    const data = await fetchParkingVehicles({ search: search || undefined });
+    const data = await fetchParkingVehicles({ search: searchDebounced || undefined });
     setVehicles(data);
-  }, [search]);
+  }, [searchDebounced]);
 
   useEffect(() => {
     setLoading(true);
@@ -76,7 +80,7 @@ export const ParkingVehiclesPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [customerSearch]);
 
-  const resetForm = () => {
+  const clearFormFields = () => {
     setForm({
       plate: '',
       vehicleType: 'car',
@@ -89,12 +93,20 @@ export const ParkingVehiclesPage: React.FC = () => {
       customerId: '',
       customerName: '',
     });
-    setShowForm(false);
     setSelected(null);
+    setCustomerSearch('');
+    setCustomerOptions([]);
+  };
+
+  const closeFormModal = () => {
+    if (isSaving) return;
+    clearFormFields();
+    setFormModalOpen(false);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
     try {
       await createParkingVehicle({
         plate: form.plate,
@@ -107,17 +119,20 @@ export const ParkingVehiclesPage: React.FC = () => {
         notes: form.notes || undefined,
         customerId: form.customerId || undefined,
       });
-      resetForm();
+      closeFormModal();
       await load();
       setAlert({ open: true, message: 'Veículo cadastrado.' });
     } catch (err) {
-      setAlert({ open: true, message: errMsg(err) });
+      setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selected) return;
+    setIsSaving(true);
     try {
       await updateParkingVehicle(selected.id, {
         vehicleType: form.vehicleType,
@@ -130,17 +145,24 @@ export const ParkingVehiclesPage: React.FC = () => {
         customerId: form.customerId || null,
         active: selected.active,
       });
-      resetForm();
+      closeFormModal();
       await load();
       setAlert({ open: true, message: 'Veículo atualizado.' });
     } catch (err) {
-      setAlert({ open: true, message: errMsg(err) });
+      setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
+    } finally {
+      setIsSaving(false);
     }
+  };
+
+  const openCreateModal = () => {
+    clearFormFields();
+    setFormModalOpen(true);
   };
 
   const openEdit = (v: ParkingVehicleRecord) => {
     setSelected(v);
-    setShowForm(true);
+    setFormModalOpen(true);
     setForm({
       plate: v.plate,
       vehicleType: v.vehicleType,
@@ -160,7 +182,7 @@ export const ParkingVehiclesPage: React.FC = () => {
       await updateParkingVehicle(v.id, { active: !v.active });
       await load();
     } catch (err) {
-      setAlert({ open: true, message: errMsg(err) });
+      setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
     }
   };
 
@@ -169,29 +191,63 @@ export const ParkingVehiclesPage: React.FC = () => {
       moduleLabel="Cadastros"
       title="Veículos"
       description="Placas recorrentes, tags RFID e histórico unificado de acesso."
-    >
-      <div className="parking-toolbar">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar placa, titular ou RFID…"
-        />
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={() => {
-            resetForm();
-            setShowForm(true);
-          }}
-        >
-          + Novo veículo
+      actions={
+        <button type="button" className="catalog-action-button" onClick={openCreateModal}>
+          Novo veículo
         </button>
-      </div>
+      }
+    >
+      <section className="catalog-surface">
+        <div className="catalog-toolbar catalog-filter-toolbar">
+          <div className="form-group catalog-search catalog-filter-toolbar__search catalog-filter-toolbar__search--wide">
+            <label htmlFor="vehicles-search">Buscar</label>
+            <input
+              id="vehicles-search"
+              className="premium-text-input"
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') applySearchNow();
+              }}
+              placeholder="Placa, titular ou RFID…"
+            />
+          </div>
+          <button
+            type="button"
+            className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action"
+            onClick={applySearchNow}
+          >
+            Buscar
+          </button>
+          <button
+            type="button"
+            className="catalog-form-footer-btn catalog-form-footer-btn--ghost catalog-filter-toolbar__action"
+            onClick={clearSearch}
+          >
+            Limpar
+          </button>
+        </div>
+      </section>
 
-      {showForm ? (
-        <section className="parking-panel">
-          <h3>{selected ? `Editar ${selected.plate}` : 'Cadastrar veículo'}</h3>
-          <form className="parking-form-grid" onSubmit={selected ? handleUpdate : handleCreate}>
+      <RegistryFormModal
+        isOpen={formModalOpen}
+        wide
+        title={selected ? `Editar ${selected.plate}` : 'Novo veículo'}
+        subtitle={
+          selected
+            ? 'Atualize dados do veículo e vínculo com cliente.'
+            : 'Cadastre placas recorrentes, tags RFID e titulares.'
+        }
+        isSaving={isSaving}
+        onClose={closeFormModal}
+        onSubmit={selected ? handleUpdate : handleCreate}
+        footer={registryModalFooterButtons({
+          onClose: closeFormModal,
+          isSaving,
+          submitLabel: selected ? 'Salvar alterações' : 'Cadastrar veículo',
+        })}
+      >
+        <div className="parking-form-grid">
             <div className="form-group">
               <label>Placa</label>
               <input
@@ -202,19 +258,13 @@ export const ParkingVehiclesPage: React.FC = () => {
                 maxLength={8}
               />
             </div>
-            <div className="form-group">
-              <label>Tipo</label>
-              <select
-                value={form.vehicleType}
-                onChange={(e) => setForm({ ...form, vehicleType: e.target.value })}
-              >
-                {Object.entries(VEHICLE_TYPE_LABELS).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <PremiumSelect
+              label="Tipo"
+              value={form.vehicleType}
+              options={vehicleTypeSelectOptions}
+              wrapperClassName="form-group"
+              onChange={(v) => setForm({ ...form, vehicleType: v })}
+            />
             <div className="form-group">
               <label>Titular</label>
               <input
@@ -287,17 +337,8 @@ export const ParkingVehiclesPage: React.FC = () => {
                 rows={2}
               />
             </div>
-            <div className="parking-form-actions">
-              <button type="submit" className="btn-primary">
-                {selected ? 'Salvar' : 'Cadastrar'}
-              </button>
-              <button type="button" className="catalog-action-button is-secondary" onClick={resetForm}>
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </section>
-      ) : null}
+        </div>
+      </RegistryFormModal>
 
       <section className="parking-panel">
         <h3>Veículos cadastrados ({vehicles.length})</h3>

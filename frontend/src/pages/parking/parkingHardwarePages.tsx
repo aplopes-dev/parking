@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import RegistryFormModal, { registryModalFooterButtons } from '../../components/RegistryFormModal';
+import SectionTabBar from '../../components/SectionTabBar';
 import AlertModal from '../../components/AlertModal';
+import PremiumSelect from '../../components/PremiumSelect';
 import {
   createParkingDevice,
   fetchParkingAccessEvents,
@@ -19,19 +22,23 @@ import {
   ACCESS_EVENT_LABELS,
   DEVICE_DIRECTION_LABELS,
   DEVICE_TYPE_LABELS,
+  deviceDirectionSelectOptions,
+  deviceTypeSelectOptions,
   formatDateTime,
 } from './parkingConstants';
 import './ParkingPages.css';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3085';
 
-function errMsg(e: unknown): string {
-  const ax = e as { response?: { data?: { message?: string | string[] } } };
-  const msg = ax.response?.data?.message;
-  if (Array.isArray(msg)) return msg.join(' ');
-  if (typeof msg === 'string') return msg;
-  return 'Erro ao processar.';
-}
+const EMPTY_DEVICE_FORM = {
+  name: '',
+  code: '',
+  type: 'lpr_camera',
+  direction: 'entry',
+  vendor: '',
+  ipAddress: '',
+};
 
 function useFacilityFilter(facilities: ParkingFacility[]) {
   const [facilityId, setFacilityId] = useState('');
@@ -61,16 +68,22 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState({ open: false, message: '' });
   const [newKey, setNewKey] = useState<string | null>(null);
+  const [deviceModalOpen, setDeviceModalOpen] = useState(false);
+  const [isSavingDevice, setIsSavingDevice] = useState(false);
   const { facilityId, setFacilityId } = useFacilityFilter(facilities);
 
-  const [deviceForm, setDeviceForm] = useState({
-    name: '',
-    code: '',
-    type: 'lpr_camera',
-    direction: 'entry',
-    vendor: '',
-    ipAddress: '',
-  });
+  const [deviceForm, setDeviceForm] = useState(EMPTY_DEVICE_FORM);
+
+  const closeDeviceModal = () => {
+    if (isSavingDevice) return;
+    setDeviceForm(EMPTY_DEVICE_FORM);
+    setDeviceModalOpen(false);
+  };
+
+  const openDeviceModal = () => {
+    setDeviceForm(EMPTY_DEVICE_FORM);
+    setDeviceModalOpen(true);
+  };
 
   const [simDeviceId, setSimDeviceId] = useState('');
   const [simPlate, setSimPlate] = useState('');
@@ -113,6 +126,7 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
   const handleCreateDevice = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!facilityId) return;
+    setIsSavingDevice(true);
     try {
       const created = await createParkingDevice({
         facilityId,
@@ -124,11 +138,13 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
         ipAddress: deviceForm.ipAddress || undefined,
       });
       setNewKey(created.apiKeyPlain ?? null);
-      setDeviceForm({ name: '', code: '', type: 'lpr_camera', direction: 'entry', vendor: '', ipAddress: '' });
+      closeDeviceModal();
       await load();
       setAlert({ open: true, message: 'Dispositivo cadastrado. Copie a chave API abaixo.' });
     } catch (err) {
-      setAlert({ open: true, message: errMsg(err) });
+      setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
+    } finally {
+      setIsSavingDevice(false);
     }
   };
 
@@ -144,7 +160,7 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
       setSimResult(result);
       await load();
     } catch (err) {
-      setAlert({ open: true, message: errMsg(err) });
+      setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
     }
   };
 
@@ -159,35 +175,29 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
       loadingDescription="Carregando hardware…"
       actions={
         facilities.length ? (
-          <select value={facilityId} onChange={(e) => setFacilityId(e.target.value)}>
-            {facilities.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
-          </select>
+          <PremiumSelect
+            label="Unidade"
+            value={facilityId}
+            options={facilities.map((f) => ({ value: f.id, label: f.name }))}
+            wrapperClassName="form-group"
+            onChange={setFacilityId}
+          />
         ) : undefined
       }
     >
-      <div className="parking-tabs">
-        {(
-          [
-            ['devices', 'Dispositivos'],
-            ['events', 'Eventos'],
-            ['integracao', 'API / Hardware'],
-            ['simulador', 'Simulador LPR'],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            className={tab === id ? 'is-active' : ''}
-            onClick={() => setTab(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <SectionTabBar
+        tabs={[
+          { id: 'devices', label: 'Dispositivos' },
+          { id: 'events', label: 'Eventos' },
+          { id: 'integracao', label: 'API / Hardware' },
+          { id: 'simulador', label: 'Simulador LPR' },
+        ]}
+        activeTab={tab}
+        onTabChange={(id) =>
+          setTab(id as 'devices' | 'events' | 'integracao' | 'simulador')
+        }
+        ariaLabel="Seções de hardware"
+      />
 
       {newKey ? (
         <div className="parking-panel parking-hardware-key-banner">
@@ -199,12 +209,21 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
         </div>
       ) : null}
 
-      {tab === 'devices' && (
-        <>
-          <div className="parking-panel">
-            <h3>Novo dispositivo</h3>
-            <form onSubmit={(e) => void handleCreateDevice(e)}>
-              <div className="parking-form-grid">
+      <RegistryFormModal
+        isOpen={deviceModalOpen}
+        wide
+        title="Novo dispositivo"
+        subtitle="Cadastre câmeras LPR, cancelas ou catracas vinculadas à unidade."
+        isSaving={isSavingDevice}
+        onClose={closeDeviceModal}
+        onSubmit={handleCreateDevice}
+        footer={registryModalFooterButtons({
+          onClose: closeDeviceModal,
+          isSaving: isSavingDevice,
+          submitLabel: 'Cadastrar dispositivo',
+        })}
+      >
+        <div className="parking-form-grid">
                 <div>
                   <label htmlFor="dev-name">Nome</label>
                   <input
@@ -222,34 +241,20 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
                     onChange={(e) => setDeviceForm((f) => ({ ...f, code: e.target.value }))}
                   />
                 </div>
-                <div>
-                  <label htmlFor="dev-type">Tipo</label>
-                  <select
-                    id="dev-type"
-                    value={deviceForm.type}
-                    onChange={(e) => setDeviceForm((f) => ({ ...f, type: e.target.value }))}
-                  >
-                    {Object.entries(DEVICE_TYPE_LABELS).map(([v, l]) => (
-                      <option key={v} value={v}>
-                        {l}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="dev-dir">Direção</label>
-                  <select
-                    id="dev-dir"
-                    value={deviceForm.direction}
-                    onChange={(e) => setDeviceForm((f) => ({ ...f, direction: e.target.value }))}
-                  >
-                    {Object.entries(DEVICE_DIRECTION_LABELS).map(([v, l]) => (
-                      <option key={v} value={v}>
-                        {l}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <PremiumSelect
+                  id="dev-type"
+                  label="Tipo"
+                  value={deviceForm.type}
+                  options={deviceTypeSelectOptions}
+                  onChange={(v) => setDeviceForm((f) => ({ ...f, type: v }))}
+                />
+                <PremiumSelect
+                  id="dev-dir"
+                  label="Direção"
+                  value={deviceForm.direction}
+                  options={deviceDirectionSelectOptions}
+                  onChange={(v) => setDeviceForm((f) => ({ ...f, direction: v }))}
+                />
                 <div>
                   <label htmlFor="dev-vendor">Fabricante</label>
                   <input
@@ -267,17 +272,23 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
                     onChange={(e) => setDeviceForm((f) => ({ ...f, ipAddress: e.target.value }))}
                   />
                 </div>
-              </div>
-              <div className="parking-actions-row">
-                <button type="submit" className="catalog-action-button">
-                  Cadastrar dispositivo
-                </button>
-              </div>
-            </form>
-          </div>
+        </div>
+      </RegistryFormModal>
 
+      {tab === 'devices' && (
+        <>
           <div className="parking-panel">
-            <h3>Dispositivos ({devices.length})</h3>
+            <div className="parking-actions-row" style={{ justifyContent: 'space-between', marginBottom: 14 }}>
+              <h3 style={{ margin: 0 }}>Dispositivos ({devices.length})</h3>
+              <button
+                type="button"
+                className="catalog-action-button"
+                onClick={openDeviceModal}
+                disabled={!facilityId}
+              >
+                Novo dispositivo
+              </button>
+            </div>
             {devices.length === 0 ? (
               <p className="parking-empty">Nenhum dispositivo cadastrado.</p>
             ) : (
@@ -324,7 +335,7 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
                                     setNewKey(r.apiKeyPlain);
                                     setAlert({ open: true, message: 'Nova chave gerada.' });
                                   })
-                                  .catch((err) => setAlert({ open: true, message: errMsg(err) }))
+                                  .catch((err) => setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') }))
                               }
                             >
                               Nova chave
@@ -336,7 +347,7 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
                                 onClick={() =>
                                   void openGateManually(d.id, { reason: 'Teste manual' })
                                     .then(() => setAlert({ open: true, message: 'Comando de abertura enviado.' }))
-                                    .catch((err) => setAlert({ open: true, message: errMsg(err) }))
+                                    .catch((err) => setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') }))
                                 }
                               >
                                 Abrir
@@ -456,20 +467,16 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
           </p>
           <form onSubmit={(e) => void handleSimulate(e)}>
             <div className="parking-form-grid">
-              <div>
-                <label htmlFor="sim-dev">Dispositivo</label>
-                <select
-                  id="sim-dev"
-                  value={simDeviceId}
-                  onChange={(e) => setSimDeviceId(e.target.value)}
-                >
-                  {devices.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name} ({DEVICE_DIRECTION_LABELS[d.direction]})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <PremiumSelect
+                id="sim-dev"
+                label="Dispositivo"
+                value={simDeviceId}
+                options={devices.map((d) => ({
+                  value: d.id,
+                  label: `${d.name} (${deviceDirectionSelectOptions.find((o) => o.value === d.direction)?.label ?? d.direction})`,
+                }))}
+                onChange={setSimDeviceId}
+              />
               <div>
                 <label htmlFor="sim-plate">Placa</label>
                 <input

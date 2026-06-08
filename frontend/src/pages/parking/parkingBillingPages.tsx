@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
 import AlertModal from '../../components/AlertModal';
+import PremiumSelect from '../../components/PremiumSelect';
 import {
   fetchBillingPreview,
   fetchParkingFacilities,
@@ -160,70 +161,76 @@ export const ParkingBillingPage: React.FC = () => {
       title="Cobrança de mensalidade"
       description="Gere contas a receber dos mensalistas e registre baixas no financeiro."
     >
-      <div className="parking-toolbar">
-        <div className="form-group">
-          <label htmlFor="billing-month">Referência</label>
-          <input
-            id="billing-month"
-            type="month"
-            value={referenceMonth}
-            onChange={(e) => setReferenceMonth(e.target.value)}
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="billing-facility">Unidade</label>
-          <select
-            id="billing-facility"
-            value={facilityId}
-            onChange={(e) => setFacilityId(e.target.value)}
-          >
-            {facilities.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="form-group">
-          <label htmlFor="billing-due">Vencimento (opcional)</label>
-          <input
-            id="billing-due"
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-          />
-        </div>
-        <div className="form-group parking-billing-auto">
-          <label className="parking-checkbox-label">
-            <input
-              type="checkbox"
-              checked={autoCharge}
-              onChange={(e) => setAutoCharge(e.target.checked)}
+      <section className="catalog-surface">
+        <div className="catalog-filter-toolbar-stack">
+          <div className="catalog-toolbar catalog-filter-toolbar">
+            <div className="form-group catalog-filter-toolbar__field catalog-filter-toolbar__field--compact">
+              <label htmlFor="billing-month">Referência</label>
+              <input
+                id="billing-month"
+                type="month"
+                className="premium-text-input"
+                value={referenceMonth}
+                onChange={(e) => setReferenceMonth(e.target.value)}
+              />
+            </div>
+            <PremiumSelect
+              label="Unidade"
+              value={facilityId}
+              options={facilities.map((f) => ({ value: f.id, label: f.name }))}
+              wrapperClassName="form-group catalog-filter-toolbar__field"
+              onChange={setFacilityId}
             />
-            Emitir cobrança automaticamente (PagBank)
-          </label>
-          {autoCharge ? (
-            <select
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value as 'pix' | 'boleto')}
+            <div className="form-group catalog-filter-toolbar__field catalog-filter-toolbar__field--compact">
+              <label htmlFor="billing-due">Vencimento (opcional)</label>
+              <input
+                id="billing-due"
+                type="date"
+                className="premium-text-input"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="catalog-toolbar catalog-filter-toolbar">
+            <label className="catalog-filter-toolbar__checkbox">
+              <input
+                type="checkbox"
+                checked={autoCharge}
+                onChange={(e) => setAutoCharge(e.target.checked)}
+              />
+              Emitir cobrança automaticamente (PagBank)
+            </label>
+            {autoCharge ? (
+              <PremiumSelect
+                label="Forma de cobrança"
+                value={paymentMethod}
+                options={[
+                  { value: 'pix', label: 'PIX' },
+                  { value: 'boleto', label: 'Boleto' },
+                ]}
+                wrapperClassName="form-group catalog-filter-toolbar__field"
+                onChange={(v) => setPaymentMethod(v as 'pix' | 'boleto')}
+              />
+            ) : null}
+            <div className="catalog-filter-toolbar__grow" aria-hidden />
+            <button
+              type="button"
+              className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action"
+              onClick={() => void handleGenerate()}
+              disabled={generating || !preview?.summary.pending}
             >
-              <option value="pix">PIX</option>
-              <option value="boleto">Boleto</option>
-            </select>
-          ) : null}
+              {generating ? 'Gerando…' : `Gerar ${preview?.summary.pending ?? 0} título(s)`}
+            </button>
+            <Link
+              to="/financeiro/contas"
+              className="catalog-action-button is-secondary catalog-filter-toolbar__action"
+            >
+              Contas a receber
+            </Link>
+          </div>
         </div>
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={() => void handleGenerate()}
-          disabled={generating || !preview?.summary.pending}
-        >
-          {generating ? 'Gerando…' : `Gerar ${preview?.summary.pending ?? 0} título(s)`}
-        </button>
-        <Link to="/financeiro/contas" className="catalog-action-button is-secondary">
-          Contas a receber
-        </Link>
-      </div>
+      </section>
 
       {preview ? (
         <div className="parking-summary-cards">
@@ -403,29 +410,30 @@ export const ParkingBillingPage: React.FC = () => {
             </div>
 
             {openBills.length > 0 ? (
-              <div className="parking-settle-bar">
-                <span>{selectedBillIds.length} selecionado(s)</span>
-                <div className="form-group">
-                  <label>Conta</label>
-                  <select value={settleAccountId} onChange={(e) => setSettleAccountId(e.target.value)}>
-                    {accounts.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Data pagamento</label>
+              <div className="catalog-toolbar catalog-filter-toolbar catalog-operation-panel__footer">
+                <p className="catalog-registry-panel__meta catalog-filter-toolbar__field">
+                  {selectedBillIds.length} selecionado(s)
+                </p>
+                <PremiumSelect
+                  label="Conta"
+                  value={settleAccountId}
+                  options={accounts.map((a) => ({ value: a.id, label: a.name }))}
+                  wrapperClassName="form-group catalog-filter-toolbar__field"
+                  onChange={setSettleAccountId}
+                />
+                <div className="form-group catalog-filter-toolbar__field">
+                  <label htmlFor="billing-settle-date">Data pagamento</label>
                   <input
+                    id="billing-settle-date"
                     type="date"
+                    className="premium-text-input"
                     value={settleDate}
                     onChange={(e) => setSettleDate(e.target.value)}
                   />
                 </div>
                 <button
                   type="button"
-                  className="btn-primary"
+                  className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action"
                   disabled={!selectedBillIds.length}
                   onClick={() => void handleSettle()}
                 >

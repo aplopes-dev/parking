@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import RegistryFormModal, { registryModalFooterButtons } from '../../components/RegistryFormModal';
+import { getApiErrorMessage } from '../../utils/apiError';
 import AlertModal from '../../components/AlertModal';
+import PremiumSelect from '../../components/PremiumSelect';
 import { useMobileRealtime } from '../integration/useMobileRealtime';
 import {
   cancelValetTicket,
@@ -28,17 +31,17 @@ import {
   formatDateTime,
   formatDurationMinutes,
   VALET_STATUS_LABELS,
-  VEHICLE_TYPE_LABELS,
+  vehicleTypeSelectOptions,
 } from './parkingConstants';
 import './ParkingPages.css';
 
-function errMsg(e: unknown): string {
-  const ax = e as { response?: { data?: { message?: string | string[] } } };
-  const msg = ax.response?.data?.message;
-  if (Array.isArray(msg)) return msg.join(' ');
-  if (typeof msg === 'string') return msg;
-  return 'Erro ao processar.';
-}
+const EMPTY_VALET_RECEIVE_FORM = {
+  plate: '',
+  vehicleType: 'car',
+  customerName: '',
+  customerPhone: '',
+  keyTag: '',
+};
 
 function useFacilityFilter(facilities: ParkingFacility[]) {
   const [facilityId, setFacilityId] = useState('');
@@ -84,7 +87,7 @@ function ValetTicketCard({
       await fn();
       onAction();
     } catch (e) {
-      onError(errMsg(e));
+      onError(getApiErrorMessage(e, 'Erro ao processar.'));
     } finally {
       setBusy(false);
     }
@@ -119,14 +122,16 @@ function ValetTicketCard({
 
       {mode === 'intake' && (
         <div className="parking-valet-card-actions">
-          <select value={valetId} onChange={(e) => setValetId(e.target.value)}>
-            <option value="">Manobrista</option>
-            {valets.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.name}
-              </option>
-            ))}
-          </select>
+          <PremiumSelect
+            label="Manobrista"
+            value={valetId}
+            options={[
+              { value: '', label: 'Manobrista' },
+              ...valets.map((v) => ({ value: v.id, label: v.name })),
+            ]}
+            wrapperClassName="form-group"
+            onChange={setValetId}
+          />
           {ticket.status === 'received' ? (
             <button
               type="button"
@@ -144,14 +149,16 @@ function ValetTicketCard({
             onChange={(e) => setLocation(e.target.value)}
             placeholder="Local (ex: P1 vaga 12)"
           />
-          <select value={spotId} onChange={(e) => setSpotId(e.target.value)}>
-            <option value="">Vaga cadastrada</option>
-            {spots.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.code}
-              </option>
-            ))}
-          </select>
+          <PremiumSelect
+            label="Vaga"
+            value={spotId}
+            options={[
+              { value: '', label: 'Vaga cadastrada' },
+              ...spots.map((s) => ({ value: s.id, label: s.code })),
+            ]}
+            wrapperClassName="form-group"
+            onChange={setSpotId}
+          />
           <button
             type="button"
             className="catalog-action-button"
@@ -186,14 +193,16 @@ function ValetTicketCard({
 
       {mode === 'delivery' && (
         <div className="parking-valet-card-actions">
-          <select value={valetId} onChange={(e) => setValetId(e.target.value)}>
-            <option value="">Manobrista</option>
-            {valets.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.name}
-              </option>
-            ))}
-          </select>
+          <PremiumSelect
+            label="Manobrista"
+            value={valetId}
+            options={[
+              { value: '', label: 'Manobrista' },
+              ...valets.map((v) => ({ value: v.id, label: v.name })),
+            ]}
+            wrapperClassName="form-group"
+            onChange={setValetId}
+          />
           {ticket.status === 'requested' ? (
             <button
               type="button"
@@ -259,13 +268,9 @@ export const ParkingValetPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState({ open: false, message: '' });
   const { facilityId, setFacilityId } = useFacilityFilter(facilities);
-  const [form, setForm] = useState({
-    plate: '',
-    vehicleType: 'car',
-    customerName: '',
-    customerPhone: '',
-    keyTag: '',
-  });
+  const [receiveModalOpen, setReceiveModalOpen] = useState(false);
+  const [isSavingReceive, setIsSavingReceive] = useState(false);
+  const [form, setForm] = useState(EMPTY_VALET_RECEIVE_FORM);
 
   const load = useCallback(async () => {
     const facs = await fetchParkingFacilities();
@@ -316,9 +321,21 @@ export const ParkingValetPage: React.FC = () => {
     },
   });
 
+  const closeReceiveModal = () => {
+    if (isSavingReceive) return;
+    setForm(EMPTY_VALET_RECEIVE_FORM);
+    setReceiveModalOpen(false);
+  };
+
+  const openReceiveModal = () => {
+    setForm(EMPTY_VALET_RECEIVE_FORM);
+    setReceiveModalOpen(true);
+  };
+
   const handleReceive = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!facilityId) return;
+    setIsSavingReceive(true);
     try {
       await receiveValetVehicle({
         facilityId,
@@ -328,10 +345,12 @@ export const ParkingValetPage: React.FC = () => {
         customerPhone: form.customerPhone || undefined,
         keyTag: form.keyTag || undefined,
       });
-      setForm({ plate: '', vehicleType: 'car', customerName: '', customerPhone: '', keyTag: '' });
+      closeReceiveModal();
       await load();
     } catch (err) {
-      setAlert({ open: true, message: errMsg(err) });
+      setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
+    } finally {
+      setIsSavingReceive(false);
     }
   };
 
@@ -339,7 +358,7 @@ export const ParkingValetPage: React.FC = () => {
     try {
       await load();
     } catch (err) {
-      setAlert({ open: true, message: errMsg(err) });
+      setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
     }
   };
 
@@ -356,13 +375,18 @@ export const ParkingValetPage: React.FC = () => {
       loadingDescription="Carregando valet…"
       actions={
         facilities.length ? (
-          <select value={facilityId} onChange={(e) => setFacilityId(e.target.value)}>
-            {facilities.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
-          </select>
+          <>
+            <PremiumSelect
+              label="Unidade"
+              value={facilityId}
+              options={facilities.map((f) => ({ value: f.id, label: f.name }))}
+              wrapperClassName="form-group"
+              onChange={setFacilityId}
+            />
+            <button type="button" className="catalog-action-button" onClick={openReceiveModal}>
+              Receber veículo
+            </button>
+          </>
         ) : undefined
       }
     >
@@ -385,10 +409,21 @@ export const ParkingValetPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="parking-panel">
-        <h3>Receber veículo</h3>
-        <form onSubmit={(e) => void handleReceive(e)}>
-          <div className="parking-form-grid">
+      <RegistryFormModal
+        isOpen={receiveModalOpen}
+        wide
+        title="Receber veículo"
+        subtitle="Gere ticket valet e encaminhe para a fila de manobristas."
+        isSaving={isSavingReceive}
+        onClose={closeReceiveModal}
+        onSubmit={handleReceive}
+        footer={registryModalFooterButtons({
+          onClose: closeReceiveModal,
+          isSaving: isSavingReceive,
+          submitLabel: 'Gerar ticket valet',
+        })}
+      >
+        <div className="parking-form-grid">
             <div>
               <label htmlFor="valet-plate">Placa</label>
               <input
@@ -399,20 +434,13 @@ export const ParkingValetPage: React.FC = () => {
                 placeholder="ABC1D23"
               />
             </div>
-            <div>
-              <label htmlFor="valet-type">Tipo</label>
-              <select
-                id="valet-type"
-                value={form.vehicleType}
-                onChange={(e) => setForm((f) => ({ ...f, vehicleType: e.target.value }))}
-              >
-                {Object.entries(VEHICLE_TYPE_LABELS).map(([v, l]) => (
-                  <option key={v} value={v}>
-                    {l}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <PremiumSelect
+              id="valet-type"
+              label="Tipo"
+              value={form.vehicleType}
+              options={vehicleTypeSelectOptions}
+              onChange={(v) => setForm((f) => ({ ...f, vehicleType: v }))}
+            />
             <div>
               <label htmlFor="valet-customer">Cliente</label>
               <input
@@ -438,19 +466,13 @@ export const ParkingValetPage: React.FC = () => {
                 placeholder="001"
               />
             </div>
-          </div>
-          <div className="parking-actions-row">
-            <button type="submit" className="catalog-action-button">
-              Gerar ticket valet
-            </button>
-            {defaultTariff ? (
-              <span className="parking-hint">
-                Tarifa rotativa na entrega: {formatMoney(defaultTariff.price)}/h
-              </span>
-            ) : null}
-          </div>
-        </form>
-      </div>
+        </div>
+        {defaultTariff ? (
+          <p className="parking-hint" style={{ marginTop: 12 }}>
+            Tarifa rotativa na entrega: {formatMoney(defaultTariff.price)}/h
+          </p>
+        ) : null}
+      </RegistryFormModal>
 
       <div className="parking-valet-columns">
         <section className="parking-panel">

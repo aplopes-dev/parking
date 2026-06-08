@@ -1,7 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import RegistryFormModal, { registryModalFooterButtons } from '../../components/RegistryFormModal';
+import { useDebouncedRegistrySearch } from '../../hooks/useDebouncedRegistrySearch';
+import { getApiErrorMessage } from '../../utils/apiError';
+import SectionTabBar from '../../components/SectionTabBar';
 import AlertModal from '../../components/AlertModal';
+import PremiumSelect from '../../components/PremiumSelect';
 import {
   addAgreementVehicle,
   addSubscriptionVehicle,
@@ -24,17 +29,9 @@ import { formatMoney } from '../finance/financeShared';
 import {
   ACCESS_TYPE_LABELS,
   CONTRACT_STATUS_LABELS,
-  VEHICLE_TYPE_LABELS,
+  vehicleTypeSelectOptions,
 } from './parkingConstants';
 import './ParkingPages.css';
-
-function errMsg(e: unknown): string {
-  const ax = e as { response?: { data?: { message?: string | string[] } } };
-  const msg = ax.response?.data?.message;
-  if (Array.isArray(msg)) return msg.join(' ');
-  if (typeof msg === 'string') return msg;
-  return 'Erro ao processar.';
-}
 
 function useFacilityFilter(facilities: ParkingFacility[]) {
   const [facilityId, setFacilityId] = useState('');
@@ -122,6 +119,33 @@ function CustomerPicker({
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
+const emptySubForm = () => ({
+  code: '',
+  startDate: todayIso(),
+  endDate: '',
+  monthlyPrice: '',
+  tariffId: '',
+  notes: '',
+  plate: '',
+  vehicleType: 'car',
+  holderName: '',
+});
+
+const emptyAgrForm = () => ({
+  name: '',
+  code: '',
+  discountPercent: '20',
+  fixedMonthlyFee: '',
+  vehicleLimit: '',
+  startDate: todayIso(),
+  endDate: '',
+  notes: '',
+  plate: '',
+  vehicleType: 'car',
+  driverName: '',
+  department: '',
+});
+
 export const ParkingContractsPage: React.FC = () => {
   const [tab, setTab] = useState<'subscriptions' | 'agreements'>('subscriptions');
   const [facilities, setFacilities] = useState<ParkingFacility[]>([]);
@@ -131,36 +155,27 @@ export const ParkingContractsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState({ open: false, message: '' });
   const { facilityId, setFacilityId } = useFacilityFilter(facilities);
-  const [search, setSearch] = useState('');
+  const {
+    search,
+    searchDebounced,
+    handleSearchChange,
+    applySearchNow,
+    clearSearch,
+  } = useDebouncedRegistrySearch();
+
+  const handleClearFilters = () => {
+    clearSearch();
+  };
+  const [subModalOpen, setSubModalOpen] = useState(false);
+  const [agrModalOpen, setAgrModalOpen] = useState(false);
+  const [isSavingSub, setIsSavingSub] = useState(false);
+  const [isSavingAgr, setIsSavingAgr] = useState(false);
 
   const [subCustomer, setSubCustomer] = useState<CustomerOption | null>(null);
-  const [subForm, setSubForm] = useState({
-    code: '',
-    startDate: todayIso(),
-    endDate: '',
-    monthlyPrice: '',
-    tariffId: '',
-    notes: '',
-    plate: '',
-    vehicleType: 'car',
-    holderName: '',
-  });
+  const [subForm, setSubForm] = useState(emptySubForm);
 
   const [agrCustomer, setAgrCustomer] = useState<CustomerOption | null>(null);
-  const [agrForm, setAgrForm] = useState({
-    name: '',
-    code: '',
-    discountPercent: '20',
-    fixedMonthlyFee: '',
-    vehicleLimit: '',
-    startDate: todayIso(),
-    endDate: '',
-    notes: '',
-    plate: '',
-    vehicleType: 'car',
-    driverName: '',
-    department: '',
-  });
+  const [agrForm, setAgrForm] = useState(emptyAgrForm);
 
   const [vehicleModal, setVehicleModal] = useState<{
     type: 'subscription' | 'agreement';
@@ -180,14 +195,14 @@ export const ParkingContractsPage: React.FC = () => {
     setFacilities(facs);
     const fid = facilityId || facs[0]?.id;
     const [subs, agrs, tariffs] = await Promise.all([
-      fetchParkingSubscriptions({ facilityId: fid, search: search || undefined }),
-      fetchParkingAgreements({ facilityId: fid, search: search || undefined }),
+      fetchParkingSubscriptions({ facilityId: fid, search: searchDebounced || undefined }),
+      fetchParkingAgreements({ facilityId: fid, search: searchDebounced || undefined }),
       fetchParkingTariffs({ facilityId: fid, billingType: 'monthly' }),
     ]);
     setSubscriptions(subs);
     setAgreements(agrs);
     setMonthlyTariffs(tariffs.filter((t) => t.active));
-  }, [facilityId, search]);
+  }, [facilityId, searchDebounced]);
 
   useEffect(() => {
     setLoading(true);
@@ -196,9 +211,36 @@ export const ParkingContractsPage: React.FC = () => {
       .finally(() => setLoading(false));
   }, [load]);
 
+  const closeSubModal = () => {
+    if (isSavingSub) return;
+    setSubCustomer(null);
+    setSubForm(emptySubForm());
+    setSubModalOpen(false);
+  };
+
+  const openSubModal = () => {
+    setSubCustomer(null);
+    setSubForm(emptySubForm());
+    setSubModalOpen(true);
+  };
+
+  const closeAgrModal = () => {
+    if (isSavingAgr) return;
+    setAgrCustomer(null);
+    setAgrForm(emptyAgrForm());
+    setAgrModalOpen(false);
+  };
+
+  const openAgrModal = () => {
+    setAgrCustomer(null);
+    setAgrForm(emptyAgrForm());
+    setAgrModalOpen(true);
+  };
+
   const handleCreateSubscription = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!facilityId || !subCustomer) return;
+    setIsSavingSub(true);
     try {
       const created = await createParkingSubscription({
         customerId: subCustomer.id,
@@ -217,28 +259,20 @@ export const ParkingContractsPage: React.FC = () => {
           holderName: subForm.holderName || undefined,
         });
       }
-      setSubCustomer(null);
-      setSubForm({
-        code: '',
-        startDate: todayIso(),
-        endDate: '',
-        monthlyPrice: '',
-        tariffId: '',
-        notes: '',
-        plate: '',
-        vehicleType: 'car',
-        holderName: '',
-      });
+      closeSubModal();
       await load();
       setAlert({ open: true, message: 'Contrato de mensalista criado e sincronizado com o CRM.' });
     } catch (err) {
-      setAlert({ open: true, message: errMsg(err) });
+      setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
+    } finally {
+      setIsSavingSub(false);
     }
   };
 
   const handleCreateAgreement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!agrCustomer) return;
+    setIsSavingAgr(true);
     try {
       const created = await createParkingAgreement({
         customerId: agrCustomer.id,
@@ -260,25 +294,13 @@ export const ParkingContractsPage: React.FC = () => {
           department: agrForm.department || undefined,
         });
       }
-      setAgrCustomer(null);
-      setAgrForm({
-        name: '',
-        code: '',
-        discountPercent: '20',
-        fixedMonthlyFee: '',
-        vehicleLimit: '',
-        startDate: todayIso(),
-        endDate: '',
-        notes: '',
-        plate: '',
-        vehicleType: 'car',
-        driverName: '',
-        department: '',
-      });
+      closeAgrModal();
       await load();
       setAlert({ open: true, message: 'Convênio corporativo criado e sincronizado com o CRM.' });
     } catch (err) {
-      setAlert({ open: true, message: errMsg(err) });
+      setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
+    } finally {
+      setIsSavingAgr(false);
     }
   };
 
@@ -304,7 +326,7 @@ export const ParkingContractsPage: React.FC = () => {
       setVehicleForm({ plate: '', vehicleType: 'car', holderName: '', driverName: '', department: '' });
       await load();
     } catch (err) {
-      setAlert({ open: true, message: errMsg(err) });
+      setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
     }
   };
 
@@ -315,7 +337,7 @@ export const ParkingContractsPage: React.FC = () => {
       });
       await load();
     } catch (err) {
-      setAlert({ open: true, message: errMsg(err) });
+      setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
     }
   };
 
@@ -326,7 +348,7 @@ export const ParkingContractsPage: React.FC = () => {
       });
       await load();
     } catch (err) {
-      setAlert({ open: true, message: errMsg(err) });
+      setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
     }
   };
 
@@ -339,48 +361,73 @@ export const ParkingContractsPage: React.FC = () => {
       description="Contratos de mensalidade e convênios corporativos com integração ao CRM."
       loading={loading && !facilities.length}
       loadingDescription="Carregando contratos…"
-      actions={
-        <div className="parking-actions-row" style={{ marginTop: 0 }}>
-          {facilities.length ? (
-            <select value={facilityId} onChange={(e) => setFacilityId(e.target.value)}>
-              {facilities.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
-          ) : null}
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar cliente, código ou placa…"
-          />
-        </div>
-      }
     >
-      <div className="parking-tabs">
-        <button
-          type="button"
-          className={tab === 'subscriptions' ? 'is-active' : ''}
-          onClick={() => setTab('subscriptions')}
-        >
-          Mensalistas
-        </button>
-        <button
-          type="button"
-          className={tab === 'agreements' ? 'is-active' : ''}
-          onClick={() => setTab('agreements')}
-        >
-          Convênios
-        </button>
-      </div>
+      <section className="catalog-surface">
+        <div className="catalog-toolbar catalog-filter-toolbar">
+          {facilities.length > 0 ? (
+            <PremiumSelect
+              label="Unidade"
+              value={facilityId}
+              options={facilities.map((f) => ({ value: f.id, label: f.name }))}
+              wrapperClassName="form-group catalog-filter-toolbar__field"
+              onChange={setFacilityId}
+            />
+          ) : null}
+          <div className="form-group catalog-search catalog-filter-toolbar__search catalog-filter-toolbar__search--wide">
+            <label htmlFor="contracts-search">Buscar</label>
+            <input
+              id="contracts-search"
+              className="premium-text-input"
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') applySearchNow();
+              }}
+              placeholder="Cliente, código ou placa…"
+            />
+          </div>
+          <button
+            type="button"
+            className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action"
+            onClick={applySearchNow}
+          >
+            Buscar
+          </button>
+          <button
+            type="button"
+            className="catalog-form-footer-btn catalog-form-footer-btn--ghost catalog-filter-toolbar__action"
+            onClick={handleClearFilters}
+          >
+            Limpar
+          </button>
+        </div>
+      </section>
 
-      {tab === 'subscriptions' ? (
-        <>
-          <div className="parking-panel">
-            <h3>Novo contrato de mensalista</h3>
-            <form onSubmit={(e) => void handleCreateSubscription(e)}>
-              <div className="parking-form-grid">
+      <SectionTabBar
+        tabs={[
+          { id: 'subscriptions', label: 'Mensalistas' },
+          { id: 'agreements', label: 'Convênios' },
+        ]}
+        activeTab={tab}
+        onTabChange={(id) => setTab(id as 'subscriptions' | 'agreements')}
+        ariaLabel="Tipos de contrato"
+      />
+
+      <RegistryFormModal
+        isOpen={subModalOpen}
+        wide
+        title="Novo contrato de mensalista"
+        subtitle="Vincule um cliente do CRM e defina mensalidade e veículos autorizados."
+        isSaving={isSavingSub}
+        onClose={closeSubModal}
+        onSubmit={handleCreateSubscription}
+        footer={registryModalFooterButtons({
+          onClose: closeSubModal,
+          isSaving: isSavingSub,
+          submitLabel: 'Criar mensalista',
+        })}
+      >
+        <div className="parking-form-grid">
                 <div className="parking-form-span-2">
                   <label>Cliente (CRM)</label>
                   <CustomerPicker value={subCustomer} onChange={setSubCustomer} />
@@ -394,28 +441,26 @@ export const ParkingContractsPage: React.FC = () => {
                     placeholder="M-001"
                   />
                 </div>
-                <div>
-                  <label htmlFor="sub-tariff">Plano tarifário</label>
-                  <select
-                    id="sub-tariff"
-                    value={subForm.tariffId}
-                    onChange={(e) => {
-                      const tariff = monthlyTariffs.find((t) => t.id === e.target.value);
-                      setSubForm((f) => ({
-                        ...f,
-                        tariffId: e.target.value,
-                        monthlyPrice: tariff ? tariff.price : f.monthlyPrice,
-                      }));
-                    }}
-                  >
-                    <option value="">Valor manual</option>
-                    {monthlyTariffs.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} — {formatMoney(t.price)}/mês
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <PremiumSelect
+                  id="sub-tariff"
+                  label="Plano tarifário"
+                  value={subForm.tariffId}
+                  options={[
+                    { value: '', label: 'Valor manual' },
+                    ...monthlyTariffs.map((t) => ({
+                      value: t.id,
+                      label: `${t.name} — ${formatMoney(t.price)}/mês`,
+                    })),
+                  ]}
+                  onChange={(v) => {
+                    const tariff = monthlyTariffs.find((t) => t.id === v);
+                    setSubForm((f) => ({
+                      ...f,
+                      tariffId: v,
+                      monthlyPrice: tariff ? tariff.price : f.monthlyPrice,
+                    }));
+                  }}
+                />
                 <div>
                   <label htmlFor="sub-price">Mensalidade (R$)</label>
                   <input
@@ -456,31 +501,116 @@ export const ParkingContractsPage: React.FC = () => {
                     placeholder="ABC1D23"
                   />
                 </div>
-                <div>
-                  <label htmlFor="sub-vehicle">Tipo veículo</label>
-                  <select
-                    id="sub-vehicle"
-                    value={subForm.vehicleType}
-                    onChange={(e) => setSubForm((f) => ({ ...f, vehicleType: e.target.value }))}
-                  >
-                    {Object.entries(VEHICLE_TYPE_LABELS).map(([v, l]) => (
-                      <option key={v} value={v}>
-                        {l}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="parking-actions-row">
-                <button type="submit" className="catalog-action-button" disabled={!subCustomer}>
-                  Criar mensalista
-                </button>
-              </div>
-            </form>
-          </div>
+                <PremiumSelect
+                  id="sub-vehicle"
+                  label="Tipo veículo"
+                  value={subForm.vehicleType}
+                  options={vehicleTypeSelectOptions}
+                  onChange={(v) => setSubForm((f) => ({ ...f, vehicleType: v }))}
+                />
+        </div>
+      </RegistryFormModal>
 
+      <RegistryFormModal
+        isOpen={agrModalOpen}
+        wide
+        title="Novo convênio corporativo"
+        subtitle="Cadastre empresas com desconto rotativo e limite de veículos."
+        isSaving={isSavingAgr}
+        onClose={closeAgrModal}
+        onSubmit={handleCreateAgreement}
+        footer={registryModalFooterButtons({
+          onClose: closeAgrModal,
+          isSaving: isSavingAgr,
+          submitLabel: 'Criar convênio',
+        })}
+      >
+        <div className="parking-form-grid">
+                <div className="parking-form-span-2">
+                  <label>Empresa (cliente CRM)</label>
+                  <CustomerPicker value={agrCustomer} onChange={setAgrCustomer} />
+                </div>
+                <div>
+                  <label htmlFor="agr-name">Nome do convênio</label>
+                  <input
+                    id="agr-name"
+                    required
+                    value={agrForm.name}
+                    onChange={(e) => setAgrForm((f) => ({ ...f, name: e.target.value }))}
+                    placeholder="Empresa XYZ — Funcionários"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="agr-code">Código</label>
+                  <input
+                    id="agr-code"
+                    value={agrForm.code}
+                    onChange={(e) => setAgrForm((f) => ({ ...f, code: e.target.value }))}
+                    placeholder="CV-001"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="agr-discount">Desconto rotativo (%)</label>
+                  <input
+                    id="agr-discount"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={agrForm.discountPercent}
+                    onChange={(e) => setAgrForm((f) => ({ ...f, discountPercent: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="agr-fee">Taxa fixa mensal (opcional)</label>
+                  <input
+                    id="agr-fee"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={agrForm.fixedMonthlyFee}
+                    onChange={(e) => setAgrForm((f) => ({ ...f, fixedMonthlyFee: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="agr-limit">Limite de veículos</label>
+                  <input
+                    id="agr-limit"
+                    type="number"
+                    min="1"
+                    value={agrForm.vehicleLimit}
+                    onChange={(e) => setAgrForm((f) => ({ ...f, vehicleLimit: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="agr-start">Início</label>
+                  <input
+                    id="agr-start"
+                    type="date"
+                    required
+                    value={agrForm.startDate}
+                    onChange={(e) => setAgrForm((f) => ({ ...f, startDate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="agr-plate">Placa inicial</label>
+                  <input
+                    id="agr-plate"
+                    value={agrForm.plate}
+                    onChange={(e) => setAgrForm((f) => ({ ...f, plate: e.target.value.toUpperCase() }))}
+                  />
+                </div>
+        </div>
+      </RegistryFormModal>
+
+      {tab === 'subscriptions' ? (
+        <>
           <div className="parking-panel">
-            <h3>Contratos ativos ({subscriptions.length})</h3>
+            <div className="parking-actions-row" style={{ justifyContent: 'space-between', marginBottom: 14 }}>
+              <h3 style={{ margin: 0 }}>Contratos ativos ({subscriptions.length})</h3>
+              <button type="button" className="catalog-action-button" onClick={openSubModal}>
+                Novo mensalista
+              </button>
+            </div>
             {subscriptions.length === 0 ? (
               <p className="parking-empty">Nenhum mensalista cadastrado.</p>
             ) : (
@@ -563,93 +693,12 @@ export const ParkingContractsPage: React.FC = () => {
       ) : (
         <>
           <div className="parking-panel">
-            <h3>Novo convênio corporativo</h3>
-            <form onSubmit={(e) => void handleCreateAgreement(e)}>
-              <div className="parking-form-grid">
-                <div className="parking-form-span-2">
-                  <label>Empresa (cliente CRM)</label>
-                  <CustomerPicker value={agrCustomer} onChange={setAgrCustomer} />
-                </div>
-                <div>
-                  <label htmlFor="agr-name">Nome do convênio</label>
-                  <input
-                    id="agr-name"
-                    required
-                    value={agrForm.name}
-                    onChange={(e) => setAgrForm((f) => ({ ...f, name: e.target.value }))}
-                    placeholder="Empresa XYZ — Funcionários"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="agr-code">Código</label>
-                  <input
-                    id="agr-code"
-                    value={agrForm.code}
-                    onChange={(e) => setAgrForm((f) => ({ ...f, code: e.target.value }))}
-                    placeholder="CV-001"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="agr-discount">Desconto rotativo (%)</label>
-                  <input
-                    id="agr-discount"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={agrForm.discountPercent}
-                    onChange={(e) => setAgrForm((f) => ({ ...f, discountPercent: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="agr-fee">Taxa fixa mensal (opcional)</label>
-                  <input
-                    id="agr-fee"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={agrForm.fixedMonthlyFee}
-                    onChange={(e) => setAgrForm((f) => ({ ...f, fixedMonthlyFee: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="agr-limit">Limite de veículos</label>
-                  <input
-                    id="agr-limit"
-                    type="number"
-                    min="1"
-                    value={agrForm.vehicleLimit}
-                    onChange={(e) => setAgrForm((f) => ({ ...f, vehicleLimit: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="agr-start">Início</label>
-                  <input
-                    id="agr-start"
-                    type="date"
-                    required
-                    value={agrForm.startDate}
-                    onChange={(e) => setAgrForm((f) => ({ ...f, startDate: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="agr-plate">Placa inicial</label>
-                  <input
-                    id="agr-plate"
-                    value={agrForm.plate}
-                    onChange={(e) => setAgrForm((f) => ({ ...f, plate: e.target.value.toUpperCase() }))}
-                  />
-                </div>
-              </div>
-              <div className="parking-actions-row">
-                <button type="submit" className="catalog-action-button" disabled={!agrCustomer}>
-                  Criar convênio
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <div className="parking-panel">
-            <h3>Convênios ({agreements.length})</h3>
+            <div className="parking-actions-row" style={{ justifyContent: 'space-between', marginBottom: 14 }}>
+              <h3 style={{ margin: 0 }}>Convênios ({agreements.length})</h3>
+              <button type="button" className="catalog-action-button" onClick={openAgrModal}>
+                Novo convênio
+              </button>
+            </div>
             {agreements.length === 0 ? (
               <p className="parking-empty">Nenhum convênio cadastrado.</p>
             ) : (
@@ -725,54 +774,38 @@ export const ParkingContractsPage: React.FC = () => {
         </>
       )}
 
-      {vehicleModal ? (
-        <div className="parking-modal-backdrop" onClick={() => setVehicleModal(null)}>
-          <div className="parking-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Adicionar veículo — {vehicleModal.label}</h3>
-            <form onSubmit={(e) => void handleAddVehicle(e)}>
-              <div className="parking-form-grid">
-                <div>
-                  <label htmlFor="veh-plate">Placa</label>
-                  <input
-                    id="veh-plate"
-                    required
-                    value={vehicleForm.plate}
-                    onChange={(e) =>
-                      setVehicleForm((f) => ({ ...f, plate: e.target.value.toUpperCase() }))
-                    }
-                  />
-                </div>
-                <div>
-                  <label htmlFor="veh-type">Tipo</label>
-                  <select
-                    id="veh-type"
-                    value={vehicleForm.vehicleType}
-                    onChange={(e) => setVehicleForm((f) => ({ ...f, vehicleType: e.target.value }))}
-                  >
-                    {Object.entries(VEHICLE_TYPE_LABELS).map(([v, l]) => (
-                      <option key={v} value={v}>
-                        {l}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="parking-actions-row">
-                <button type="submit" className="catalog-action-button">
-                  Salvar placa
-                </button>
-                <button
-                  type="button"
-                  className="catalog-action-button is-secondary"
-                  onClick={() => setVehicleModal(null)}
-                >
-                  Cancelar
-                </button>
-              </div>
-            </form>
+      <RegistryFormModal
+        isOpen={Boolean(vehicleModal)}
+        title={vehicleModal ? `Adicionar veículo — ${vehicleModal.label}` : 'Adicionar veículo'}
+        subtitle="Inclua placa autorizada no contrato."
+        onClose={() => setVehicleModal(null)}
+        onSubmit={handleAddVehicle}
+        footer={registryModalFooterButtons({
+          onClose: () => setVehicleModal(null),
+          submitLabel: 'Salvar placa',
+        })}
+      >
+        <div className="parking-form-grid">
+          <div>
+            <label htmlFor="veh-plate">Placa</label>
+            <input
+              id="veh-plate"
+              required
+              value={vehicleForm.plate}
+              onChange={(e) =>
+                setVehicleForm((f) => ({ ...f, plate: e.target.value.toUpperCase() }))
+              }
+            />
           </div>
+          <PremiumSelect
+            id="veh-type"
+            label="Tipo"
+            value={vehicleForm.vehicleType}
+            options={vehicleTypeSelectOptions}
+            onChange={(v) => setVehicleForm((f) => ({ ...f, vehicleType: v }))}
+          />
         </div>
-      ) : null}
+      </RegistryFormModal>
 
       <AlertModal isOpen={alert.open} message={alert.message} onClose={() => setAlert({ open: false, message: '' })} />
     </CatalogPageLayout>
