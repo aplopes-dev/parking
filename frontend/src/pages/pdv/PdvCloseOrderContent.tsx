@@ -428,7 +428,6 @@ const PdvCloseOrderContent: React.FC<PdvCloseOrderContentProps> = ({
       <>
         <form className="finance-tx-modal-body pdv-close-order-modal__form" onSubmit={handleClose}>
           <div>
-            <span className="catalog-section-kicker">Caixa</span>
             <p className="pdv-close-order-modal__hint">
               {usingBillSplits
                 ? 'Escolha a forma de pagamento de cada parte da divisão e finalize o pedido.'

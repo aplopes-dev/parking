@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
 import AlertModal from '../../components/AlertModal';
+import OperatorCashPanel from '../../components/OperatorCashPanel';
+import PremiumSelect from '../../components/PremiumSelect';
 import {
   checkoutParkingByTicket,
   checkoutParkingSession,
@@ -231,13 +233,13 @@ export const ParkingCashPage: React.FC = () => {
       loadingDescription="Carregando caixa…"
       actions={
         facilities.length ? (
-          <select value={facilityId} onChange={(e) => setFacilityId(e.target.value)}>
-            {facilities.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
-          </select>
+          <PremiumSelect
+            label="Unidade"
+            value={facilityId}
+            options={facilities.map((f) => ({ value: f.id, label: f.name }))}
+            wrapperClassName="form-group"
+            onChange={setFacilityId}
+          />
         ) : undefined
       }
     >
@@ -256,53 +258,29 @@ export const ParkingCashPage: React.FC = () => {
         </div>
       </div>
 
-      <section className="parking-panel">
-        <h3>Caixa do operador</h3>
-        {cashSession?.open && cashSession.session ? (
-          <div className="parking-cash-operator">
-            <p>
-              <strong>Caixa aberto</strong> — {cashSession.session.account?.name ?? 'Conta'} ·
-              saldo inicial {formatMoney(Number(cashSession.session.openingBalance))}
-            </p>
-            {cashSession.summary ? (
-              <p className="parking-hint">
-                Recebimentos parking: {formatMoney(cashSession.summary.parkingIncome)} ·{' '}
-                {cashSession.summary.transactionCount} lançamento(s)
-              </p>
-            ) : null}
-            <div className="parking-toolbar">
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="Valor contado no fechamento"
-                value={countedBalance}
-                onChange={(e) => setCountedBalance(e.target.value)}
-              />
-              <button type="button" className="catalog-action-button is-secondary" onClick={() => void handleCloseCash()}>
-                Fechar caixa
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="parking-cash-operator">
-            <p className="parking-hint">Abra seu caixa antes de registrar cobranças na saída.</p>
-            <div className="parking-toolbar">
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="Saldo inicial"
-                value={openingBalance}
-                onChange={(e) => setOpeningBalance(e.target.value)}
-              />
-              <button type="button" className="btn-primary" onClick={() => void handleOpenCash()}>
-                Abrir caixa
-              </button>
-            </div>
-          </div>
-        )}
-      </section>
+      <OperatorCashPanel
+        isOpen={Boolean(cashSession?.open && cashSession.session)}
+        accountOptions={cashAccounts.map((a) => ({ value: a.id, label: a.name }))}
+        accountId={accountId}
+        onAccountIdChange={setAccountId}
+        openingBalance={openingBalance}
+        onOpeningBalanceChange={setOpeningBalance}
+        countedBalance={countedBalance}
+        onCountedBalanceChange={setCountedBalance}
+        onOpen={() => void handleOpenCash()}
+        onClose={() => void handleCloseCash()}
+        closedHint="Abra seu caixa antes de registrar cobranças na saída."
+        openStatusLine={
+          cashSession?.session
+            ? `${cashSession.session.account?.name ?? 'Conta'} · saldo inicial ${formatMoney(Number(cashSession.session.openingBalance))}`
+            : undefined
+        }
+        summaryLine={
+          cashSession?.summary
+            ? `Recebimentos parking: ${formatMoney(cashSession.summary.parkingIncome)} · ${cashSession.summary.transactionCount} lançamento(s)`
+            : undefined
+        }
+      />
 
       <div className="parking-cash-layout">
         <section className="parking-panel">
@@ -335,15 +313,25 @@ export const ParkingCashPage: React.FC = () => {
 
         <section className="parking-panel parking-cash-checkout">
           <div className="parking-ticket-scan">
-            <label htmlFor="ticket-scan">Escanear / digitar ticket (QR)</label>
-            <div className="parking-toolbar">
-              <input
-                id="ticket-scan"
-                value={ticketScan}
-                onChange={(e) => setTicketScan(e.target.value.toUpperCase())}
-                placeholder="PK-YYYYMMDD-XXXX"
-              />
-              <button type="button" className="catalog-action-button is-secondary" onClick={() => void handleScanTicket()}>
+            <div className="catalog-toolbar catalog-filter-toolbar">
+              <div className="form-group catalog-search catalog-filter-toolbar__search catalog-filter-toolbar__search--wide">
+                <label htmlFor="ticket-scan">Escanear / digitar ticket (QR)</label>
+                <input
+                  id="ticket-scan"
+                  className="premium-text-input"
+                  value={ticketScan}
+                  onChange={(e) => setTicketScan(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void handleScanTicket();
+                  }}
+                  placeholder="PK-YYYYMMDD-XXXX"
+                />
+              </div>
+              <button
+                type="button"
+                className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action"
+                onClick={() => void handleScanTicket()}
+              >
                 Buscar ticket
               </button>
             </div>
@@ -366,21 +354,16 @@ export const ParkingCashPage: React.FC = () => {
 
               {tariffs.length > 0 && !isWaived ? (
                 <div className="parking-form-grid" style={{ marginTop: 14 }}>
-                  <div>
-                    <label htmlFor="cash-tariff">Tarifa</label>
-                    <select
-                      id="cash-tariff"
-                      value={tariffId}
-                      onChange={(e) => setTariffId(e.target.value)}
-                    >
-                      {tariffs.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name} — {formatMoney(t.price)}
-                          {t.billingType === 'hourly' ? '/h' : '/dia'}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <PremiumSelect
+                    id="cash-tariff"
+                    label="Tarifa"
+                    value={tariffId}
+                    options={tariffs.map((t) => ({
+                      value: t.id,
+                      label: `${t.name} — ${formatMoney(t.price)}${t.billingType === 'hourly' ? '/h' : '/dia'}`,
+                    }))}
+                    onChange={setTariffId}
+                  />
                 </div>
               ) : null}
 
@@ -416,24 +399,17 @@ export const ParkingCashPage: React.FC = () => {
                     ))}
                   </div>
                   <div className="parking-form-grid" style={{ marginTop: 14 }}>
-                    <div>
-                      <label htmlFor="cash-account">Conta financeira</label>
-                      <select
-                        id="cash-account"
-                        value={accountId}
-                        onChange={(e) => setAccountId(e.target.value)}
-                      >
-                        {cashAccounts.length === 0 ? (
-                          <option value="">Cadastre uma conta Caixa</option>
-                        ) : (
-                          cashAccounts.map((a) => (
-                            <option key={a.id} value={a.id}>
-                              {a.name}
-                            </option>
-                          ))
-                        )}
-                      </select>
-                    </div>
+                    <PremiumSelect
+                      id="cash-account"
+                      label="Conta financeira"
+                      value={accountId}
+                      options={
+                        cashAccounts.length === 0
+                          ? [{ value: '', label: 'Cadastre uma conta Caixa' }]
+                          : cashAccounts.map((a) => ({ value: a.id, label: a.name }))
+                      }
+                      onChange={setAccountId}
+                    />
                   </div>
                 </>
               ) : null}

@@ -24,7 +24,6 @@ const PdvCloseOrder: React.FC = () => {
       <section className="catalog-surface catalog-form-surface--premium finance-section">
         <div className="catalog-section-header">
           <div>
-            <span className="catalog-section-kicker">Caixa</span>
             <h2>Pagamento do pedido</h2>
           </div>
         </div>
