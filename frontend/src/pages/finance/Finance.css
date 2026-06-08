@@ -15,43 +15,9 @@
   }
 }
 
-/* —— Abas (página principal /financeiro) —— */
-.finance-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 4px 0;
-}
-
-.finance-tab {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-  border: 1px solid var(--border-default, #e5e5e5);
-  background: #ffffff;
-  border-radius: var(--radius-md, 6px);
-  padding: 10px 16px;
-  font-size: 0.88rem;
-  font-weight: 650;
-  color: var(--text-primary, #1a1a1a);
-  cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.finance-tab:hover:not(.finance-tab--active) {
-  border-color: #d4d4d4;
-  background: #fafafa;
-}
-
-.finance-tab.finance-tab--active,
-.finance-tab[aria-selected='true'] {
-  background: var(--brand-primary, #ea1d2c);
-  border-color: var(--brand-primary, #ea1d2c);
-  color: var(--brand-on-primary, #ffffff);
+/* —— Abas (página principal /financeiro) —— ver SectionTabBar.css */
+.finance-page .finance-tabs {
+  margin-bottom: 4px;
 }
 
 /* —— Barra de período / filtros —— */
@@ -59,11 +25,19 @@
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 16px 20px;
+  gap: 14px;
   padding: 20px 24px;
   border: 1px solid var(--border-default, #e5e5e5);
   border-radius: 8px;
   background: var(--surface-card, #ffffff);
+}
+
+.catalog-surface > .finance-toolbar,
+.catalog-surface > .finance-filters {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
 }
 
 .finance-toolbar .form-group,
@@ -99,7 +73,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 16px 20px;
+  gap: 14px;
 }
 
 .finance-filters .form-group,

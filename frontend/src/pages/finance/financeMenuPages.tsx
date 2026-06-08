@@ -184,16 +184,19 @@ export const FinanceBillsPage: React.FC = () => {
       title="Contas a pagar e receber"
       description="Fornecedores, clientes e títulos em aberto."
     >
-      <section className="finance-toolbar">
-        <PremiumSelect
-          label="Tipo"
-          value={billType}
-          options={[
-            { value: 'payable', label: 'A pagar' },
-            { value: 'receivable', label: 'A receber' },
-          ]}
-          onChange={(v) => setBillType(v as FinanceBillType)}
-        />
+      <section className="catalog-surface">
+        <div className="catalog-toolbar catalog-filter-toolbar finance-toolbar">
+          <PremiumSelect
+            label="Tipo"
+            value={billType}
+            wrapperClassName="form-group catalog-filter-toolbar__field"
+            options={[
+              { value: 'payable', label: 'A pagar' },
+              { value: 'receivable', label: 'A receber' },
+            ]}
+            onChange={(v) => setBillType(v as FinanceBillType)}
+          />
+        </div>
       </section>
 
       <FinanceSection title="Novo título" kicker="Cadastro">
@@ -398,10 +401,19 @@ export const FinanceCalendarPage: React.FC = () => {
 
   return (
     <CatalogPageLayout className="finance-page" moduleLabel="Gestão financeira" modulePath="/financeiro/lancamentos" title="Listagem por data" description="Visão mensal de receitas e despesas por dia.">
-      <section className="finance-toolbar">
-        <FinanceField label="Mês">
-          <input type="month" className="premium-text-input" value={month} onChange={(e) => setMonth(e.target.value)} />
-        </FinanceField>
+      <section className="catalog-surface">
+        <div className="catalog-toolbar catalog-filter-toolbar finance-toolbar">
+          <div className="form-group catalog-filter-toolbar__field">
+            <label htmlFor="finance-month-filter">Mês</label>
+            <input
+              id="finance-month-filter"
+              type="month"
+              className="premium-text-input"
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+            />
+          </div>
+        </div>
       </section>
       <FinanceTable title="Resumo por dia" headers={['Data', 'Receitas', 'Despesas']} rows={rows} />
     </CatalogPageLayout>
@@ -672,15 +684,30 @@ export const FinancePayrollPage: React.FC = () => {
           <p>{filtered.length} registro(s)</p>
         </div>
 
-        <div className="finance-filters" style={{ marginBottom: 16 }}>
-          <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+        <div className="catalog-toolbar catalog-filter-toolbar finance-filters">
+          <div className="form-group catalog-search catalog-filter-toolbar__search catalog-filter-toolbar__search--wide">
+            <label htmlFor="payroll-search">Buscar</label>
             <input
+              id="payroll-search"
               className="premium-text-input"
               placeholder="Buscar por referência…"
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
             />
           </div>
+          <button
+            type="button"
+            className="catalog-form-footer-btn catalog-form-footer-btn--ghost catalog-filter-toolbar__action"
+            onClick={() => {
+              setSearch('');
+              setPage(1);
+            }}
+          >
+            Limpar
+          </button>
         </div>
 
         {paged.length === 0 ? (
@@ -833,25 +860,51 @@ export const FinanceDailyPage: React.FC = () => {
           }}
         />
       )}
-      <FinanceSection title="Conferência" kicker="Caixa">
-        <form className="catalog-form" onSubmit={async (e) => {
-        e.preventDefault();
-        try {
-          await upsertDailyReconciliation({ reconciliationDate: date, cashCounted: parseFloat(form.cashCounted), notes: form.notes });
-          await load();
-          setAlert(successAlert('Conferência salva.'));
-        } catch (err) {
-          setAlert(errorAlert(err));
-        }
-      }}>
-        <label>Caixa contado<input type="number" step="0.01" className="premium-text-input" value={form.cashCounted} onChange={(e) => setForm({ ...form, cashCounted: e.target.value })} /></label>
-        <label>Obs.<input className="premium-text-input" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></label>
-        <FinanceFormActions>
-          <button type="submit" className="catalog-form-footer-btn catalog-form-footer-btn--primary">
+      <FinanceSection title="Conferência">
+        <form
+          className="catalog-toolbar catalog-filter-toolbar"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            try {
+              await upsertDailyReconciliation({
+                reconciliationDate: date,
+                cashCounted: parseFloat(form.cashCounted),
+                notes: form.notes,
+              });
+              await load();
+              setAlert(successAlert('Conferência salva.'));
+            } catch (err) {
+              setAlert(errorAlert(err));
+            }
+          }}
+        >
+          <div className="form-group catalog-filter-toolbar__field">
+            <label htmlFor="finance-recon-counted">Caixa contado</label>
+            <input
+              id="finance-recon-counted"
+              type="number"
+              step="0.01"
+              className="premium-text-input"
+              value={form.cashCounted}
+              onChange={(e) => setForm({ ...form, cashCounted: e.target.value })}
+            />
+          </div>
+          <div className="form-group catalog-filter-toolbar__field">
+            <label htmlFor="finance-recon-notes">Obs.</label>
+            <input
+              id="finance-recon-notes"
+              className="premium-text-input"
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            />
+          </div>
+          <button
+            type="submit"
+            className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action"
+          >
             Salvar
           </button>
-        </FinanceFormActions>
-      </form>
+        </form>
       </FinanceSection>
       <AlertModal isOpen={alert.open} message={alert.message} type={alert.type} onClose={() => setAlert(closedAlert)} />
     </CatalogPageLayout>
@@ -878,40 +931,90 @@ export const FinanceCashPage: React.FC = () => {
 
   return (
     <CatalogPageLayout className="finance-page" moduleLabel="Gestão financeira" modulePath="/financeiro/lancamentos" title="Conferência e gestão de caixas" description="Abertura e fechamento de sessão de caixa.">
-      <FinanceSection title="Abrir caixa" kicker="Sessão">
-        <form className="catalog-form" onSubmit={async (e) => {
-          e.preventDefault();
-          try {
-            await openCashSession({ ...openForm, openingBalance: parseFloat(openForm.openingBalance) });
-            await load();
-            setAlert(successAlert('Caixa aberto.'));
-          } catch (err) {
-            setAlert(errorAlert(err));
-          }
-        }}>
-          <PremiumSelect label="Conta caixa" value={openForm.accountId} options={accounts.map((a) => ({ value: a.id, label: a.name }))} onChange={(v) => setOpenForm({ ...openForm, accountId: v })} />
-          <label>Saldo inicial<input type="number" className="premium-text-input" value={openForm.openingBalance} onChange={(e) => setOpenForm({ ...openForm, openingBalance: e.target.value })} /></label>
-          <button type="submit" className="catalog-form-footer-btn catalog-form-footer-btn--primary">Abrir caixa</button>
+      <FinanceSection title="Abrir caixa">
+        <form
+          className="catalog-toolbar catalog-filter-toolbar"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            try {
+              await openCashSession({ ...openForm, openingBalance: parseFloat(openForm.openingBalance) });
+              await load();
+              setAlert(successAlert('Caixa aberto.'));
+            } catch (err) {
+              setAlert(errorAlert(err));
+            }
+          }}
+        >
+          <PremiumSelect
+            label="Conta caixa"
+            value={openForm.accountId}
+            options={accounts.map((a) => ({ value: a.id, label: a.name }))}
+            wrapperClassName="form-group catalog-filter-toolbar__field"
+            onChange={(v) => setOpenForm({ ...openForm, accountId: v })}
+          />
+          <div className="form-group catalog-filter-toolbar__field">
+            <label htmlFor="finance-open-balance">Saldo inicial</label>
+            <input
+              id="finance-open-balance"
+              type="number"
+              min={0}
+              step="0.01"
+              className="premium-text-input"
+              value={openForm.openingBalance}
+              onChange={(e) => setOpenForm({ ...openForm, openingBalance: e.target.value })}
+            />
+          </div>
+          <button
+            type="submit"
+            className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action"
+          >
+            Abrir caixa
+          </button>
         </form>
       </FinanceSection>
       <FinanceTable headers={['Conta', 'Abertura', 'Status', 'Saldo abertura']} rows={sessions.map((s) => [s.account?.name, s.openedAt?.slice(0, 16), s.status, formatMoney(s.openingBalance)])} />
-      <FinanceSection title="Fechar caixa" kicker="Operação">
-        <div className="catalog-form finance-filters">
-          <PremiumSelect label="Fechar sessão" value={closeId} options={sessions.filter((s) => s.status === 'open').map((s) => ({ value: s.id, label: s.account?.name ?? s.id }))} onChange={setCloseId} />
-          <FinanceField label="Valor contado">
-            <input type="number" className="premium-text-input" value={closeForm.countedBalance} onChange={(e) => setCloseForm({ ...closeForm, countedBalance: e.target.value })} />
-          </FinanceField>
-          <FinanceFormActions>
-            <button type="button" className="catalog-action-button" onClick={async () => {
+      <FinanceSection title="Fechar caixa">
+        <div className="catalog-toolbar catalog-filter-toolbar">
+          <PremiumSelect
+            label="Fechar sessão"
+            value={closeId}
+            options={sessions.filter((s) => s.status === 'open').map((s) => ({
+              value: s.id,
+              label: s.account?.name ?? s.id,
+            }))}
+            wrapperClassName="form-group catalog-filter-toolbar__field"
+            onChange={setCloseId}
+          />
+          <div className="form-group catalog-filter-toolbar__field">
+            <label htmlFor="finance-close-counted">Valor contado</label>
+            <input
+              id="finance-close-counted"
+              type="number"
+              min={0}
+              step="0.01"
+              className="premium-text-input"
+              value={closeForm.countedBalance}
+              onChange={(e) => setCloseForm({ ...closeForm, countedBalance: e.target.value })}
+            />
+          </div>
+          <button
+            type="button"
+            className="catalog-form-footer-btn catalog-form-footer-btn--ghost catalog-filter-toolbar__action"
+            onClick={async () => {
               try {
-                await closeCashSession(closeId, { ...closeForm, countedBalance: parseFloat(closeForm.countedBalance) });
+                await closeCashSession(closeId, {
+                  ...closeForm,
+                  countedBalance: parseFloat(closeForm.countedBalance),
+                });
                 await load();
                 setAlert(successAlert('Caixa fechado.'));
               } catch (err) {
                 setAlert(errorAlert(err));
               }
-            }}>Fechar caixa</button>
-          </FinanceFormActions>
+            }}
+          >
+            Fechar caixa
+          </button>
         </div>
       </FinanceSection>
       <AlertModal isOpen={alert.open} message={alert.message} type={alert.type} onClose={() => setAlert(closedAlert)} />
@@ -1009,10 +1112,11 @@ export const FinanceCardPage: React.FC = () => {
         <button type="submit" className="catalog-form-footer-btn catalog-form-footer-btn--primary">Registrar</button>
       </form>
       <FinanceTable headers={['Adquirente', 'Líquido', 'Status', 'Previsão']} rows={rows.map((r) => [r.acquirer, formatMoney(r.netAmount), r.status, r.expectedDepositDate?.slice(0, 10)])} />
-      <div className="finance-filters">
-        <PremiumSelect label="Recebível" value={depositId} options={rows.filter((r) => r.status === 'pending').map((r) => ({ value: r.id, label: r.acquirerName }))} onChange={setDepositId} />
-        <PremiumSelect label="Conta destino" value={depositAccount} options={accounts.map((a) => ({ value: a.id, label: a.name }))} onChange={setDepositAccount} />
-        <button type="button" className="catalog-action-button" onClick={async () => {
+      <section className="catalog-surface">
+        <div className="catalog-toolbar catalog-filter-toolbar finance-filters">
+        <PremiumSelect label="Recebível" value={depositId} options={rows.filter((r) => r.status === 'pending').map((r) => ({ value: r.id, label: r.acquirerName }))} wrapperClassName="form-group catalog-filter-toolbar__field" onChange={setDepositId} />
+        <PremiumSelect label="Conta destino" value={depositAccount} options={accounts.map((a) => ({ value: a.id, label: a.name }))} wrapperClassName="form-group catalog-filter-toolbar__field" onChange={setDepositAccount} />
+        <button type="button" className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action" onClick={async () => {
           try {
             await depositCard(depositId, depositAccount);
             await load();
@@ -1021,7 +1125,8 @@ export const FinanceCardPage: React.FC = () => {
             setAlert(errorAlert(err));
           }
         }}>Depositar</button>
-      </div>
+        </div>
+      </section>
       <AlertModal isOpen={alert.open} message={alert.message} type={alert.type} onClose={() => setAlert(closedAlert)} />
     </CatalogPageLayout>
   );

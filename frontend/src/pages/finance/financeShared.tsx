@@ -82,7 +82,7 @@ type PeriodProps = {
 };
 
 export const FinancePeriodBar: React.FC<PeriodProps> = ({ from, to, onFrom, onTo, extra }) => (
-  <section className="finance-toolbar" aria-label="Período">
+  <section className="finance-toolbar catalog-filter-toolbar" aria-label="Período">
     <div className="form-group">
       <label htmlFor="finance-filter-from">De</label>
       <input
@@ -124,7 +124,7 @@ export const FinanceTransactionFilterBar: React.FC<TransactionFilterProps> = ({
   onTo,
   onType,
 }) => (
-  <section className="finance-toolbar" aria-label="Filtrar lançamentos do período">
+  <section className="finance-toolbar catalog-filter-toolbar" aria-label="Filtrar lançamentos do período">
     <div className="form-group">
       <label htmlFor="finance-tx-from">De</label>
       <input
