@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import PremiumSelect from '../../components/PremiumSelect';
 import {
   PagbankTestPanel,
   PagbankTestRunResult,
@@ -480,22 +481,19 @@ const PaymentPagbankTestSection: React.FC<Props> = ({ canManage }) => {
 
       {error && <p className="pagbank-pix-error">{error}</p>}
 
-      <div className="payment-test-toolbar">
-        <select
-          className="premium-text-input"
+      <div className="payment-test-toolbar catalog-toolbar catalog-filter-toolbar">
+        <PremiumSelect
+          label="Grupo de testes"
           value={filterGroup}
-          onChange={(e) => setFilterGroup(e.target.value)}
-          style={{ maxWidth: 280 }}
-          aria-label="Filtrar grupo de testes"
-        >
-          <option value="all">Todos os grupos</option>
-          {panel &&
-            Object.entries(panel.groupLabels).map(([k, label]) => (
-              <option key={k} value={k}>
-                {label}
-              </option>
-            ))}
-        </select>
+          options={[
+            { value: 'all', label: 'Todos os grupos' },
+            ...(panel
+              ? Object.entries(panel.groupLabels).map(([k, label]) => ({ value: k, label }))
+              : []),
+          ]}
+          wrapperClassName="form-group catalog-filter-toolbar__field"
+          onChange={setFilterGroup}
+        />
       </div>
 
       {panel?.testPlan && (

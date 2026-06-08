@@ -1,7 +1,9 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import api from '../services/api';
 import AlertModal from '../components/AlertModal';
+import SectionTabBar from '../components/SectionTabBar';
 import { AlertState } from '../types';
 import { getUserPhotoUrl } from '../utils/userPhoto';
 import CatalogPageLayout from '../components/CatalogPageLayout';
@@ -10,9 +12,33 @@ import './MyProfile.css';
 
 import { getRoleLabel } from '../types/userRole';
 
+type ProfileTab = 'account' | 'photo' | 'security';
+
+const PROFILE_TABS: ProfileTab[] = ['account', 'photo', 'security'];
+
+const PROFILE_TAB_LABELS: Record<ProfileTab, string> = {
+  account: 'Dados da conta',
+  photo: 'Foto do perfil',
+  security: 'Senha',
+};
+
+const PROFILE_TAB_HINTS: Record<ProfileTab, string> = {
+  account: 'Nome e e-mail usados para login e identificação no sistema.',
+  photo: 'Imagem exibida no menu lateral e na barra superior.',
+  security: 'Altere a senha de acesso; deixe em branco para manter a atual.',
+};
+
+function profileTabFromSearch(search: string): ProfileTab {
+  const value = new URLSearchParams(search).get('aba');
+  if (value && PROFILE_TABS.includes(value as ProfileTab)) return value as ProfileTab;
+  return 'account';
+}
+
 const MyProfile: React.FC = () => {
   const authContext = useContext(AuthContext);
   const { user, refreshUser } = authContext || {};
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = profileTabFromSearch(searchParams.toString());
   const currentPhotoUrl = useMemo(() => getUserPhotoUrl(user), [user]);
   const [name, setName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
@@ -22,6 +48,12 @@ const MyProfile: React.FC = () => {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState<boolean>(false);
   const [alert, setAlert] = useState<AlertState>({ isOpen: false, message: '', type: 'success' });
+
+  const setActiveTab = (tab: ProfileTab) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('aba', tab);
+    setSearchParams(next, { replace: true });
+  };
 
   useEffect(() => {
     setName(user?.name ?? '');
@@ -64,6 +96,18 @@ const MyProfile: React.FC = () => {
     }
     setPhotoFile(file);
     setPhotoPreview(file ? URL.createObjectURL(file) : null);
+  };
+
+  const resetDraft = () => {
+    setName(user.name);
+    setEmail(user.email);
+    setPassword('');
+    setConfirmPassword('');
+    setPhotoFile(null);
+    if (photoPreview?.startsWith('blob:')) {
+      URL.revokeObjectURL(photoPreview);
+    }
+    setPhotoPreview(null);
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
@@ -131,119 +175,130 @@ const MyProfile: React.FC = () => {
       title={user.name}
       description="Consulte os dados vinculados à sua conta e à organização ativa."
     >
+      <SectionTabBar
+        tabs={PROFILE_TABS.map((id) => ({ id, label: PROFILE_TAB_LABELS[id] }))}
+        activeTab={activeTab}
+        onTabChange={(id) => setActiveTab(id as ProfileTab)}
+        ariaLabel="Seções do perfil"
+      />
+
+      <p className="my-profile-tab-hint">{PROFILE_TAB_HINTS[activeTab]}</p>
+
       <section className="catalog-surface catalog-form-surface--premium my-profile-surface">
         <form className="my-profile-card" onSubmit={handleSubmit}>
-          <div className="my-profile-photo-column">
-            <div className="my-profile-avatar">
-              {displayPhotoUrl ? (
-                <img src={displayPhotoUrl} alt={name || user.name} />
-              ) : (
-                <span>{initials || 'U'}</span>
-              )}
+          {activeTab === 'photo' ? (
+            <div className="my-profile-photo-panel">
+              <div className="my-profile-avatar">
+                {displayPhotoUrl ? (
+                  <img src={displayPhotoUrl} alt={name || user.name} />
+                ) : (
+                  <span>{initials || 'U'}</span>
+                )}
+              </div>
+              <label className="users-form-footer-btn users-form-footer-btn--ghost my-profile-photo-button">
+                Alterar foto
+                <input type="file" accept="image/*" onChange={handlePhotoChange} />
+              </label>
             </div>
-            <label className="users-form-footer-btn users-form-footer-btn--ghost my-profile-photo-button">
-              Alterar foto
-              <input type="file" accept="image/*" onChange={handlePhotoChange} />
-            </label>
-          </div>
+          ) : null}
 
-          <div className="my-profile-main">
-            <span className="catalog-section-kicker">Editar perfil</span>
-            <div className="my-profile-fields-grid">
-              <div className="my-profile-field">
-              <label htmlFor="profile-name">Nome</label>
-              <input
-                id="profile-name"
-                className="premium-text-input"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                required
-              />
+          {activeTab === 'account' ? (
+            <div className="my-profile-main my-profile-main--full">
+              <span className="catalog-section-kicker">Dados da conta</span>
+              <div className="my-profile-fields-grid">
+                <div className="my-profile-field">
+                  <label htmlFor="profile-name">Nome</label>
+                  <input
+                    id="profile-name"
+                    className="premium-text-input"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    required
+                  />
+                </div>
+                <div className="my-profile-field">
+                  <label htmlFor="profile-email">E-mail</label>
+                  <input
+                    id="profile-email"
+                    className="premium-text-input"
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    required
+                  />
+                </div>
               </div>
-              <div className="my-profile-field">
-                <label htmlFor="profile-email">E-mail</label>
-                <input
-                  id="profile-email"
-                  className="premium-text-input"
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  required
-                />
-              </div>
-              <div className="my-profile-field">
-                <label htmlFor="profile-password">Nova senha</label>
-                <input
-                  id="profile-password"
-                  className="premium-text-input"
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Deixe em branco para manter"
-                  autoComplete="new-password"
-                />
-              </div>
-              <div className="my-profile-field">
-                <label htmlFor="profile-confirm-password">Confirmar senha</label>
-                <input
-                  id="profile-confirm-password"
-                  className="premium-text-input"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
-                  placeholder="Repita a nova senha"
-                  autoComplete="new-password"
-                />
-              </div>
-            </div>
-            <p>Atualize seus dados de acesso. A senha só será alterada se os campos forem preenchidos.</p>
 
-            <div className="my-profile-info-grid">
-              <div className="my-profile-info-card">
-                <span>Perfil</span>
-                <strong>{getRoleLabel(user.role)}</strong>
-              </div>
-              <div className="my-profile-info-card">
-                <span>Status</span>
-                <strong>{user.active ? 'Ativo' : 'Inativo'}</strong>
-              </div>
-              <div className="my-profile-info-card">
-                <span>Organização</span>
-                <strong>{user.tenant?.name ?? 'Não informado'}</strong>
-              </div>
-              <div className="my-profile-info-card">
-                <span>Identificador</span>
-                <strong>{user.tenant?.slug ?? user.tenantId}</strong>
+              <div className="my-profile-info-grid">
+                <div className="my-profile-info-card">
+                  <span>Perfil</span>
+                  <strong>{getRoleLabel(user.role)}</strong>
+                </div>
+                <div className="my-profile-info-card">
+                  <span>Status</span>
+                  <strong>{user.active ? 'Ativo' : 'Inativo'}</strong>
+                </div>
+                <div className="my-profile-info-card">
+                  <span>Organização</span>
+                  <strong>{user.tenant?.name ?? 'Não informado'}</strong>
+                </div>
+                <div className="my-profile-info-card">
+                  <span>Identificador</span>
+                  <strong>{user.tenant?.slug ?? user.tenantId}</strong>
+                </div>
               </div>
             </div>
+          ) : null}
 
-            <div className="users-form-footer users-form-footer--premium my-profile-actions">
-              <button
-                type="button"
-                className="users-form-footer-btn users-form-footer-btn--ghost"
-                disabled={saving}
-                onClick={() => {
-                  setName(user.name);
-                  setEmail(user.email);
-                  setPassword('');
-                  setConfirmPassword('');
-                  setPhotoFile(null);
-                  if (photoPreview?.startsWith('blob:')) {
-                    URL.revokeObjectURL(photoPreview);
-                  }
-                  setPhotoPreview(null);
-                }}
-              >
-                Cancelar alterações
-              </button>
-              <button
-                type="submit"
-                className="users-form-footer-btn users-form-footer-btn--primary"
-                disabled={saving}
-              >
-                {saving ? 'Salvando...' : 'Salvar perfil'}
-              </button>
+          {activeTab === 'security' ? (
+            <div className="my-profile-main my-profile-main--full">
+              <span className="catalog-section-kicker">Senha de acesso</span>
+              <div className="my-profile-fields-grid">
+                <div className="my-profile-field">
+                  <label htmlFor="profile-password">Nova senha</label>
+                  <input
+                    id="profile-password"
+                    className="premium-text-input"
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="Deixe em branco para manter"
+                    autoComplete="new-password"
+                  />
+                </div>
+                <div className="my-profile-field">
+                  <label htmlFor="profile-confirm-password">Confirmar senha</label>
+                  <input
+                    id="profile-confirm-password"
+                    className="premium-text-input"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    placeholder="Repita a nova senha"
+                    autoComplete="new-password"
+                  />
+                </div>
+              </div>
+              <p>A senha só será alterada se os campos forem preenchidos.</p>
             </div>
+          ) : null}
+
+          <div className="users-form-footer users-form-footer--premium my-profile-actions">
+            <button
+              type="button"
+              className="users-form-footer-btn users-form-footer-btn--ghost"
+              disabled={saving}
+              onClick={resetDraft}
+            >
+              Cancelar alterações
+            </button>
+            <button
+              type="submit"
+              className="users-form-footer-btn users-form-footer-btn--primary"
+              disabled={saving}
+            >
+              {saving ? 'Salvando...' : 'Salvar perfil'}
+            </button>
           </div>
         </form>
       </section>

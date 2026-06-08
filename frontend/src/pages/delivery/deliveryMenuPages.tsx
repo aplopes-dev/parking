@@ -1,5 +1,6 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import RegistryFormModal, { registryModalFooterButtons } from '../../components/RegistryFormModal';
 import AlertModal from '../../components/AlertModal';
 import ConfirmModal from '../../components/ConfirmModal';
 import PremiumSelect from '../../components/PremiumSelect';
@@ -74,6 +75,8 @@ export const DeliveryManagementPage: React.FC = () => {
   } | null>(null);
   const [assignOrderId, setAssignOrderId] = useState('');
   const [assignCourierId, setAssignCourierId] = useState('');
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [assigning, setAssigning] = useState(false);
   const [alert, setAlert] = useState<AlertState>({ open: false, message: '', type: 'success' });
 
   const load = useCallback(async () => {
@@ -135,23 +138,54 @@ export const DeliveryManagementPage: React.FC = () => {
       description="Atribua entregadores e acompanhe pedidos delivery em andamento."
       stats={stats}
       actions={
-        <button
-          type="button"
-          className="catalog-action-button is-secondary"
-          onClick={() => void load()}
-        >
-          Atualizar
-        </button>
+        <>
+          <button
+            type="button"
+            className="catalog-action-button"
+            onClick={() => setAssignModalOpen(true)}
+          >
+            Atribuir entregador
+          </button>
+          <button
+            type="button"
+            className="catalog-action-button is-secondary"
+            onClick={() => void load()}
+          >
+            Atualizar
+          </button>
+        </>
       }
     >
-      <section className="catalog-surface catalog-form-surface--premium">
-        <div className="catalog-section-header">
-          <div>
-            <span className="catalog-section-kicker">Operação</span>
-            <h2>Atribuir entregador</h2>
-          </div>
-        </div>
-        <div className="delivery-assign-toolbar">
+      <RegistryFormModal
+        isOpen={assignModalOpen}
+        title="Atribuir entregador"
+        subtitle="Vincule um pedido delivery a um entregador disponível."
+        isSaving={assigning}
+        onClose={() => !assigning && setAssignModalOpen(false)}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (!assignOrderId || !assignCourierId) return;
+          setAssigning(true);
+          try {
+            await assignDeliveryOrder(assignOrderId, { courierId: assignCourierId });
+            setAssignOrderId('');
+            setAssignCourierId('');
+            setAssignModalOpen(false);
+            await load();
+            setAlert({ open: true, message: 'Entregador atribuído.', type: 'success' });
+          } catch (err) {
+            setAlert({ open: true, message: errMsg(err), type: 'error' });
+          } finally {
+            setAssigning(false);
+          }
+        }}
+        footer={registryModalFooterButtons({
+          onClose: () => setAssignModalOpen(false),
+          isSaving: assigning,
+          submitLabel: 'Atribuir',
+        })}
+      >
+        <div className="catalog-form-grid">
           <PremiumSelect
             label="Pedido"
             value={assignOrderId}
@@ -173,26 +207,8 @@ export const DeliveryManagementPage: React.FC = () => {
             ]}
             onChange={setAssignCourierId}
           />
-          <button
-            type="button"
-            className="catalog-action-button"
-            disabled={!assignOrderId || !assignCourierId}
-            onClick={async () => {
-              try {
-                await assignDeliveryOrder(assignOrderId, { courierId: assignCourierId });
-                setAssignOrderId('');
-                setAssignCourierId('');
-                await load();
-                setAlert({ open: true, message: 'Entregador atribuído.', type: 'success' });
-              } catch (err) {
-                setAlert({ open: true, message: errMsg(err), type: 'error' });
-              }
-            }}
-          >
-            Atribuir
-          </button>
         </div>
-      </section>
+      </RegistryFormModal>
 
       <section className="catalog-surface delivery-orders-surface">
         <div className="catalog-section-header">
@@ -276,6 +292,10 @@ export const DeliveryMotoboysPage: React.FC = () => {
   const [updatingCourierId, setUpdatingCourierId] = useState<string | null>(null);
   const [courierForm, setCourierForm] = useState({ name: '', phone: '', vehicle: 'moto' });
   const [routeForm, setRouteForm] = useState({ name: '', zoneLabel: '', color: '#ea1d2c' });
+  const [courierModalOpen, setCourierModalOpen] = useState(false);
+  const [routeModalOpen, setRouteModalOpen] = useState(false);
+  const [savingCourier, setSavingCourier] = useState(false);
+  const [savingRoute, setSavingRoute] = useState(false);
   const [alert, setAlert] = useState<AlertState>({ open: false, message: '', type: 'success' });
   const [confirmDelete, setConfirmDelete] = useState<{
     type: 'courier' | 'route';
@@ -323,78 +343,82 @@ export const DeliveryMotoboysPage: React.FC = () => {
       title="Entregadores e rotas"
       description="Cadastre entregadores e zonas de entrega."
       actions={
-        <button
-          type="button"
-          className="catalog-action-button is-secondary"
-          onClick={() => void load()}
-        >
-          Atualizar
-        </button>
+        <>
+          <button type="button" className="catalog-action-button" onClick={() => setCourierModalOpen(true)}>
+            Novo entregador
+          </button>
+          <button type="button" className="catalog-action-button" onClick={() => setRouteModalOpen(true)}>
+            Nova rota
+          </button>
+          <button
+            type="button"
+            className="catalog-action-button is-secondary"
+            onClick={() => void load()}
+          >
+            Atualizar
+          </button>
+        </>
       }
     >
-      <section className="catalog-surface catalog-form-surface--premium">
-        <div className="catalog-section-header">
-          <div>
-            <span className="catalog-section-kicker">Equipe</span>
-            <h2>Novo entregador</h2>
-          </div>
-        </div>
-        <form
-          className="catalog-form"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            const body: Record<string, string> = { name: courierForm.name.trim(), vehicle: courierForm.vehicle };
-            if (courierForm.phone.trim()) body.phone = courierForm.phone.trim();
-            try {
-              await createCourier(body);
-            } catch (err) {
-              setAlert({ open: true, message: errMsg(err), type: 'error' });
-              return;
-            }
+      <RegistryFormModal
+        isOpen={courierModalOpen}
+        title="Novo entregador"
+        subtitle="Cadastre um entregador para atribuição de pedidos."
+        isSaving={savingCourier}
+        onClose={() => !savingCourier && setCourierModalOpen(false)}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const body: Record<string, string> = { name: courierForm.name.trim(), vehicle: courierForm.vehicle };
+          if (courierForm.phone.trim()) body.phone = courierForm.phone.trim();
+          setSavingCourier(true);
+          try {
+            await createCourier(body);
             setCourierForm({ name: '', phone: '', vehicle: 'moto' });
+            setCourierModalOpen(false);
             setAlert({ open: true, message: 'Entregador cadastrado.', type: 'success' });
             try { await load(); } catch { /* silent */ }
-          }}
-        >
-          <div className="catalog-form-grid">
-            <div className="form-group">
-              <label htmlFor="courier-name">Nome</label>
-              <input
-                id="courier-name"
-                className="premium-text-input"
-                value={courierForm.name}
-                onChange={(e) => setCourierForm({ ...courierForm, name: e.target.value })}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="courier-phone">Telefone</label>
-              <input
-                id="courier-phone"
-                className="premium-text-input"
-                value={courierForm.phone}
-                onChange={(e) => setCourierForm({ ...courierForm, phone: e.target.value })}
-              />
-            </div>
-            <div className="form-group">
-              <PremiumSelect
-                label="Veículo"
-                value={courierForm.vehicle}
-                options={VEHICLE_OPTIONS}
-                onChange={(v) => setCourierForm({ ...courierForm, vehicle: v })}
-              />
-            </div>
+          } catch (err) {
+            setAlert({ open: true, message: errMsg(err), type: 'error' });
+          } finally {
+            setSavingCourier(false);
+          }
+        }}
+        footer={registryModalFooterButtons({
+          onClose: () => setCourierModalOpen(false),
+          isSaving: savingCourier,
+          submitLabel: 'Adicionar entregador',
+        })}
+      >
+        <div className="catalog-form-grid">
+          <div className="form-group">
+            <label htmlFor="courier-name">Nome</label>
+            <input
+              id="courier-name"
+              className="premium-text-input"
+              value={courierForm.name}
+              onChange={(e) => setCourierForm({ ...courierForm, name: e.target.value })}
+              required
+            />
           </div>
-          <div className="catalog-form-footer">
-            <button
-              type="submit"
-              className="catalog-form-footer-btn catalog-form-footer-btn--primary"
-            >
-              Adicionar entregador
-            </button>
+          <div className="form-group">
+            <label htmlFor="courier-phone">Telefone</label>
+            <input
+              id="courier-phone"
+              className="premium-text-input"
+              value={courierForm.phone}
+              onChange={(e) => setCourierForm({ ...courierForm, phone: e.target.value })}
+            />
           </div>
-        </form>
-      </section>
+          <div className="form-group">
+            <PremiumSelect
+              label="Veículo"
+              value={courierForm.vehicle}
+              options={VEHICLE_OPTIONS}
+              onChange={(v) => setCourierForm({ ...courierForm, vehicle: v })}
+            />
+          </div>
+        </div>
+      </RegistryFormModal>
 
       <section className="catalog-surface">
         <div className="catalog-section-header">
@@ -469,72 +493,68 @@ export const DeliveryMotoboysPage: React.FC = () => {
         )}
       </section>
 
-      <section className="catalog-surface catalog-form-surface--premium">
-        <div className="catalog-section-header">
-          <div>
-            <span className="catalog-section-kicker">Rotas</span>
-            <h2>Nova rota / zona</h2>
-          </div>
-        </div>
-        <form
-          className="catalog-form"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            const body: Record<string, string> = { name: routeForm.name.trim(), color: routeForm.color };
-            if (routeForm.zoneLabel.trim()) body.zoneLabel = routeForm.zoneLabel.trim();
-            try {
-              await createRoute(body);
-            } catch (err) {
-              setAlert({ open: true, message: errMsg(err), type: 'error' });
-              return;
-            }
+      <RegistryFormModal
+        isOpen={routeModalOpen}
+        title="Nova rota / zona"
+        subtitle="Defina zonas de entrega para organização no mapa."
+        isSaving={savingRoute}
+        onClose={() => !savingRoute && setRouteModalOpen(false)}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const body: Record<string, string> = { name: routeForm.name.trim(), color: routeForm.color };
+          if (routeForm.zoneLabel.trim()) body.zoneLabel = routeForm.zoneLabel.trim();
+          setSavingRoute(true);
+          try {
+            await createRoute(body);
             setRouteForm({ name: '', zoneLabel: '', color: '#ea1d2c' });
+            setRouteModalOpen(false);
             setAlert({ open: true, message: 'Rota cadastrada.', type: 'success' });
             try { await load(); } catch { /* silent */ }
-          }}
-        >
-          <div className="catalog-form-grid">
-            <div className="form-group">
-              <label htmlFor="route-name">Nome da rota</label>
-              <input
-                id="route-name"
-                className="premium-text-input"
-                value={routeForm.name}
-                onChange={(e) => setRouteForm({ ...routeForm, name: e.target.value })}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="route-zone">Bairro / zona</label>
-              <input
-                id="route-zone"
-                className="premium-text-input"
-                value={routeForm.zoneLabel}
-                onChange={(e) => setRouteForm({ ...routeForm, zoneLabel: e.target.value })}
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="route-color">Cor no mapa</label>
-              <input
-                id="route-color"
-                type="color"
-                className="premium-text-input"
-                value={routeForm.color}
-                onChange={(e) => setRouteForm({ ...routeForm, color: e.target.value })}
-                style={{ padding: 4, height: 48 }}
-              />
-            </div>
+          } catch (err) {
+            setAlert({ open: true, message: errMsg(err), type: 'error' });
+          } finally {
+            setSavingRoute(false);
+          }
+        }}
+        footer={registryModalFooterButtons({
+          onClose: () => setRouteModalOpen(false),
+          isSaving: savingRoute,
+          submitLabel: 'Adicionar rota',
+        })}
+      >
+        <div className="catalog-form-grid">
+          <div className="form-group">
+            <label htmlFor="route-name">Nome da rota</label>
+            <input
+              id="route-name"
+              className="premium-text-input"
+              value={routeForm.name}
+              onChange={(e) => setRouteForm({ ...routeForm, name: e.target.value })}
+              required
+            />
           </div>
-          <div className="catalog-form-footer">
-            <button
-              type="submit"
-              className="catalog-form-footer-btn catalog-form-footer-btn--primary"
-            >
-              Adicionar rota
-            </button>
+          <div className="form-group">
+            <label htmlFor="route-zone">Bairro / zona</label>
+            <input
+              id="route-zone"
+              className="premium-text-input"
+              value={routeForm.zoneLabel}
+              onChange={(e) => setRouteForm({ ...routeForm, zoneLabel: e.target.value })}
+            />
           </div>
-        </form>
-      </section>
+          <div className="form-group">
+            <label htmlFor="route-color">Cor no mapa</label>
+            <input
+              id="route-color"
+              type="color"
+              className="premium-text-input"
+              value={routeForm.color}
+              onChange={(e) => setRouteForm({ ...routeForm, color: e.target.value })}
+              style={{ padding: 4, height: 48 }}
+            />
+          </div>
+        </div>
+      </RegistryFormModal>
 
       <section className="catalog-surface">
         <div className="catalog-section-header">

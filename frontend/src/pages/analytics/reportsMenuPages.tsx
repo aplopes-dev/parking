@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import PremiumSelect from '../../components/PremiumSelect';
 import {
   CartesianGrid,
   Line,
@@ -333,25 +334,38 @@ export const ReportsFinancePage: React.FC = () => {
             </button>
           }
         />
-        <section className="finance-toolbar" aria-label="Filtros">
-          <div className="form-group">
-            <label htmlFor="rf-type">Tipo</label>
-            <select id="rf-type" className="premium-text-input" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-              <option value="">Todos</option>
-              <option value="income">Receita</option>
-              <option value="expense">Despesa</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label htmlFor="rf-category">Categoria</label>
-            <select id="rf-category" className="premium-text-input" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
-              <option value="">Todas</option>
-              {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <div className="form-group" style={{ alignSelf: 'flex-end' }}>
-            <button type="button" className="catalog-form-footer-btn catalog-form-footer-btn--ghost" onClick={() => { setFilterType(''); setFilterCategory(''); }}>
-              Limpar filtros
+        <section className="catalog-surface">
+          <div className="catalog-toolbar catalog-filter-toolbar finance-toolbar" aria-label="Filtros">
+            <PremiumSelect
+              label="Tipo"
+              value={filterType}
+              options={[
+                { value: '', label: 'Todos' },
+                { value: 'income', label: 'Receita' },
+                { value: 'expense', label: 'Despesa' },
+              ]}
+              wrapperClassName="form-group catalog-filter-toolbar__field"
+              onChange={setFilterType}
+            />
+            <PremiumSelect
+              label="Categoria"
+              value={filterCategory}
+              options={[
+                { value: '', label: 'Todas' },
+                ...categoryOptions.map((c) => ({ value: c, label: c })),
+              ]}
+              wrapperClassName="form-group catalog-filter-toolbar__field"
+              onChange={setFilterCategory}
+            />
+            <button
+              type="button"
+              className="catalog-form-footer-btn catalog-form-footer-btn--ghost catalog-filter-toolbar__action"
+              onClick={() => {
+                setFilterType('');
+                setFilterCategory('');
+              }}
+            >
+              Limpar
             </button>
           </div>
         </section>

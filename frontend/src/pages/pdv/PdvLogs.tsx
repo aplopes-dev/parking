@@ -113,8 +113,8 @@ const PdvLogs: React.FC = () => {
       loadingDescription="Carregando logs do PDV."
     >
       <section className="catalog-surface">
-        <div className="catalog-toolbar" style={{ alignItems: 'flex-end', gap: 14 }}>
-          <div className="form-group catalog-search" style={{ marginBottom: 0 }}>
+        <div className="catalog-toolbar catalog-filter-toolbar">
+          <div className="form-group catalog-search catalog-filter-toolbar__search catalog-filter-toolbar__search--wide">
             <label htmlFor="pdv-log-search">Buscar</label>
             <input
               id="pdv-log-search"
@@ -125,7 +125,7 @@ const PdvLogs: React.FC = () => {
               placeholder="Nº pedido, usuário, ação…"
             />
           </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
+          <div className="form-group catalog-filter-toolbar__field">
             <label htmlFor="pdv-log-date-from">De</label>
             <input
               id="pdv-log-date-from"
@@ -135,7 +135,7 @@ const PdvLogs: React.FC = () => {
               onChange={(e) => handleDateFrom(e.target.value)}
             />
           </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
+          <div className="form-group catalog-filter-toolbar__field">
             <label htmlFor="pdv-log-date-to">Até</label>
             <input
               id="pdv-log-date-to"
@@ -147,16 +147,14 @@ const PdvLogs: React.FC = () => {
           </div>
           <button
             type="button"
-            className="catalog-form-footer-btn catalog-form-footer-btn--primary"
-            style={{ marginBottom: 0 }}
+            className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action"
             onClick={() => { setSearchDebounced(search); setPage(1); }}
           >
             Buscar
           </button>
           <button
             type="button"
-            className="catalog-form-footer-btn catalog-form-footer-btn--ghost"
-            style={{ marginBottom: 0 }}
+            className="catalog-form-footer-btn catalog-form-footer-btn--ghost catalog-filter-toolbar__action"
             onClick={handleClear}
           >
             Limpar

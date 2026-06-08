@@ -6,13 +6,18 @@ import { AlertState, Comanda, ComandaStatus } from '../../types';
 import PdvWorkspace from './PdvWorkspace';
 import { comandaStatusLabel } from './pdvUtils';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import RegistryFormModal, { registryModalFooterButtons } from '../../components/RegistryFormModal';
+import { getApiErrorMessage } from '../../utils/apiError';
+
+const EMPTY_COMANDA_FORM = { number: '', label: '' };
 
 const PdvComandaPage: React.FC = () => {
   const { user } = useContext(AuthContext) || {};
   const [comandas, setComandas] = useState<Comanda[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ number: '', label: '' });
+  const [isSaving, setIsSaving] = useState(false);
+  const [form, setForm] = useState(EMPTY_COMANDA_FORM);
   const [alert, setAlert] = useState<AlertState>({ isOpen: false, message: '', type: 'error' });
   const canManage = Boolean(user);
 
@@ -26,19 +31,32 @@ const PdvComandaPage: React.FC = () => {
     if (canManage) load();
   }, [canManage, load]);
 
+  const closeForm = () => {
+    if (isSaving) return;
+    setForm(EMPTY_COMANDA_FORM);
+    setShowForm(false);
+  };
+
+  const openForm = () => {
+    setForm(EMPTY_COMANDA_FORM);
+    setShowForm(true);
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
     try {
       await api.post('/comandas', {
         number: parseInt(form.number, 10),
         label: form.label.trim() || undefined,
       });
-      setForm({ number: '', label: '' });
-      setShowForm(false);
+      closeForm();
       await load();
       setAlert({ isOpen: true, message: 'Comanda cadastrada', type: 'success' });
-    } catch (err: any) {
-      setAlert({ isOpen: true, message: err.response?.data?.message || 'Erro', type: 'error' });
+    } catch (err: unknown) {
+      setAlert({ isOpen: true, message: getApiErrorMessage(err, 'Erro'), type: 'error' });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -60,62 +78,48 @@ const PdvComandaPage: React.FC = () => {
           title="Gestão de comandas"
           description="Cadastre comandas físicas e acompanhe o status antes de abrir pedidos."
           actions={
-            <button
-              type="button"
-              className={`catalog-action-button${showForm ? ' is-secondary' : ''}`}
-              onClick={() => setShowForm((v) => !v)}
-            >
-              {showForm ? 'Fechar' : 'Nova comanda'}
+            <button type="button" className="catalog-action-button" onClick={openForm}>
+              Nova comanda
             </button>
           }
         >
-          {showForm && (
-            <section className="catalog-surface catalog-form-surface--premium">
-              <div className="catalog-section-header">
-                <div>
-                  <span className="catalog-section-kicker">Cadastro</span>
-                  <h2>Nova comanda</h2>
-                </div>
+          <RegistryFormModal
+            isOpen={showForm}
+            title="Nova comanda"
+            subtitle="Cadastre comandas físicas para uso no PDV."
+            isSaving={isSaving}
+            onClose={closeForm}
+            onSubmit={handleCreate}
+            footer={registryModalFooterButtons({
+              onClose: closeForm,
+              isSaving,
+              submitLabel: 'Salvar comanda',
+            })}
+          >
+            <div className="catalog-form-grid">
+              <div className="form-group">
+                <label htmlFor="comanda-num">Número *</label>
+                <input
+                  id="comanda-num"
+                  className="premium-text-input"
+                  type="number"
+                  min="1"
+                  required
+                  value={form.number}
+                  onChange={(e) => setForm((f) => ({ ...f, number: e.target.value }))}
+                />
               </div>
-              <form className="catalog-form" onSubmit={handleCreate}>
-                <div className="catalog-form-grid">
-                  <div className="form-group">
-                    <label htmlFor="comanda-num">Número *</label>
-                    <input
-                      id="comanda-num"
-                      className="premium-text-input"
-                      type="number"
-                      min="1"
-                      required
-                      value={form.number}
-                      onChange={(e) => setForm((f) => ({ ...f, number: e.target.value }))}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="comanda-label">Rótulo</label>
-                    <input
-                      id="comanda-label"
-                      className="premium-text-input"
-                      value={form.label}
-                      onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
-                    />
-                  </div>
-                </div>
-                <div className="catalog-form-footer">
-                  <button
-                    type="button"
-                    className="catalog-form-footer-btn catalog-form-footer-btn--ghost"
-                    onClick={() => setShowForm(false)}
-                  >
-                    Cancelar
-                  </button>
-                  <button type="submit" className="catalog-form-footer-btn catalog-form-footer-btn--primary">
-                    Salvar comanda
-                  </button>
-                </div>
-              </form>
-            </section>
-          )}
+              <div className="form-group">
+                <label htmlFor="comanda-label">Rótulo</label>
+                <input
+                  id="comanda-label"
+                  className="premium-text-input"
+                  value={form.label}
+                  onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
+                />
+              </div>
+            </div>
+          </RegistryFormModal>
 
           <section className="catalog-surface">
             <div className="catalog-section-header">

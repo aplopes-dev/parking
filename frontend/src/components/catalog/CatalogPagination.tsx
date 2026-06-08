@@ -1,4 +1,5 @@
 import React from 'react';
+import PremiumSelect from '../PremiumSelect';
 import { PAGE_SIZE_OPTIONS } from '../../types/pagination';
 import './CatalogRegistry.css';
 
@@ -37,21 +38,14 @@ const CatalogPagination: React.FC<CatalogPaginationProps> = ({
       </p>
 
       <div className="catalog-pagination__controls">
-        <label className="catalog-pagination__limit">
-          <span>Por página</span>
-          <select
-            className="premium-text-input"
-            value={limit}
-            disabled={disabled}
-            onChange={(e) => onLimitChange(Number(e.target.value))}
-          >
-            {PAGE_SIZE_OPTIONS.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </label>
+        <PremiumSelect
+          label="Por página"
+          value={String(limit)}
+          options={PAGE_SIZE_OPTIONS.map((n) => ({ value: String(n), label: String(n) }))}
+          wrapperClassName="catalog-pagination__limit form-group"
+          disabled={disabled}
+          onChange={(v) => onLimitChange(Number(v))}
+        />
 
         <div className="catalog-pagination__nav">
           <button

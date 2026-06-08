@@ -1,5 +1,16 @@
 .my-profile-page {
-  gap: 24px;
+  gap: 20px;
+}
+
+.my-profile-page .section-tabs {
+  margin-bottom: 0;
+}
+
+.my-profile-tab-hint {
+  margin: 0;
+  color: var(--text-muted, #5c6470);
+  font-size: 0.9rem;
+  line-height: 1.55;
 }
 
 .my-profile-hero {
@@ -11,10 +22,22 @@
 }
 
 .my-profile-card {
-  display: grid;
-  grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
-  gap: clamp(22px, 4vw, 36px);
-  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.my-profile-photo-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+.my-profile-main--full {
+  width: 100%;
 }
 
 .my-profile-photo-column {
@@ -105,9 +128,9 @@
 .my-profile-info-card {
   min-width: 0;
   padding: 18px;
-  border-radius: 18px;
-  border: 1px solid rgba(191, 219, 254, 0.85);
-  background: #f8fbff;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border-default, #ddd9d0);
+  background: var(--surface-page, #f3f1eb);
 }
 
 .my-profile-info-card span {

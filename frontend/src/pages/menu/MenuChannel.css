@@ -20,11 +20,6 @@
   border-bottom: 1px solid var(--border-default, #e5e5e5);
 }
 
-.menu-channel-products-toolbar .catalog-search {
-  margin: 0;
-  max-width: 420px;
-}
-
 .menu-channel-products-table--5col .catalog-registry-table__head,
 .menu-channel-products-table--5col .catalog-registry-row {
   grid-template-columns: 48px minmax(200px, 1.4fr) 88px 88px minmax(140px, 200px);

@@ -9,6 +9,7 @@ import {
   YAxis,
 } from 'recharts';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import RegistryFormModal, { registryModalFooterButtons } from '../../components/RegistryFormModal';
 import AlertModal from '../../components/AlertModal';
 import ConfirmModal from '../../components/ConfirmModal';
 import { AuthContext } from '../../contexts/AuthContext';
@@ -84,6 +85,12 @@ export const MultistoreUnitsPage: React.FC = () => {
   const [joinUnitLabel, setJoinUnitLabel] = useState('');
   const [editGroupName, setEditGroupName] = useState('');
   const [editUnitLabel, setEditUnitLabel] = useState('');
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [joinModalOpen, setJoinModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [savingCreate, setSavingCreate] = useState(false);
+  const [savingJoin, setSavingJoin] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const load = useCallback(async () => {
     const data = await fetchMultistoreContext();
@@ -114,157 +121,175 @@ export const MultistoreUnitsPage: React.FC = () => {
       loading={loading && !ctx}
       loadingDescription="Carregando grupo de lojas…"
       actions={
-        <button
-          type="button"
-          className="catalog-action-button is-secondary"
-          onClick={() => void load()}
-        >
-          Atualizar
-        </button>
+        <>
+          {ctx && !ctx.inGroup ? (
+            <>
+              <button type="button" className="catalog-action-button" onClick={() => setCreateModalOpen(true)}>
+                Criar grupo
+              </button>
+              <button type="button" className="catalog-action-button is-secondary" onClick={() => setJoinModalOpen(true)}>
+                Entrar em grupo
+              </button>
+            </>
+          ) : ctx?.inGroup ? (
+            <button type="button" className="catalog-action-button" onClick={() => setEditModalOpen(true)}>
+              Editar grupo
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="catalog-action-button is-secondary"
+            onClick={() => void load()}
+          >
+            Atualizar
+          </button>
+        </>
       }
     >
       {ctx && !ctx.inGroup && (
-        <>
-          <section className="catalog-surface catalog-form-surface--premium">
-            <div className="catalog-section-header">
-              <div>
-                <span className="catalog-section-kicker">Novo grupo</span>
-                <h2>Criar grupo de lojas</h2>
-              </div>
+        <section className="catalog-surface">
+          <div className="catalog-section-header">
+            <div>
+              <span className="catalog-section-kicker">Multi-lojas</span>
+              <h2>Sem grupo configurado</h2>
             </div>
-            <p style={{ margin: '0 0 16px', color: 'var(--text-muted)' }}>
-              A loja atual será a primeira unidade do grupo. Compartilhe o código gerado com as
-              demais unidades para elas entrarem no mesmo grupo.
-            </p>
-            <form
-              className="catalog-form"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                try {
-                  setCtx(
-                    await createStoreGroup({
-                      name: createForm.name,
-                      code: createForm.code || undefined,
-                      description: createForm.description || undefined,
-                      unitLabel: createForm.unitLabel || undefined,
-                    }),
-                  );
-                  setAlert({ open: true, message: 'Grupo criado com sucesso.' });
-                } catch (err) {
-                  setAlert({ open: true, message: errMsg(err) });
-                }
-              }}
-            >
-              <div className="catalog-form-grid">
-                <div className="form-group">
-                  <label htmlFor="grp-name">Nome do grupo</label>
-                  <input
-                    id="grp-name"
-                    className="premium-text-input"
-                    value={createForm.name}
-                    onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="grp-code">Código (opcional)</label>
-                  <input
-                    id="grp-code"
-                    className="premium-text-input"
-                    placeholder="rede-centro-sp"
-                    value={createForm.code}
-                    onChange={(e) => setCreateForm({ ...createForm, code: e.target.value })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="grp-unit">Nome desta unidade</label>
-                  <input
-                    id="grp-unit"
-                    className="premium-text-input"
-                    placeholder="Matriz, Loja 01…"
-                    value={createForm.unitLabel}
-                    onChange={(e) => setCreateForm({ ...createForm, unitLabel: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div className="form-group">
-                <label htmlFor="grp-desc">Descrição</label>
-                <textarea
-                  id="grp-desc"
-                  className="premium-text-input"
-                  rows={2}
-                  value={createForm.description}
-                  onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-                />
-              </div>
-              <div className="catalog-form-footer">
-                <button
-                  type="submit"
-                  className="catalog-form-footer-btn catalog-form-footer-btn--primary"
-                >
-                  Criar grupo
-                </button>
-              </div>
-            </form>
-          </section>
-
-          <section className="catalog-surface catalog-form-surface--premium">
-            <div className="catalog-section-header">
-              <div>
-                <span className="catalog-section-kicker">Entrar</span>
-                <h2>Entrar em grupo existente</h2>
-              </div>
-            </div>
-            <form
-              className="catalog-form"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                try {
-                  setCtx(
-                    await joinStoreGroup({
-                      code: joinCode.trim().toLowerCase(),
-                      unitLabel: joinUnitLabel || undefined,
-                    }),
-                  );
-                  setAlert({ open: true, message: 'Loja vinculada ao grupo.' });
-                } catch (err) {
-                  setAlert({ open: true, message: errMsg(err) });
-                }
-              }}
-            >
-              <div className="catalog-form-grid">
-                <div className="form-group">
-                  <label htmlFor="join-code">Código do grupo</label>
-                  <input
-                    id="join-code"
-                    className="premium-text-input"
-                    value={joinCode}
-                    onChange={(e) => setJoinCode(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="join-unit">Nome desta unidade</label>
-                  <input
-                    id="join-unit"
-                    className="premium-text-input"
-                    value={joinUnitLabel}
-                    onChange={(e) => setJoinUnitLabel(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="catalog-form-footer">
-                <button
-                  type="submit"
-                  className="catalog-form-footer-btn catalog-form-footer-btn--primary"
-                >
-                  Entrar no grupo
-                </button>
-              </div>
-            </form>
-          </section>
-        </>
+          </div>
+          <p style={{ margin: 0, color: 'var(--text-muted)', lineHeight: 1.55 }}>
+            Crie um novo grupo de lojas ou entre em um grupo existente usando o código compartilhado
+            pela matriz. A loja atual será vinculada como uma unidade do grupo.
+          </p>
+        </section>
       )}
+
+      <RegistryFormModal
+        isOpen={createModalOpen}
+        wide
+        title="Criar grupo de lojas"
+        subtitle="A loja atual será a primeira unidade. Compartilhe o código gerado com as demais unidades."
+        isSaving={savingCreate}
+        onClose={() => !savingCreate && setCreateModalOpen(false)}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setSavingCreate(true);
+          try {
+            setCtx(
+              await createStoreGroup({
+                name: createForm.name,
+                code: createForm.code || undefined,
+                description: createForm.description || undefined,
+                unitLabel: createForm.unitLabel || undefined,
+              }),
+            );
+            setCreateModalOpen(false);
+            setAlert({ open: true, message: 'Grupo criado com sucesso.' });
+          } catch (err) {
+            setAlert({ open: true, message: errMsg(err) });
+          } finally {
+            setSavingCreate(false);
+          }
+        }}
+        footer={registryModalFooterButtons({
+          onClose: () => setCreateModalOpen(false),
+          isSaving: savingCreate,
+          submitLabel: 'Criar grupo',
+        })}
+      >
+        <div className="catalog-form-grid">
+          <div className="form-group">
+            <label htmlFor="grp-name">Nome do grupo</label>
+            <input
+              id="grp-name"
+              className="premium-text-input"
+              value={createForm.name}
+              onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="grp-code">Código (opcional)</label>
+            <input
+              id="grp-code"
+              className="premium-text-input"
+              placeholder="rede-centro-sp"
+              value={createForm.code}
+              onChange={(e) => setCreateForm({ ...createForm, code: e.target.value })}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="grp-unit">Nome desta unidade</label>
+            <input
+              id="grp-unit"
+              className="premium-text-input"
+              placeholder="Matriz, Loja 01…"
+              value={createForm.unitLabel}
+              onChange={(e) => setCreateForm({ ...createForm, unitLabel: e.target.value })}
+            />
+          </div>
+        </div>
+        <div className="form-group">
+          <label htmlFor="grp-desc">Descrição</label>
+          <textarea
+            id="grp-desc"
+            className="premium-text-input"
+            rows={2}
+            value={createForm.description}
+            onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+          />
+        </div>
+      </RegistryFormModal>
+
+      <RegistryFormModal
+        isOpen={joinModalOpen}
+        title="Entrar em grupo existente"
+        subtitle="Informe o código do grupo e o nome desta unidade."
+        isSaving={savingJoin}
+        onClose={() => !savingJoin && setJoinModalOpen(false)}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setSavingJoin(true);
+          try {
+            setCtx(
+              await joinStoreGroup({
+                code: joinCode.trim().toLowerCase(),
+                unitLabel: joinUnitLabel || undefined,
+              }),
+            );
+            setJoinModalOpen(false);
+            setAlert({ open: true, message: 'Loja vinculada ao grupo.' });
+          } catch (err) {
+            setAlert({ open: true, message: errMsg(err) });
+          } finally {
+            setSavingJoin(false);
+          }
+        }}
+        footer={registryModalFooterButtons({
+          onClose: () => setJoinModalOpen(false),
+          isSaving: savingJoin,
+          submitLabel: 'Entrar no grupo',
+        })}
+      >
+        <div className="catalog-form-grid">
+          <div className="form-group">
+            <label htmlFor="join-code">Código do grupo</label>
+            <input
+              id="join-code"
+              className="premium-text-input"
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="join-unit">Nome desta unidade</label>
+            <input
+              id="join-unit"
+              className="premium-text-input"
+              value={joinUnitLabel}
+              onChange={(e) => setJoinUnitLabel(e.target.value)}
+            />
+          </div>
+        </div>
+      </RegistryFormModal>
 
       {ctx?.inGroup && ctx.group && (
         <>
@@ -305,65 +330,80 @@ export const MultistoreUnitsPage: React.FC = () => {
             </div>
           </section>
 
-          <section className="catalog-surface catalog-form-surface--premium">
-            <div className="catalog-section-header">
-              <div>
-                <span className="catalog-section-kicker">Configuração</span>
-                <h2>Grupo e unidade atual</h2>
-              </div>
-            </div>
-            <form
-              className="catalog-form"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                try {
-                  await updateStoreGroup({ name: editGroupName });
-                  setCtx(await updateMultistoreUnitLabel(editUnitLabel));
-                  setAlert({ open: true, message: 'Dados atualizados.' });
-                } catch (err) {
-                  setAlert({ open: true, message: errMsg(err) });
-                }
-              }}
-            >
-              <div className="catalog-form-grid">
-                <div className="form-group">
-                  <label htmlFor="edit-grp">Nome do grupo</label>
-                  <input
-                    id="edit-grp"
-                    className="premium-text-input"
-                    value={editGroupName}
-                    onChange={(e) => setEditGroupName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="edit-unit">Nome desta unidade</label>
-                  <input
-                    id="edit-unit"
-                    className="premium-text-input"
-                    value={editUnitLabel}
-                    onChange={(e) => setEditUnitLabel(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="catalog-form-footer">
+          <RegistryFormModal
+            isOpen={editModalOpen}
+            title="Grupo e unidade atual"
+            subtitle="Atualize o nome do grupo e desta unidade."
+            isSaving={savingEdit}
+            onClose={() => !savingEdit && setEditModalOpen(false)}
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setSavingEdit(true);
+              try {
+                await updateStoreGroup({ name: editGroupName });
+                setCtx(await updateMultistoreUnitLabel(editUnitLabel));
+                setEditModalOpen(false);
+                setAlert({ open: true, message: 'Dados atualizados.' });
+              } catch (err) {
+                setAlert({ open: true, message: errMsg(err) });
+              } finally {
+                setSavingEdit(false);
+              }
+            }}
+            footer={
+              <>
                 <button
-                  type="submit"
-                  className="catalog-form-footer-btn catalog-form-footer-btn--primary"
+                  type="button"
+                  className="catalog-form-footer-btn catalog-form-footer-btn--ghost"
+                  disabled={savingEdit}
+                  onClick={() => setEditModalOpen(false)}
                 >
-                  Salvar
+                  Cancelar
                 </button>
                 <button
                   type="button"
                   className="catalog-form-footer-btn catalog-form-footer-btn--ghost"
-                  onClick={() => setConfirmLeave(true)}
+                  disabled={savingEdit}
+                  onClick={() => {
+                    setEditModalOpen(false);
+                    setConfirmLeave(true);
+                  }}
                 >
                   Sair do grupo
                 </button>
+                <button
+                  type="submit"
+                  className={`catalog-form-footer-btn catalog-form-footer-btn--primary${savingEdit ? ' is-loading' : ''}`}
+                  disabled={savingEdit}
+                >
+                  {savingEdit ? 'Salvando…' : 'Salvar'}
+                </button>
+              </>
+            }
+          >
+            <div className="catalog-form-grid">
+              <div className="form-group">
+                <label htmlFor="edit-grp">Nome do grupo</label>
+                <input
+                  id="edit-grp"
+                  className="premium-text-input"
+                  value={editGroupName}
+                  onChange={(e) => setEditGroupName(e.target.value)}
+                  required
+                />
               </div>
-            </form>
-          </section>
+              <div className="form-group">
+                <label htmlFor="edit-unit">Nome desta unidade</label>
+                <input
+                  id="edit-unit"
+                  className="premium-text-input"
+                  value={editUnitLabel}
+                  onChange={(e) => setEditUnitLabel(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+          </RegistryFormModal>
 
           <section className="catalog-surface">
             <div className="catalog-section-header">

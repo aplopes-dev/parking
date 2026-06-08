@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import PremiumSelect from '../../components/PremiumSelect';
 import {
   PagbankRegisteredAccountLocal,
   listRegisteredPagbankAccounts,
@@ -94,19 +95,18 @@ const PaymentPagbankRegistrationSection: React.FC<Props> = ({ canManage }) => {
       {error && <p className="pagbank-pix-error">{error}</p>}
 
       <div className="catalog-form-grid">
-        <div className="form-group">
-          <label>Tipo</label>
-          <select
-            className="premium-text-input"
-            value={accountType}
-            onChange={(e) => setAccountType(e.target.value as typeof accountType)}
-            disabled={!canManage}
-          >
-            <option value="BUYER">BUYER</option>
-            <option value="SELLER">SELLER</option>
-            <option value="ENTERPRISE">ENTERPRISE</option>
-          </select>
-        </div>
+        <PremiumSelect
+          label="Tipo"
+          value={accountType}
+          options={[
+            { value: 'BUYER', label: 'BUYER' },
+            { value: 'SELLER', label: 'SELLER' },
+            { value: 'ENTERPRISE', label: 'ENTERPRISE' },
+          ]}
+          wrapperClassName="form-group"
+          disabled={!canManage}
+          onChange={(v) => setAccountType(v as typeof accountType)}
+        />
         <div className="form-group">
           <label>E-mail</label>
           <input

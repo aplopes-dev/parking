@@ -354,7 +354,8 @@ export const FiscalListPage: React.FC = () => {
 
   return (
     <FiscalPageLayout title="Listagem de pedidos" description="Todos os pedidos fiscais do estabelecimento.">
-      <section className="finance-toolbar" aria-label="Filtros">
+      <section className="catalog-surface">
+        <div className="catalog-toolbar catalog-filter-toolbar finance-toolbar" aria-label="Filtros">
         <PremiumSelect
           label="Tipo"
           value={filterType}
@@ -381,10 +382,13 @@ export const FiscalListPage: React.FC = () => {
             onChange={(e) => setTo(e.target.value)}
           />
         </FiscalField>
-        <div className="finance-toolbar__actions">
-          <button type="button" className="catalog-form-footer-btn catalog-form-footer-btn--primary" onClick={load}>
-            Filtrar
-          </button>
+        <button
+          type="button"
+          className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action"
+          onClick={load}
+        >
+          Buscar
+        </button>
         </div>
       </section>
       <FiscalTable
@@ -624,8 +628,8 @@ export const FiscalReturnsPage: React.FC = () => {
         </div>
       </ModalPortal>
       <section className="catalog-surface">
-        <div className="catalog-toolbar fiscal-returns-toolbar">
-          <div className="form-group catalog-search fiscal-returns-toolbar__search">
+        <div className="catalog-toolbar catalog-filter-toolbar">
+          <div className="form-group catalog-search catalog-filter-toolbar__search catalog-filter-toolbar__search--wide">
             <label htmlFor="fiscal-returns-search">Buscar</label>
             <input
               id="fiscal-returns-search"
@@ -635,23 +639,21 @@ export const FiscalReturnsPage: React.FC = () => {
               placeholder="Motivo ou tipo…"
             />
           </div>
-          <div className="form-group fiscal-returns-toolbar__field">
-            <label htmlFor="fiscal-returns-type">Tipo</label>
-            <PremiumSelect
-              label="Tipo"
-              value={returnTypeFilter}
-              options={[
-                { value: '', label: 'Todos' },
-                { value: 'sale_return', label: 'Devolução de venda' },
-                { value: 'purchase_return', label: 'Devolução de compra' },
-              ]}
-              onChange={(v) => {
-                setReturnTypeFilter(v as '' | 'sale_return' | 'purchase_return');
-                setPage(1);
-              }}
-            />
-          </div>
-          <div className="form-group fiscal-returns-toolbar__field">
+          <PremiumSelect
+            label="Tipo"
+            value={returnTypeFilter}
+            options={[
+              { value: '', label: 'Todos' },
+              { value: 'sale_return', label: 'Devolução de venda' },
+              { value: 'purchase_return', label: 'Devolução de compra' },
+            ]}
+            wrapperClassName="form-group catalog-filter-toolbar__field"
+            onChange={(v) => {
+              setReturnTypeFilter(v as '' | 'sale_return' | 'purchase_return');
+              setPage(1);
+            }}
+          />
+          <div className="form-group catalog-filter-toolbar__field">
             <label htmlFor="fiscal-returns-date-from">De</label>
             <input
               id="fiscal-returns-date-from"
@@ -664,7 +666,7 @@ export const FiscalReturnsPage: React.FC = () => {
               }}
             />
           </div>
-          <div className="form-group fiscal-returns-toolbar__field">
+          <div className="form-group catalog-filter-toolbar__field">
             <label htmlFor="fiscal-returns-date-to">Até</label>
             <input
               id="fiscal-returns-date-to"
@@ -679,7 +681,17 @@ export const FiscalReturnsPage: React.FC = () => {
           </div>
           <button
             type="button"
-            className="catalog-form-footer-btn catalog-form-footer-btn--ghost"
+            className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action"
+            onClick={() => {
+              setSearchDebounced(search.trim());
+              setPage(1);
+            }}
+          >
+            Buscar
+          </button>
+          <button
+            type="button"
+            className="catalog-form-footer-btn catalog-form-footer-btn--ghost catalog-filter-toolbar__action"
             onClick={() => {
               setSearch('');
               setSearchDebounced('');
@@ -803,20 +815,25 @@ export const FiscalInvoicesPage: React.FC = () => {
 
   return (
     <FiscalPageLayout title="Notas emitidas e recebidas" description="NF-e e NFC-e autorizadas, recebidas ou canceladas.">
-      <section className="finance-toolbar" aria-label="Filtros">
-        <PremiumSelect
-          label="Direção"
-          value={direction}
-          options={[
-            { value: '', label: 'Todas' },
-            { value: 'emitted', label: 'Emitidas' },
-            { value: 'received', label: 'Recebidas' },
-          ]}
-          onChange={(v) => setDirection(v as typeof direction)}
-        />
-        <div className="finance-toolbar__actions">
-          <button type="button" className="catalog-form-footer-btn catalog-form-footer-btn--primary" onClick={load}>
-            Atualizar
+      <section className="catalog-surface">
+        <div className="catalog-toolbar catalog-filter-toolbar finance-toolbar" aria-label="Filtros">
+          <PremiumSelect
+            label="Direção"
+            value={direction}
+            options={[
+              { value: '', label: 'Todas' },
+              { value: 'emitted', label: 'Emitidas' },
+              { value: 'received', label: 'Recebidas' },
+            ]}
+            wrapperClassName="form-group catalog-filter-toolbar__field"
+            onChange={(v) => setDirection(v as typeof direction)}
+          />
+          <button
+            type="button"
+            className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action"
+            onClick={load}
+          >
+            Buscar
           </button>
         </div>
       </section>

@@ -257,17 +257,18 @@ const PaymentPagbankSplitSection: React.FC<Props> = ({
                 </td>
                 <td>{r.connectAccountId ? 'Connect' : 'Manual'}</td>
                 <td>
-                  <select
-                    className="premium-text-input"
+                  <PremiumSelect
+                    label="Papel"
                     value={r.role}
-                    onChange={(e) =>
-                      updateReceiver(i, { role: e.target.value as 'master' | 'secondary' })
-                    }
+                    options={[
+                      { value: 'master', label: 'Adquirente' },
+                      { value: 'secondary', label: 'Secundário' },
+                    ]}
+                    wrapperClassName="form-group"
                     disabled={!canManage}
-                  >
-                    <option value="master">Adquirente</option>
-                    <option value="secondary">Secundário</option>
-                  </select>
+                    menuInPortal
+                    onChange={(v) => updateReceiver(i, { role: v as 'master' | 'secondary' })}
+                  />
                 </td>
                 <td>
                   <input

@@ -402,8 +402,8 @@ const MenuChannelPage: React.FC = () => {
             </div>
           </header>
 
-          <div className="menu-channel-products-toolbar">
-            <div className="form-group catalog-search">
+          <div className="menu-channel-products-toolbar catalog-toolbar catalog-filter-toolbar">
+            <div className="form-group catalog-search catalog-filter-toolbar__search catalog-filter-toolbar__search--wide">
               <label htmlFor="menu-product-search">Buscar produto</label>
               <input
                 id="menu-product-search"
@@ -414,6 +414,15 @@ const MenuChannelPage: React.FC = () => {
                 onChange={(e) => setProductSearch(e.target.value)}
               />
             </div>
+            {productSearch ? (
+              <button
+                type="button"
+                className="catalog-form-footer-btn catalog-form-footer-btn--ghost catalog-filter-toolbar__action"
+                onClick={() => setProductSearch('')}
+              >
+                Limpar
+              </button>
+            ) : null}
           </div>
 
           {orderedProducts.length === 0 ? (

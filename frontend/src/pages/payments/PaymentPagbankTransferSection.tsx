@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import PremiumSelect from '../../components/PremiumSelect';
 import {
   PagbankTransferLocal,
   createPagbankTransfer,
@@ -77,18 +78,17 @@ const PaymentPagbankTransferSection: React.FC<Props> = ({ canManage }) => {
             disabled={!canManage}
           />
         </div>
-        <div className="form-group">
-          <label>Tipo</label>
-          <select
-            className="premium-text-input"
-            value={type}
-            onChange={(e) => setType(e.target.value as 'P2P' | 'PIX')}
-            disabled={!canManage}
-          >
-            <option value="P2P">P2P (conta PagBank)</option>
-            <option value="PIX">PIX</option>
-          </select>
-        </div>
+        <PremiumSelect
+          label="Tipo"
+          value={type}
+          options={[
+            { value: 'P2P', label: 'P2P (conta PagBank)' },
+            { value: 'PIX', label: 'PIX' },
+          ]}
+          wrapperClassName="form-group"
+          disabled={!canManage}
+          onChange={(v) => setType(v as 'P2P' | 'PIX')}
+        />
         {type === 'P2P' ? (
           <div className="form-group">
             <label>account_id destino (ACCO_…)</label>

@@ -76,7 +76,7 @@ export const AnalyticsPeriodBar: React.FC<{
   onTo: (v: string) => void;
   extra?: React.ReactNode;
 }> = ({ from, to, onFrom, onTo, extra }) => (
-  <section className="finance-toolbar" aria-label="Período">
+  <section className="finance-toolbar catalog-filter-toolbar" aria-label="Período">
     <div className="form-group">
       <label htmlFor="analytics-filter-from">De</label>
       <input
