@@ -119,3 +119,13 @@ export function formatDateTime(iso: string): string {
     minute: '2-digit',
   });
 }
+
+export type SelectOption = { value: string; label: string };
+
+export function labelRecordToOptions(record: Record<string, string>): SelectOption[] {
+  return Object.entries(record).map(([value, label]) => ({ value, label }));
+}
+
+export const vehicleTypeSelectOptions = labelRecordToOptions(VEHICLE_TYPE_LABELS);
+export const deviceTypeSelectOptions = labelRecordToOptions(DEVICE_TYPE_LABELS);
+export const deviceDirectionSelectOptions = labelRecordToOptions(DEVICE_DIRECTION_LABELS);

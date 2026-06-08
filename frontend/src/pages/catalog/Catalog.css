@@ -209,28 +209,81 @@
   align-items: center;
 }
 
+/* Barra de filtros padrão do sistema (busca, selects, datas, ações) */
+.catalog-filter-toolbar {
+  align-items: flex-end;
+  gap: 14px;
+}
+
+.catalog-filter-toolbar .form-group,
+.catalog-filter-toolbar .searchable-select-wrapper {
+  margin-bottom: 0;
+}
+
+.catalog-filter-toolbar__field {
+  margin-bottom: 0;
+  min-width: 200px;
+}
+
+.catalog-filter-toolbar__search {
+  margin-bottom: 0;
+  flex: 1 1 220px;
+  max-width: 320px;
+}
+
+.catalog-filter-toolbar__search--wide {
+  flex: 1 1 280px;
+  max-width: 460px;
+}
+
+.catalog-filter-toolbar__action {
+  margin-bottom: 0;
+}
+
+.catalog-filter-toolbar-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.catalog-filter-toolbar__field--compact {
+  min-width: 160px;
+  flex: 0 1 180px;
+}
+
+.catalog-filter-toolbar__grow {
+  flex: 1 1 auto;
+  min-width: 12px;
+}
+
+.catalog-filter-toolbar__checkbox {
+  display: flex;
+  align-items: center;
+  align-self: flex-end;
+  gap: 8px;
+  min-height: 48px;
+  margin: 0;
+  color: var(--text-primary, #1a1a1a);
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
 .catalog-search {
   flex: 1;
   min-width: 220px;
   max-width: 420px;
 }
 
-.fiscal-returns-toolbar {
-  align-items: flex-end;
-  gap: 14px;
+.catalog-filter-toolbar .catalog-search {
+  flex: 1 1 220px;
+  max-width: 320px;
 }
 
-.fiscal-returns-toolbar .form-group {
-  margin-bottom: 0;
-}
-
-.fiscal-returns-toolbar__search {
+.catalog-filter-toolbar .catalog-search.catalog-filter-toolbar__search--wide {
   flex: 1 1 280px;
   max-width: 460px;
-}
-
-.fiscal-returns-toolbar__field {
-  min-width: 170px;
 }
 
 .catalog-registry-table--fiscal-returns .catalog-registry-table__head,
@@ -336,24 +389,9 @@
   max-height: 96vh;
 }
 
-.crm-campaign-modal .crm-campaign-form-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.crm-campaign-modal .crm-campaign-form-grid .crm-campaign-description-field {
-  grid-column: 2 / -1;
-}
-
 .crm-campaign-modal .crm-campaign-products {
   margin-top: 0.25rem;
   padding-top: 0.75rem;
-}
-
-@media (max-width: 980px) {
-  .crm-campaign-modal .crm-campaign-form-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 .catalog-stats-grid {
@@ -421,6 +459,29 @@
 
 .catalog-surface {
   padding: 24px;
+}
+
+.catalog-operation-panel {
+  margin-bottom: 20px;
+}
+
+.catalog-operation-panel__header {
+  margin-bottom: 18px;
+}
+
+.catalog-operation-panel__title {
+  margin: 0;
+  color: var(--text-primary, #1a1a1a);
+  font-size: 1.2rem;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+
+.catalog-operation-panel__footer {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-default, #e5e5e5);
 }
 
 .catalog-form-surface--premium {

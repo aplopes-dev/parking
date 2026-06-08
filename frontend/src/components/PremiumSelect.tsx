@@ -99,7 +99,8 @@ const PremiumSelect: React.FC<PremiumSelectProps> = ({
   );
 
   useLayoutEffect(() => {
-    if (!isOpen || !menuInPortal) {
+    const usePortal = menuInPortal || Boolean(triggerRef.current?.closest('.app-modal'));
+    if (!isOpen || !usePortal) {
       setMenuPos(null);
       return;
     }
@@ -135,22 +136,26 @@ const PremiumSelect: React.FC<PremiumSelectProps> = ({
     if (disabled) return;
     setIsOpen((open) => {
       const next = !open;
-      if (next && menuInPortal && triggerRef.current) {
+      const usePortal = menuInPortal || Boolean(triggerRef.current?.closest('.app-modal'));
+      if (next && usePortal && triggerRef.current) {
         setMenuPos(computeMenuPosition(triggerRef.current));
       }
       return next;
     });
   };
 
+  const inModal = Boolean(triggerRef.current?.closest('.app-modal'));
+  const portalActive = menuInPortal || inModal;
+
   const dropdown =
-    isOpen && (!menuInPortal || menuPos) ? (
+    isOpen && (!portalActive || menuPos) ? (
       <div
         ref={menuRef}
         className={`searchable-select-dropdown premium-select-dropdown${
-          menuInPortal ? ' searchable-select-dropdown--portal' : ''
-        }`}
+          portalActive ? ' searchable-select-dropdown--portal' : ''
+        }${inModal ? ' searchable-select-dropdown--modal' : ''}`}
         style={
-          menuInPortal && menuPos
+          portalActive && menuPos
             ? {
                 position: 'fixed',
                 left: menuPos.left,
@@ -167,7 +172,7 @@ const PremiumSelect: React.FC<PremiumSelectProps> = ({
           id={listboxId}
           role="listbox"
           aria-labelledby={labelId}
-          style={menuInPortal && menuPos ? { maxHeight: menuPos.optionsMaxHeight } : undefined}
+          style={portalActive && menuPos ? { maxHeight: menuPos.optionsMaxHeight } : undefined}
         >
           {options.map((option) => (
             <div
@@ -231,7 +236,7 @@ const PremiumSelect: React.FC<PremiumSelectProps> = ({
         </div>
 
         {dropdown &&
-          (menuInPortal && typeof document !== 'undefined'
+          (portalActive && typeof document !== 'undefined'
             ? createPortal(dropdown, document.body)
             : dropdown)}
       </div>
