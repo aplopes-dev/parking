@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
+import PremiumSelect from './PremiumSelect';
 import { AuthContext } from '../contexts/AuthContext';
 import {
   fetchAccessibleStores,
@@ -49,28 +50,27 @@ const AppTopbarStoreSwitch: React.FC = () => {
   };
 
   return (
-    <label className="app-topbar-store-switch">
-      <span className="app-topbar-store-switch-label">Loja</span>
-      <select
-        className="app-topbar-store-switch-select premium-text-input"
+    <div
+      className="app-topbar-store-switch"
+      title={groupName ? `Grupo: ${groupName}` : undefined}
+      onFocusCapture={() => {
+        setLoading(true);
+        load().finally(() => setLoading(false));
+      }}
+    >
+      <PremiumSelect
+        label="Loja"
         value={current?.tenantId ?? auth?.user?.tenantId ?? ''}
+        options={stores.map((s) => ({
+          value: s.tenantId,
+          label: `${s.displayName}${s.isCurrent ? ' (atual)' : ''}`,
+        }))}
+        wrapperClassName="app-topbar-store-switch-field"
         disabled={loading || switching}
-        onFocus={() => {
-          setLoading(true);
-          load().finally(() => setLoading(false));
-        }}
-        onChange={(e) => void onChange(e.target.value)}
-        aria-label={groupName ? `Trocar loja — ${groupName}` : 'Trocar loja'}
-        title={groupName ? `Grupo: ${groupName}` : undefined}
-      >
-        {stores.map((s) => (
-          <option key={s.tenantId} value={s.tenantId}>
-            {s.displayName}
-            {s.isCurrent ? ' (atual)' : ''}
-          </option>
-        ))}
-      </select>
-    </label>
+        menuInPortal
+        onChange={(v) => void onChange(v)}
+      />
+    </div>
   );
 };
 

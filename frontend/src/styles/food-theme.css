@@ -1,33 +1,57 @@
-/* Paleta Aplopes Estacionamento — azul profissional */
+/* Tokens compartilhados — alinhados ao painel food.aplopes.com (tema warm + acento profissional) */
 :root {
-  --brand-primary: #2563eb;
-  --brand-primary-hover: #1d4ed8;
-  --brand-primary-dark: #1e40af;
+  --brand-primary: #2c4778;
+  --brand-primary-hover: #243c64;
+  --brand-primary-dark: #1e3254;
   --brand-on-primary: #ffffff;
-  --surface-page: #f7f7f7;
-  --surface-card: #ffffff;
-  --border-default: #e5e5e5;
-  --text-primary: #1a1a1a;
-  --text-muted: #6b6b6b;
+  --surface-page: #f3f1eb;
+  --surface-muted: #eceae4;
+  --surface-card: #faf9f6;
+  --border-default: #ddd9d0;
+  --text-primary: #141c28;
+  --text-muted: #5c6470;
   --radius-sm: 4px;
-  --radius-md: 6px;
-  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --brand-focus-ring: 0 0 0 4px rgba(37, 99, 235, 0.22);
+  --radius-md: 8px;
+  --shadow-card: 0 2px 8px rgba(20, 28, 40, 0.06);
+  --brand-focus-ring: 0 0 0 4px rgba(44, 71, 120, 0.22);
 
-  --food-brand-50: #eff6ff;
-  --food-brand-100: #dbeafe;
-  --food-brand-200: #bfdbfe;
-  --food-brand-400: #60a5fa;
-  --food-brand-500: #3b82f6;
+  --food-brand-50: #eef2f8;
+  --food-brand-100: #d9e2f0;
+  --food-brand-200: #b3c5e1;
+  --food-brand-400: #5a7db5;
+  --food-brand-500: #3d5f94;
   --food-brand-600: var(--brand-primary);
   --food-brand-700: var(--brand-primary-dark);
-  --food-surface-dark: #0f172a;
+  --food-surface-dark: #141c28;
   --food-surface-dark-2: #1e293b;
   --food-surface-dark-3: #334155;
   --food-text-on-dark: #ffffff;
   --food-text-muted-on-dark: #94a3b8;
-  --food-gradient-brand: var(--brand-primary);
-  --food-shadow-brand: 0 2px 8px rgba(37, 99, 235, 0.2);
+  --food-gradient-brand: linear-gradient(135deg, var(--brand-primary) 0%, #3d5f94 100%);
+  --food-shadow-brand: 0 2px 8px rgba(44, 71, 120, 0.2);
   --food-radius-lg: 8px;
   --food-radius-xl: 8px;
+
+  /* Modal — fundo desfocado + superfície do sistema (warm / azul profissional) */
+  --modal-overlay-bg: rgba(20, 28, 40, 0.42);
+  --modal-overlay-blur: 10px;
+  --modal-surface: var(--surface-card, #faf9f6);
+  --modal-surface-elevated: #ffffff;
+  --modal-surface-muted: var(--surface-muted, #eceae4);
+  --modal-border: var(--border-default, #ddd9d0);
+  --modal-border-strong: #d4cfc4;
+  --modal-text: var(--text-primary, #141c28);
+  --modal-text-muted: var(--text-muted, #5c6470);
+  --modal-accent: var(--brand-primary, #2c4778);
+  --modal-accent-hover: var(--brand-primary-hover, #243c64);
+  --modal-accent-text: var(--brand-on-primary, #ffffff);
+  --modal-focus-border: var(--brand-primary, #2c4778);
+  --modal-focus-ring: var(--brand-focus-ring, 0 0 0 4px rgba(44, 71, 120, 0.22));
+  --modal-radius: 16px;
+  --modal-field-radius: var(--radius-md, 8px);
+  --modal-shadow: 0 20px 48px rgba(20, 28, 40, 0.16), 0 0 0 1px rgba(20, 28, 40, 0.04);
+  --modal-padding: 24px;
+  --modal-body-gap: 16px;
+  --modal-field-height: 48px;
+  --modal-textarea-min-height: 88px;
 }

@@ -46,7 +46,7 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-md, 6px);
-  background: var(--brand-primary, #ea1d2c);
+  background: var(--brand-primary, #2c4778);
   color: #fff;
   font-weight: 800;
   font-size: 1.1rem;
@@ -98,6 +98,11 @@
 
 .app-sidebar-module-trigger:hover {
   background: rgba(0, 0, 0, 0.04);
+}
+
+.app-sidebar-module.is-open > .app-sidebar-module-trigger {
+  background: var(--food-brand-50, #eef2f8);
+  color: var(--brand-primary, #2c4778);
 }
 
 .app-sidebar-module-icon {
@@ -165,8 +170,8 @@
 }
 
 .app-sidebar-link.is-active {
-  background: rgba(234, 29, 44, 0.08);
-  color: var(--brand-primary, #ea1d2c);
+  background: var(--food-brand-50, #eef2f8);
+  color: var(--brand-primary, #2c4778);
   font-weight: 650;
 }
 
