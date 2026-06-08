@@ -1,4 +1,5 @@
-/* Shell compartilhado — modais de cadastro (padrão iFood) */
+/* Shell compartilhado — modais (fundo desfocado + cores do sistema) */
+
 .app-modal-overlay {
   position: fixed;
   inset: 0;
@@ -8,7 +9,9 @@
   justify-content: center;
   padding: 20px;
   box-sizing: border-box;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--modal-overlay-bg);
+  backdrop-filter: blur(var(--modal-overlay-blur, 10px));
+  -webkit-backdrop-filter: blur(var(--modal-overlay-blur, 10px));
 }
 
 .app-modal {
@@ -17,10 +20,12 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--border-default, #e5e5e5);
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: var(--shadow-card, 0 2px 8px rgba(0, 0, 0, 0.08));
+  border: 1px solid var(--modal-border);
+  border-radius: var(--modal-radius, 16px);
+  background: var(--modal-surface);
+  box-shadow: var(--modal-shadow);
+  color: var(--modal-text);
+  font-family: var(--premium-font);
 }
 
 .app-modal--wide {
@@ -37,35 +42,44 @@
   overflow: hidden;
 }
 
+.app-modal--wide .registry-form-modal-body {
+  padding: 20px var(--modal-padding, 24px) 0;
+}
+
 .app-modal-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px 24px 10px;
-  border-bottom: 1px solid var(--border-default, #e5e5e5);
+  padding: var(--modal-padding, 24px) var(--modal-padding, 24px) 16px;
+  border-bottom: 1px solid var(--modal-border);
 }
 
-.app-modal-header .catalog-badge {
+.app-modal-header .catalog-badge,
+.app-modal-header .catalog-section-kicker {
   margin-bottom: 10px;
+  color: var(--modal-accent);
 }
 
 .app-modal-header h3 {
   margin: 0;
-  color: var(--text-primary, #1a1a1a);
-  font-size: 1.2rem;
+  color: var(--modal-text);
+  font-family: var(--premium-font);
+  font-size: 1.25rem;
   font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
 }
 
 .app-modal-subtitle {
   margin: 6px 0 0;
-  color: var(--text-muted, #6b6b6b);
+  color: var(--modal-text-muted);
   font-size: 0.9rem;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 .app-modal-subtitle strong {
-  color: var(--text-primary, #1a1a1a);
+  color: var(--modal-text);
   font-weight: 700;
 }
 
@@ -73,18 +87,22 @@
   width: 36px;
   height: 36px;
   border: 0;
-  border-radius: var(--radius-md, 6px);
-  background: #fafafa;
-  color: var(--text-muted, #6b6b6b);
+  border-radius: var(--modal-field-radius, 8px);
+  background: var(--modal-surface-muted);
+  color: var(--modal-text-muted);
   font-size: 1.35rem;
   line-height: 1;
   cursor: pointer;
   flex-shrink: 0;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
 }
 
 .app-modal-close:hover:not(:disabled) {
-  background: #f0f0f0;
-  color: var(--text-primary, #1a1a1a);
+  background: var(--modal-surface-elevated);
+  color: var(--modal-text);
+  box-shadow: inset 0 0 0 1px var(--modal-border);
 }
 
 .app-modal-close:disabled {
@@ -92,14 +110,39 @@
   cursor: not-allowed;
 }
 
+.registry-form-modal-form {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.registry-form-modal-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--modal-body-gap, 16px);
+  padding: 20px var(--modal-padding, 24px) 0;
+}
+
+.registry-form-modal-body--plain {
+  padding-bottom: 0;
+}
+
+.registry-form-modal-footer {
+  margin-top: auto;
+}
+
 .app-modal-body {
-  padding: 20px 24px;
+  padding: 20px var(--modal-padding, 24px);
   overflow-y: auto;
 }
 
 .app-modal-body p {
   margin: 0;
-  color: var(--text-primary, #1a1a1a);
+  color: var(--modal-text);
   font-size: 0.95rem;
   line-height: 1.6;
 }
@@ -108,56 +151,350 @@
   display: flex;
   gap: 12px;
   justify-content: flex-end;
-  padding: 14px 24px 18px;
-  border-top: 1px solid var(--border-default, #e5e5e5);
+  padding: 16px var(--modal-padding, 24px) var(--modal-padding, 24px);
+  border-top: 1px solid var(--modal-border);
+  background: var(--modal-surface-elevated);
 }
 
-/* Botões de rodapé (compartilhados com formulários de catálogo) */
-.catalog-form-footer-btn {
-  min-height: var(--premium-field-height, 52px);
+/* —— Layout dos campos: coluna única, margens iguais —— */
+
+.app-modal .parking-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--modal-body-gap, 16px);
+  width: 100%;
+}
+
+.app-modal .parking-form-grid > div,
+.app-modal .parking-form-grid .form-group {
+  margin: 0;
+  width: 100%;
+}
+
+.app-modal .parking-access-hint {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: var(--modal-text-muted);
+  line-height: 1.45;
+}
+
+.app-modal .catalog-form-grid,
+.app-modal .customer-form-modal-grid,
+.app-modal .customer-form-modal-grid--2col,
+.app-modal .crm-campaign-form-grid,
+.app-modal .catalog-form,
+.app-modal .pdv-new-order-modal__delivery-grid,
+.app-modal .pdv-close-order-payment-row__fields,
+.app-modal .pdv-bill-split-row.catalog-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--modal-body-gap, 16px);
+  width: 100%;
+}
+
+.app-modal .catalog-form-grid .form-group,
+.app-modal .catalog-form-grid .premium-select-field,
+.app-modal .customer-form-modal-grid .form-group,
+.app-modal .customer-form-modal-grid--2col .form-group {
+  margin: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+/* Corpos de formulário legados (grupo, cliente, financeiro…) */
+.app-modal .pg-form-modal-body,
+.app-modal .customer-form-modal-body,
+.app-modal .finance-tx-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--modal-body-gap, 16px);
+  padding: 20px var(--modal-padding, 24px) 0;
+  overflow-y: auto;
+}
+
+.app-modal .pg-form-modal-body > .app-modal-footer,
+.app-modal .customer-form-modal-body > .app-modal-footer,
+.app-modal .finance-tx-modal-body > .app-modal-footer {
+  margin: 4px calc(-1 * var(--modal-padding, 24px)) 0;
+  padding: 16px var(--modal-padding, 24px) var(--modal-padding, 24px);
+}
+
+.app-modal .registry-form-modal-body > .form-group,
+.app-modal .registry-form-modal-body > .catalog-form-grid,
+.app-modal .registry-form-modal-body > .catalog-form {
+  margin: 0;
+  width: 100%;
+}
+
+.app-modal .registry-form-modal-body > p {
+  margin: 0;
+  color: var(--modal-text-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.app-modal .registry-form-modal-body > h3 {
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--modal-border);
+  color: var(--modal-text);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* Labels */
+.app-modal .form-group label,
+.app-modal .premium-select-field label,
+.app-modal .parking-form-grid label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--modal-text);
+  font-size: 0.88rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+/* —— Campos de linha única: altura e largura padronizadas —— */
+.app-modal input.premium-text-input,
+.app-modal select.premium-text-input,
+.app-modal .form-group input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='color']),
+.app-modal .form-group select:not([multiple]),
+.app-modal .parking-form-grid input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='color']),
+.app-modal .parking-form-grid select,
+.app-modal .searchable-select-input,
+.app-modal .premium-field-trigger {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--modal-field-height, 48px);
+  min-height: var(--modal-field-height, 48px);
+  padding: 0 16px;
+  margin: 0;
+  border: 1px solid var(--modal-border);
+  border-radius: var(--modal-field-radius, 8px);
+  background-color: var(--modal-surface-elevated);
+  box-shadow: var(--premium-shadow-field, 0 1px 2px rgba(0, 0, 0, 0.04));
+  color: var(--modal-text);
+  font-family: var(--premium-font);
+  font-size: 0.94rem;
+  font-weight: 500;
+  line-height: 1.25;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.app-modal select.premium-text-input,
+.app-modal .form-group select:not([multiple]),
+.app-modal .parking-form-grid select,
+.app-modal .searchable-select-input,
+.app-modal .premium-field-trigger {
+  appearance: none;
+  padding-right: 44px;
+  background-image: var(--premium-chevron);
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 18px;
+  cursor: pointer;
+}
+
+.app-modal .searchable-select-input,
+.app-modal .premium-field-trigger {
+  display: flex;
+  align-items: center;
+}
+
+.app-modal .premium-select-field .searchable-select-input {
+  min-height: var(--modal-field-height, 48px);
+  height: var(--modal-field-height, 48px);
+}
+
+/* Textarea */
+.app-modal textarea.premium-text-input,
+.app-modal .form-group textarea,
+.app-modal .parking-form-grid textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--modal-textarea-min-height, 88px);
+  height: auto;
+  padding: 12px 16px;
+  margin: 0;
+  border: 1px solid var(--modal-border);
+  border-radius: var(--modal-field-radius, 8px);
+  background: var(--modal-surface-elevated);
+  box-shadow: var(--premium-shadow-field, 0 1px 2px rgba(0, 0, 0, 0.04));
+  color: var(--modal-text);
+  font-family: var(--premium-font);
+  font-size: 0.94rem;
+  font-weight: 500;
+  line-height: 1.5;
+  resize: vertical;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.app-modal input.premium-text-input::placeholder,
+.app-modal textarea.premium-text-input::placeholder,
+.app-modal .form-group input::placeholder,
+.app-modal .form-group textarea::placeholder {
+  color: var(--modal-text-muted);
+}
+
+.app-modal input.premium-text-input:hover,
+.app-modal select.premium-text-input:hover,
+.app-modal .form-group input:not([type='checkbox']):not([type='radio']):not([type='file']):hover,
+.app-modal .form-group select:not([multiple]):hover,
+.app-modal .parking-form-grid input:not([type='checkbox']):not([type='radio']):hover,
+.app-modal .parking-form-grid select:hover,
+.app-modal .searchable-select-input:hover,
+.app-modal .premium-field-trigger:hover,
+.app-modal textarea.premium-text-input:hover,
+.app-modal .form-group textarea:hover,
+.app-modal .parking-form-grid textarea:hover {
+  border-color: var(--modal-border-strong);
+}
+
+.app-modal input.premium-text-input:focus,
+.app-modal input.premium-text-input:focus-visible,
+.app-modal select.premium-text-input:focus,
+.app-modal select.premium-text-input:focus-visible,
+.app-modal .form-group input:not([type='checkbox']):not([type='radio']):not([type='file']):focus,
+.app-modal .form-group select:not([multiple]):focus,
+.app-modal .parking-form-grid input:not([type='checkbox']):not([type='radio']):focus,
+.app-modal .parking-form-grid select:focus,
+.app-modal .searchable-select-input.is-open,
+.app-modal .searchable-select-input:focus-visible,
+.app-modal .premium-field-trigger.is-open,
+.app-modal textarea.premium-text-input:focus,
+.app-modal textarea.premium-text-input:focus-visible,
+.app-modal .form-group textarea:focus,
+.app-modal .parking-form-grid textarea:focus {
+  outline: none;
+  border-color: var(--modal-focus-border);
+  background-color: var(--modal-surface-elevated);
+  box-shadow: var(--modal-focus-ring);
+}
+
+.app-modal input.premium-text-input:disabled,
+.app-modal textarea.premium-text-input:disabled,
+.app-modal select.premium-text-input:disabled,
+.app-modal .form-group input:disabled,
+.app-modal .form-group select:disabled,
+.app-modal .searchable-select-input.is-disabled {
+  opacity: 0.65;
+  background: var(--modal-surface-muted);
+  cursor: not-allowed;
+}
+
+.app-modal .searchable-select-input .placeholder {
+  color: var(--modal-text-muted);
+}
+
+.app-modal .searchable-select-value {
+  color: var(--modal-text);
+}
+
+/* Dropdown portaled a partir de modal — mantém tema claro do sistema */
+.searchable-select-dropdown--modal {
+  border: 1px solid var(--modal-border);
+  border-radius: var(--modal-field-radius, 8px);
+  background: var(--modal-surface-elevated);
+  box-shadow: var(--premium-shadow-field-dropdown, 0 4px 16px rgba(0, 0, 0, 0.1));
+}
+
+.searchable-select-dropdown--modal .searchable-select-option {
+  color: var(--modal-text);
+}
+
+.searchable-select-dropdown--modal .searchable-select-option:hover,
+.searchable-select-dropdown--modal .searchable-select-option.selected {
+  background: var(--food-brand-50, #eef2f8);
+  border-color: transparent;
+  color: var(--modal-accent);
+}
+
+.searchable-select-dropdown--modal .searchable-select-search {
+  border-color: var(--modal-border);
+  background: var(--modal-surface-elevated);
+  color: var(--modal-text);
+}
+
+/* Checkboxes / labels inline */
+.app-modal label:has(input[type='checkbox']),
+.app-modal label:has(input[type='radio']) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--modal-text-muted);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+/* Botões de rodapé — cores do sistema */
+.app-modal .catalog-form-footer-btn {
+  min-height: var(--modal-field-height, 48px);
   padding: 0 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--modal-field-radius, 8px);
   font-size: 0.92rem;
   font-weight: 700;
   cursor: pointer;
 }
 
-.catalog-form-footer-btn--ghost {
-  border: 1px solid var(--border-default, #e5e5e5);
-  background: #ffffff;
-  color: var(--text-primary, #1a1a1a);
+.app-modal .catalog-form-footer-btn--ghost {
+  border: 1px solid var(--modal-border);
+  background: var(--modal-surface-elevated);
+  color: var(--modal-text);
 }
 
-.catalog-form-footer-btn--ghost:hover:not(:disabled) {
-  border-color: #d4d4d4;
-  background: #fafafa;
+.app-modal .catalog-form-footer-btn--ghost:hover:not(:disabled) {
+  border-color: var(--modal-border-strong);
+  background: var(--modal-surface-muted);
 }
 
-.catalog-form-footer-btn--primary {
+.app-modal .catalog-form-footer-btn--primary {
   border: 0;
-  background: var(--brand-primary, #ea1d2c);
+  background: var(--modal-accent);
+  color: var(--modal-accent-text);
+}
+
+.app-modal .catalog-form-footer-btn--primary:hover:not(:disabled) {
+  background: var(--modal-accent-hover);
+}
+
+.app-modal .catalog-form-footer-btn--danger {
+  background: var(--brand-primary, #2c4778);
   color: #ffffff;
 }
 
-.catalog-form-footer-btn--primary:hover:not(:disabled) {
-  background: var(--brand-primary-hover, #d41928);
+.app-modal .catalog-form-footer-btn--danger:hover:not(:disabled) {
+  background: var(--brand-primary-hover, #243c64);
 }
 
-.catalog-form-footer-btn--primary.is-loading {
+.app-modal .catalog-form-footer-btn--primary.is-loading {
   cursor: wait;
   opacity: 0.96;
 }
 
-.catalog-form-footer-btn:disabled {
+.app-modal .catalog-form-footer-btn:disabled {
   opacity: 0.65;
   cursor: not-allowed;
 }
 
 @media (max-width: 520px) {
+  .app-modal-overlay {
+    padding: 12px;
+  }
+
+  .app-modal {
+    --modal-padding: 20px;
+  }
+
   .app-modal-footer {
     flex-direction: column-reverse;
   }

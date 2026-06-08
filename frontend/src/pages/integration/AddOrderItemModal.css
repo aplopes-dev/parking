@@ -13,7 +13,7 @@
   margin: 0;
   font-size: 0.9rem;
   font-weight: 650;
-  color: var(--text-primary, #1a1a1a);
+  color: var(--text-primary, #141c28);
 }
 
 .add-item-modal-search .premium-text-input {
@@ -25,18 +25,18 @@
 .add-item-modal-search-clear {
   flex-shrink: 0;
   padding: 10px 14px;
-  border: 1px solid var(--border-default, #e5e5e5);
-  border-radius: var(--radius-md, 6px);
+  border: 1px solid var(--border-default, #ddd9d0);
+  border-radius: var(--modal-field-radius, 8px);
   background: #ffffff;
-  color: var(--text-primary, #1a1a1a);
+  color: var(--text-primary, #141c28);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
 }
 
 .add-item-modal-search-clear:hover:not(:disabled) {
-  border-color: #d4d4d4;
-  background: #fafafa;
+  border-color: #d4cfc4;
+  background: var(--surface-muted, #eceae4);
 }
 
 .add-item-modal-search-clear:disabled {
@@ -50,7 +50,7 @@
   gap: 8px;
   padding: 12px 24px;
   overflow-x: auto;
-  border-bottom: 1px solid var(--border-default, #e5e5e5);
+  border-bottom: 1px solid var(--border-default, #ddd9d0);
   scrollbar-width: thin;
 }
 
@@ -60,10 +60,10 @@
   gap: 6px;
   flex-shrink: 0;
   padding: 8px 14px;
-  border: 1px solid var(--border-default, #e5e5e5);
-  border-radius: var(--radius-md, 6px);
+  border: 1px solid var(--border-default, #ddd9d0);
+  border-radius: var(--modal-field-radius, 8px);
   background: #ffffff;
-  color: var(--text-primary, #1a1a1a);
+  color: var(--text-primary, #141c28);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -74,14 +74,14 @@
 }
 
 .add-item-modal-tab:hover:not(.is-active) {
-  border-color: #d4d4d4;
-  background: #fafafa;
+  border-color: #d4cfc4;
+  background: var(--surface-muted, #eceae4);
 }
 
 .add-item-modal-tab.is-active {
-  border-color: var(--brand-primary, #ea1d2c);
-  background: rgba(234, 29, 44, 0.08);
-  color: var(--brand-primary, #ea1d2c);
+  border-color: var(--brand-primary, #2c4778);
+  background: var(--food-brand-50, #eef2f8);
+  color: var(--brand-primary, #2c4778);
 }
 
 .add-item-modal-tab-icon {
@@ -100,8 +100,8 @@
 }
 
 .add-item-modal-tab.is-active .add-item-modal-tab-count {
-  background: rgba(234, 29, 44, 0.12);
-  color: var(--brand-primary, #ea1d2c);
+  background: rgba(44, 71, 120, 0.12);
+  color: var(--brand-primary, #2c4778);
 }
 
 .add-item-modal-scroll {
@@ -119,7 +119,7 @@
   margin: 0;
   padding: 40px 0;
   text-align: center;
-  color: var(--text-muted, #6b6b6b);
+  color: var(--text-muted, #5c6470);
   font-size: 0.95rem;
 }
 
@@ -134,8 +134,8 @@
   display: flex;
   flex-direction: column;
   padding: 0;
-  border: 1px solid var(--border-default, #e5e5e5);
-  border-radius: 8px;
+  border: 1px solid var(--border-default, #ddd9d0);
+  border-radius: var(--modal-field-radius, 8px);
   background: #ffffff;
   overflow: hidden;
   text-align: left;
@@ -147,13 +147,13 @@
 }
 
 .add-item-modal-card:hover:not(:disabled) {
-  border-color: var(--brand-primary, #ea1d2c);
-  box-shadow: 0 8px 20px rgba(234, 29, 44, 0.12);
+  border-color: var(--brand-primary, #2c4778);
+  box-shadow: 0 8px 20px rgba(44, 71, 120, 0.12);
   transform: translateY(-2px);
 }
 
 .add-item-modal-card.is-featured {
-  border-color: rgba(234, 29, 44, 0.35);
+  border-color: rgba(44, 71, 120, 0.35);
 }
 
 .add-item-modal-card:disabled {
@@ -193,7 +193,7 @@
 }
 
 .add-item-modal-card-body strong {
-  color: var(--text-primary, #1a1a1a);
+  color: var(--text-primary, #141c28);
   font-size: 0.88rem;
   font-weight: 700;
   line-height: 1.3;
@@ -201,7 +201,7 @@
 
 .add-item-modal-card-desc {
   margin: 0;
-  color: var(--text-muted, #6b6b6b);
+  color: var(--text-muted, #5c6470);
   font-size: 0.75rem;
   line-height: 1.35;
   display: -webkit-box;
@@ -216,13 +216,13 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.35rem 0.5rem;
-  color: var(--brand-primary, #ea1d2c);
+  color: var(--brand-primary, #2c4778);
   font-size: 0.9rem;
   font-weight: 700;
 }
 
 .add-item-modal-card-price-old {
-  color: var(--text-muted, #6b6b6b);
+  color: var(--text-muted, #5c6470);
   font-size: 0.78rem;
   font-weight: 500;
   text-decoration: line-through;
@@ -241,14 +241,14 @@
   align-items: center;
   justify-content: center;
   background: rgba(255, 255, 255, 0.88);
-  color: var(--brand-primary, #ea1d2c);
+  color: var(--brand-primary, #2c4778);
   font-size: 0.82rem;
   font-weight: 700;
 }
 
 .add-item-modal-tab:focus-visible,
 .add-item-modal-card:focus-visible {
-  outline: var(--brand-focus-ring, 0 0 0 4px rgba(234, 29, 44, 0.22));
+  outline: var(--brand-focus-ring, 0 0 0 4px rgba(44, 71, 120, 0.22));
   outline-offset: 2px;
 }
 
