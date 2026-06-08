@@ -296,6 +296,27 @@ const ProductsPage: React.FC = () => {
       }
       stats={!loading ? statsGrid : undefined}
     >
+      <section className="catalog-surface">
+        <div className="catalog-toolbar catalog-filter-toolbar">
+          <PremiumSelect
+            label="Filtrar por grupo"
+            value={filterGroupId}
+            options={filterGroupOptions}
+            wrapperClassName="form-group catalog-filter-toolbar__field"
+            onChange={handleFilterGroup}
+          />
+          {filterGroupId ? (
+            <button
+              type="button"
+              className="catalog-form-footer-btn catalog-form-footer-btn--ghost catalog-filter-toolbar__action"
+              onClick={() => handleFilterGroup('')}
+            >
+              Limpar
+            </button>
+          ) : null}
+        </div>
+      </section>
+
       <section className="catalog-registry-panel" aria-labelledby="products-panel-title">
         <header className="catalog-registry-panel__header">
           <div>
@@ -305,15 +326,10 @@ const ProductsPage: React.FC = () => {
               {canDragReorder && items.length > 1
                 ? ' · Arraste para alterar a ordem no cardápio'
                 : ''}
+              {filterGroupId
+                ? ` · grupo: ${filterGroupOptions.find((o) => o.value === filterGroupId)?.label ?? ''}`
+                : ''}
             </p>
-          </div>
-          <div className="catalog-registry-panel__search form-group">
-            <PremiumSelect
-              label="Filtrar por grupo"
-              value={filterGroupId}
-              options={filterGroupOptions}
-              onChange={handleFilterGroup}
-            />
           </div>
         </header>
 

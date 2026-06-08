@@ -13,6 +13,7 @@ import {
 } from '../../types';
 import { loyaltyTxLabel, tierLabel } from './crmUtils';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import RegistryFormModal, { registryModalFooterButtons } from '../../components/RegistryFormModal';
 
 const CrmLoyaltyPage: React.FC = () => {
   const { user } = useContext(AuthContext) || {};
@@ -22,6 +23,7 @@ const CrmLoyaltyPage: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [showProgramForm, setShowProgramForm] = useState(false);
+  const [showPointsForm, setShowPointsForm] = useState(false);
   const [programForm, setProgramForm] = useState({
     name: 'Programa Fidelidade',
     description: '',
@@ -106,6 +108,7 @@ const CrmLoyaltyPage: React.FC = () => {
         });
       }
       setPointsForm({ customerId: '', type: 'ganho', points: '100', purchaseAmount: '', notes: '' });
+      setShowPointsForm(false);
       await load();
       setAlert({ isOpen: true, message: 'Pontos atualizados!', type: 'success' });
     } catch (err: any) {
@@ -151,33 +154,47 @@ const CrmLoyaltyPage: React.FC = () => {
       loading={loading}
       loadingDescription="Carregando programa de fidelidade."
       actions={
-        <button type="button" className="catalog-action-button" onClick={() => setShowProgramForm(!showProgramForm)}>
-          {showProgramForm ? 'Fechar' : 'Novo programa'}
-        </button>
+        <>
+          <button type="button" className="catalog-action-button" onClick={() => setShowProgramForm(true)}>
+            Novo programa
+          </button>
+          {programs.length > 0 ? (
+            <button type="button" className="catalog-action-button is-secondary" onClick={() => setShowPointsForm(true)}>
+              Movimentar pontos
+            </button>
+          ) : null}
+        </>
       }
       stats={statsGrid}
     >
-      {showProgramForm && (
-        <section className="catalog-surface catalog-form-surface--premium">
-          <form className="catalog-form" onSubmit={saveProgram}>
-            <div className="catalog-form-grid">
-              <div className="form-group">
-                <label>Nome *</label>
-                <input className="premium-text-input" value={programForm.name} onChange={(e) => setProgramForm({ ...programForm, name: e.target.value })} required />
-              </div>
-              <div className="form-group">
-                <label>Pontos por R$</label>
-                <input className="premium-text-input" type="number" min="0" step="0.01" value={programForm.pointsPerReal} onChange={(e) => setProgramForm({ ...programForm, pointsPerReal: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>Mín. resgate (pts)</label>
-                <input className="premium-text-input" type="number" min="0" value={programForm.minRedeemPoints} onChange={(e) => setProgramForm({ ...programForm, minRedeemPoints: e.target.value })} />
-              </div>
-            </div>
-            <button type="submit" className="catalog-form-footer-btn catalog-form-footer-btn--primary" disabled={isSaving}>Criar programa</button>
-          </form>
-        </section>
-      )}
+      <RegistryFormModal
+        isOpen={showProgramForm}
+        title="Novo programa de fidelidade"
+        subtitle="Configure regras de pontos e níveis."
+        isSaving={isSaving}
+        onClose={() => !isSaving && setShowProgramForm(false)}
+        onSubmit={saveProgram}
+        footer={registryModalFooterButtons({
+          onClose: () => setShowProgramForm(false),
+          isSaving,
+          submitLabel: 'Criar programa',
+        })}
+      >
+        <div className="catalog-form-grid">
+          <div className="form-group">
+            <label>Nome *</label>
+            <input className="premium-text-input" value={programForm.name} onChange={(e) => setProgramForm({ ...programForm, name: e.target.value })} required />
+          </div>
+          <div className="form-group">
+            <label>Pontos por R$</label>
+            <input className="premium-text-input" type="number" min="0" step="0.01" value={programForm.pointsPerReal} onChange={(e) => setProgramForm({ ...programForm, pointsPerReal: e.target.value })} />
+          </div>
+          <div className="form-group">
+            <label>Mín. resgate (pts)</label>
+            <input className="premium-text-input" type="number" min="0" value={programForm.minRedeemPoints} onChange={(e) => setProgramForm({ ...programForm, minRedeemPoints: e.target.value })} />
+          </div>
+        </div>
+      </RegistryFormModal>
 
       {programs.length === 0 ? (
         <section className="catalog-surface">
@@ -185,35 +202,42 @@ const CrmLoyaltyPage: React.FC = () => {
         </section>
       ) : (
         <>
-          <section className="catalog-surface catalog-form-surface--premium">
-            <h2>Movimentar pontos</h2>
-            <form className="catalog-form" onSubmit={handlePoints}>
-              <div className="catalog-form-grid">
-                <PremiumSelect label="Cliente *" value={pointsForm.customerId} options={[{ value: '', label: 'Selecione' }, ...customerOptions]} onChange={(v) => setPointsForm({ ...pointsForm, customerId: v })} />
-                <PremiumSelect
-                  label="Operação"
-                  value={pointsForm.type}
-                  options={[
-                    { value: 'ganho', label: 'Creditar pontos' },
-                    { value: 'resgate', label: 'Resgatar pontos' },
-                    { value: 'ajuste', label: 'Ajustar saldo' },
-                  ]}
-                  onChange={(v) => setPointsForm({ ...pointsForm, type: v as CrmLoyaltyTxType })}
-                />
-                <div className="form-group">
-                  <label>Pontos</label>
-                  <input className="premium-text-input" type="number" min="1" value={pointsForm.points} onChange={(e) => setPointsForm({ ...pointsForm, points: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label>Ou valor da compra (R$)</label>
-                  <input className="premium-text-input" type="number" min="0" step="0.01" value={pointsForm.purchaseAmount} onChange={(e) => setPointsForm({ ...pointsForm, purchaseAmount: e.target.value })} placeholder="Calcula pontos automaticamente" />
-                </div>
+          <RegistryFormModal
+            isOpen={showPointsForm}
+            wide
+            title="Movimentar pontos"
+            subtitle="Credite, resgate ou ajuste o saldo de fidelidade."
+            isSaving={isSaving}
+            onClose={() => !isSaving && setShowPointsForm(false)}
+            onSubmit={handlePoints}
+            footer={registryModalFooterButtons({
+              onClose: () => setShowPointsForm(false),
+              isSaving,
+              submitLabel: 'Aplicar',
+            })}
+          >
+            <div className="catalog-form-grid">
+              <PremiumSelect label="Cliente *" value={pointsForm.customerId} options={[{ value: '', label: 'Selecione' }, ...customerOptions]} onChange={(v) => setPointsForm({ ...pointsForm, customerId: v })} />
+              <PremiumSelect
+                label="Operação"
+                value={pointsForm.type}
+                options={[
+                  { value: 'ganho', label: 'Creditar pontos' },
+                  { value: 'resgate', label: 'Resgatar pontos' },
+                  { value: 'ajuste', label: 'Ajustar saldo' },
+                ]}
+                onChange={(v) => setPointsForm({ ...pointsForm, type: v as CrmLoyaltyTxType })}
+              />
+              <div className="form-group">
+                <label>Pontos</label>
+                <input className="premium-text-input" type="number" min="1" value={pointsForm.points} onChange={(e) => setPointsForm({ ...pointsForm, points: e.target.value })} />
               </div>
-              <button type="submit" className="catalog-form-footer-btn catalog-form-footer-btn--primary" disabled={isSaving || !pointsForm.customerId}>
-                Aplicar
-              </button>
-            </form>
-          </section>
+              <div className="form-group">
+                <label>Ou valor da compra (R$)</label>
+                <input className="premium-text-input" type="number" min="0" step="0.01" value={pointsForm.purchaseAmount} onChange={(e) => setPointsForm({ ...pointsForm, purchaseAmount: e.target.value })} placeholder="Calcula pontos automaticamente" />
+              </div>
+            </div>
+          </RegistryFormModal>
 
           <section className="catalog-surface">
             <h2>Ranking de pontos</h2>

@@ -121,12 +121,12 @@
 
 .customers-row.is-dragging {
   opacity: 0.45;
-  background: #fff8f8;
+  background: var(--food-brand-50, #eef2f8);
 }
 
 .customers-row.is-drag-over {
-  background: rgba(234, 29, 44, 0.04);
-  box-shadow: inset 3px 0 0 var(--brand-primary, #ea1d2c);
+  background: var(--food-brand-50, #eef2f8);
+  box-shadow: inset 3px 0 0 var(--brand-primary, #2c4778);
 }
 
 .customers-row.is-reordering {

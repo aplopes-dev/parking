@@ -12,6 +12,7 @@ import {
 } from '../../types';
 import { interactionTypeLabel, segmentLabel, tierLabel } from './crmUtils';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import RegistryFormModal from '../../components/RegistryFormModal';
 import CatalogPagination from '../../components/catalog/CatalogPagination';
 import CatalogSortableTh from '../../components/catalog/CatalogSortableTh';
 import {
@@ -20,6 +21,7 @@ import {
   PaginatedResponse,
   SortDirection,
 } from '../../types/pagination';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 const DEBOUNCE_MS = 300;
 
@@ -51,6 +53,8 @@ const CrmCustomersPage: React.FC = () => {
     subject: '',
     notes: '',
   });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingInteraction, setIsSavingInteraction] = useState(false);
   const [alert, setAlert] = useState<AlertState>({ isOpen: false, message: '', type: 'error' });
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -103,36 +107,56 @@ const CrmCustomersPage: React.FC = () => {
     setPage(1);
   };
 
+  const closeDetail = () => {
+    if (isSavingProfile || isSavingInteraction) return;
+    setSelectedId(null);
+    setDetail(null);
+  };
+
   const openDetail = async (id: string) => {
     setSelectedId(id);
-    const { data } = await api.get<{
-      customer: CrmCustomerListItem;
-      profile: CrmCustomerListItem['profile'];
-      interactions: CrmInteraction[];
-    }>(`/crm/customers/${id}`);
-    setDetail({ interactions: data.interactions, profile: data.profile });
-    setProfileForm({
-      segment: data.profile?.segment || 'novo',
-      tags: data.profile?.tags || '',
-      marketingOptIn: data.profile?.marketingOptIn ?? true,
-      crmNotes: data.profile?.crmNotes || '',
-    });
+    try {
+      const { data } = await api.get<{
+        customer: CrmCustomerListItem;
+        profile: CrmCustomerListItem['profile'];
+        interactions: CrmInteraction[];
+      }>(`/crm/customers/${id}`);
+      setDetail({ interactions: data.interactions, profile: data.profile });
+      setProfileForm({
+        segment: data.profile?.segment || 'novo',
+        tags: data.profile?.tags || '',
+        marketingOptIn: data.profile?.marketingOptIn ?? true,
+        crmNotes: data.profile?.crmNotes || '',
+      });
+    } catch (err: unknown) {
+      setSelectedId(null);
+      setDetail(null);
+      setAlert({
+        isOpen: true,
+        message: getApiErrorMessage(err, 'Erro ao carregar cliente.'),
+        type: 'error',
+      });
+    }
   };
 
   const saveProfile = async () => {
-    if (!selectedId) return;
+    if (!selectedId || isSavingProfile) return;
+    setIsSavingProfile(true);
     try {
       await api.patch(`/crm/customers/${selectedId}/profile`, profileForm);
       await load();
       setAlert({ isOpen: true, message: 'Perfil CRM atualizado!', type: 'success' });
-    } catch (err: any) {
-      setAlert({ isOpen: true, message: err.response?.data?.message || 'Erro', type: 'error' });
+    } catch (err: unknown) {
+      setAlert({ isOpen: true, message: getApiErrorMessage(err, 'Erro'), type: 'error' });
+    } finally {
+      setIsSavingProfile(false);
     }
   };
 
   const addInteraction = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedId) return;
+    if (!selectedId || isSavingInteraction) return;
+    setIsSavingInteraction(true);
     try {
       await api.post('/crm/customers/interactions', {
         customerId: selectedId,
@@ -142,8 +166,10 @@ const CrmCustomersPage: React.FC = () => {
       await openDetail(selectedId);
       await load();
       setAlert({ isOpen: true, message: 'Interação registrada!', type: 'success' });
-    } catch (err: any) {
-      setAlert({ isOpen: true, message: err.response?.data?.message || 'Erro', type: 'error' });
+    } catch (err: unknown) {
+      setAlert({ isOpen: true, message: getApiErrorMessage(err, 'Erro'), type: 'error' });
+    } finally {
+      setIsSavingInteraction(false);
     }
   };
 
@@ -161,8 +187,8 @@ const CrmCustomersPage: React.FC = () => {
       loadingDescription="Carregando base de clientes."
     >
       <section className="catalog-surface">
-        <div className="catalog-toolbar">
-          <div className="form-group catalog-search">
+        <div className="catalog-toolbar catalog-filter-toolbar">
+          <div className="form-group catalog-search catalog-filter-toolbar__search">
             <label>Buscar</label>
             <input
               className="premium-text-input"
@@ -184,6 +210,7 @@ const CrmCustomersPage: React.FC = () => {
               { value: '', label: 'Todos' },
               ...Object.entries(segmentLabel).map(([v, l]) => ({ value: v, label: l })),
             ]}
+            wrapperClassName="form-group catalog-filter-toolbar__field"
             onChange={(value) => {
               setSegmentFilter(value);
               setPage(1);
@@ -191,8 +218,7 @@ const CrmCustomersPage: React.FC = () => {
           />
           <button
             type="button"
-            className="catalog-form-footer-btn catalog-form-footer-btn--primary"
-            style={{ marginBottom: 0 }}
+            className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action"
             onClick={() => {
               setSearchDebounced(search.trim());
               setPage(1);
@@ -202,8 +228,7 @@ const CrmCustomersPage: React.FC = () => {
           </button>
           <button
             type="button"
-            className="catalog-form-footer-btn catalog-form-footer-btn--ghost"
-            style={{ marginBottom: 0 }}
+            className="catalog-form-footer-btn catalog-form-footer-btn--ghost catalog-filter-toolbar__action"
             onClick={() => {
               setSearch('');
               setSearchDebounced('');
@@ -298,68 +323,80 @@ const CrmCustomersPage: React.FC = () => {
           )}
         </section>
 
-        {selectedId && selected && (
-          <section className="catalog-surface catalog-form-surface--premium">
-            <h2>{selected.name}</h2>
-            <div className="catalog-form">
-              <PremiumSelect
-                label="Segmento"
-                value={profileForm.segment}
-                options={Object.entries(segmentLabel).map(([v, l]) => ({ value: v, label: l }))}
-                onChange={(v) => setProfileForm({ ...profileForm, segment: v as CrmSegment })}
-              />
-              <div className="form-group">
-                <label>Tags (vírgula)</label>
-                <input className="premium-text-input" value={profileForm.tags} onChange={(e) => setProfileForm({ ...profileForm, tags: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>Notas CRM</label>
-                <textarea className="premium-text-input" rows={2} value={profileForm.crmNotes} onChange={(e) => setProfileForm({ ...profileForm, crmNotes: e.target.value })} />
-              </div>
-              <label>
-                <input type="checkbox" checked={profileForm.marketingOptIn} onChange={(e) => setProfileForm({ ...profileForm, marketingOptIn: e.target.checked })} /> Aceita marketing
-              </label>
-              <button type="button" className="catalog-form-footer-btn catalog-form-footer-btn--primary" onClick={saveProfile}>
-                Salvar perfil
-              </button>
+        <RegistryFormModal
+          isOpen={Boolean(selectedId && selected)}
+          wide
+          title={selected?.name ?? 'Cliente'}
+          subtitle={selected?.document || selected?.phone || selected?.email || 'Detalhes do cliente CRM'}
+          isSaving={isSavingProfile || isSavingInteraction}
+          onClose={closeDetail}
+        >
+          <div className="catalog-form">
+            <PremiumSelect
+              label="Segmento"
+              value={profileForm.segment}
+              options={Object.entries(segmentLabel).map(([v, l]) => ({ value: v, label: l }))}
+              onChange={(v) => setProfileForm({ ...profileForm, segment: v as CrmSegment })}
+            />
+            <div className="form-group">
+              <label>Tags (vírgula)</label>
+              <input className="premium-text-input" value={profileForm.tags} onChange={(e) => setProfileForm({ ...profileForm, tags: e.target.value })} />
             </div>
-
-            <h3 style={{ marginTop: 24 }}>Nova interação</h3>
-            <form className="catalog-form" onSubmit={addInteraction}>
-              <PremiumSelect
-                label="Tipo"
-                value={interactionForm.type}
-                options={Object.entries(interactionTypeLabel).map(([v, l]) => ({ value: v, label: l }))}
-                onChange={(v) => setInteractionForm({ ...interactionForm, type: v as CrmInteractionType })}
-              />
-              <div className="form-group">
-                <label>Assunto *</label>
-                <input className="premium-text-input" value={interactionForm.subject} onChange={(e) => setInteractionForm({ ...interactionForm, subject: e.target.value })} required />
-              </div>
-              <button type="submit" className="catalog-card-button">Registrar</button>
-            </form>
-
-            <h3 style={{ marginTop: 24 }}>Histórico</h3>
-            {detail?.interactions.length === 0 ? (
-              <p style={{ color: '#64748b' }}>Sem interações.</p>
-            ) : (
-              <ul style={{ listStyle: 'none', padding: 0 }}>
-                {detail?.interactions.map((i) => (
-                  <li key={i.id} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid #e2e8f0' }}>
-                    <strong>{i.subject}</strong>
-                    <br />
-                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                      {interactionTypeLabel[i.type]} · {new Date(i.createdAt).toLocaleString('pt-BR')}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <button type="button" className="catalog-card-button" style={{ marginTop: 12 }} onClick={() => setSelectedId(null)}>
-              Fechar
+            <div className="form-group">
+              <label>Notas CRM</label>
+              <textarea className="premium-text-input" rows={2} value={profileForm.crmNotes} onChange={(e) => setProfileForm({ ...profileForm, crmNotes: e.target.value })} />
+            </div>
+            <label>
+              <input type="checkbox" checked={profileForm.marketingOptIn} onChange={(e) => setProfileForm({ ...profileForm, marketingOptIn: e.target.checked })} /> Aceita marketing
+            </label>
+            <button
+              type="button"
+              className="catalog-form-footer-btn catalog-form-footer-btn--primary"
+              onClick={saveProfile}
+              disabled={isSavingProfile || isSavingInteraction}
+            >
+              {isSavingProfile ? 'Salvando…' : 'Salvar perfil'}
             </button>
-          </section>
-        )}
+          </div>
+
+          <h3 style={{ marginTop: 24 }}>Nova interação</h3>
+          <form className="catalog-form" onSubmit={addInteraction}>
+            <PremiumSelect
+              label="Tipo"
+              value={interactionForm.type}
+              options={Object.entries(interactionTypeLabel).map(([v, l]) => ({ value: v, label: l }))}
+              onChange={(v) => setInteractionForm({ ...interactionForm, type: v as CrmInteractionType })}
+            />
+            <div className="form-group">
+              <label>Assunto *</label>
+              <input className="premium-text-input" value={interactionForm.subject} onChange={(e) => setInteractionForm({ ...interactionForm, subject: e.target.value })} required />
+            </div>
+            <button
+              type="submit"
+              className="catalog-card-button"
+              disabled={isSavingProfile || isSavingInteraction}
+            >
+              {isSavingInteraction ? 'Registrando…' : 'Registrar'}
+            </button>
+          </form>
+
+          <h3 style={{ marginTop: 24 }}>Histórico</h3>
+          {detail?.interactions.length === 0 ? (
+            <p style={{ color: '#64748b' }}>Sem interações.</p>
+          ) : (
+            <ul style={{ listStyle: 'none', padding: 0 }}>
+              {detail?.interactions.map((i) => (
+                <li key={i.id} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid #e2e8f0' }}>
+                  <strong>{i.subject}</strong>
+                  <br />
+                  <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                    {interactionTypeLabel[i.type]} · {new Date(i.createdAt).toLocaleString('pt-BR')}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </RegistryFormModal>
       </div>
 
       <AlertModal isOpen={alert.isOpen} onClose={() => setAlert({ ...alert, isOpen: false })} message={alert.message} type={alert.type} />

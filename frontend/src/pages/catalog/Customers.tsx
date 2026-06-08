@@ -221,16 +221,9 @@ const CustomersPage: React.FC = () => {
       }
       stats={!initialLoading ? statsGrid : undefined}
     >
-      <section className="catalog-registry-panel" aria-labelledby="customers-panel-title">
-        <header className="catalog-registry-panel__header">
-          <div>
-            <h2 id="customers-panel-title">Clientes cadastrados</h2>
-            <p className="catalog-registry-panel__meta">
-              {meta?.total ?? 0} cliente(s)
-              {searchDebounced ? ` · busca: "${searchDebounced}"` : ''}
-            </p>
-          </div>
-          <div className="catalog-registry-panel__search form-group">
+      <section className="catalog-surface">
+        <div className="catalog-toolbar catalog-filter-toolbar">
+          <div className="form-group catalog-search catalog-filter-toolbar__search catalog-filter-toolbar__search--wide">
             <label htmlFor="customer-search">Buscar</label>
             <input
               id="customer-search"
@@ -239,7 +232,46 @@ const CustomersPage: React.FC = () => {
               placeholder="Nome, telefone, e-mail ou documento"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setSearchDebounced(search.trim());
+                  setPage(1);
+                }
+              }}
             />
+          </div>
+          <button
+            type="button"
+            className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action"
+            onClick={() => {
+              setSearchDebounced(search.trim());
+              setPage(1);
+            }}
+          >
+            Buscar
+          </button>
+          <button
+            type="button"
+            className="catalog-form-footer-btn catalog-form-footer-btn--ghost catalog-filter-toolbar__action"
+            onClick={() => {
+              setSearch('');
+              setSearchDebounced('');
+              setPage(1);
+            }}
+          >
+            Limpar
+          </button>
+        </div>
+      </section>
+
+      <section className="catalog-registry-panel" aria-labelledby="customers-panel-title">
+        <header className="catalog-registry-panel__header">
+          <div>
+            <h2 id="customers-panel-title">Clientes cadastrados</h2>
+            <p className="catalog-registry-panel__meta">
+              {meta?.total ?? 0} cliente(s)
+              {searchDebounced ? ` · busca: "${searchDebounced}"` : ''}
+            </p>
           </div>
         </header>
 

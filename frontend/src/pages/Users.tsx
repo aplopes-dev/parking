@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useLayoutEffect, useContext, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useContext, useCallback, useMemo, useRef } from 'react';
 import api from '../services/api';
 import { AuthContext } from '../contexts/AuthContext';
 import AlertModal from '../components/AlertModal';
 import ConfirmModal from '../components/ConfirmModal';
+import RegistryFormModal from '../components/RegistryFormModal';
 import { User as UserType, AlertState } from '../types';
 import { getRoleLabel, ROLE_PILL_CLASS, UserRole } from '../types/userRole';
 import { activeStatusPillClass, SECTION_KICKER_CLASS } from '../utils/catalogTags';
@@ -47,10 +48,7 @@ const Users: React.FC = () => {
     role: 'garcom',
     active: true,
   });
-  const formSectionRef = useRef<HTMLElement | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
-  /** Incrementado ao abrir o formulário; força novo scroll mesmo com Strict Mode ou re-render. */
-  const [formScrollNonce, setFormScrollNonce] = useState<number>(0);
 
   const loadUsers = useCallback(async (): Promise<void> => {
     try {
@@ -69,35 +67,6 @@ const Users: React.FC = () => {
     }
   }, [loadUsers, user]);
 
-  useLayoutEffect(() => {
-    if (!showForm) {
-      return;
-    }
-
-    let cancelled = false;
-
-    const scrollToForm = (): void => {
-      if (cancelled) {
-        return;
-      }
-      const el = formSectionRef.current;
-      if (!el) {
-        return;
-      }
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    };
-
-    /** Dois RAFs garantem medição/layout após pintar selects e o painel premium. */
-    const rafId = window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(scrollToForm);
-    });
-
-    return () => {
-      cancelled = true;
-      window.cancelAnimationFrame(rafId);
-    };
-  }, [showForm, formScrollNonce]);
-
   const resetForm = useCallback((): void => {
     setFormData({
       name: '',
@@ -111,20 +80,18 @@ const Users: React.FC = () => {
     setPhotoPreview(null);
   }, []);
 
-  const openCreateForm = (): void => {
-    if (showForm && !editingUserId) {
-      setShowForm(false);
-      resetForm();
-      return;
-    }
-
+  const closeFormModal = (): void => {
+    if (isSavingUser) return;
+    setShowForm(false);
     resetForm();
-    setFormScrollNonce((n) => n + 1);
+  };
+
+  const openCreateForm = (): void => {
+    resetForm();
     setShowForm(true);
   };
 
   const openEditForm = (selectedUser: UserType): void => {
-    setFormScrollNonce((n) => n + 1);
     setEditingUserId(selectedUser.id);
     let formRole: UserFormData['role'] = 'garcom';
     if (selectedUser.role === 'admin' || selectedUser.role === 'manager' || selectedUser.role === 'hr') {
@@ -368,33 +335,54 @@ const Users: React.FC = () => {
       description="Cadastre colaboradores do estabelecimento, defina perfis de acesso e mantenha a equipe alinhada à operação do bar ou restaurante."
       stats={usersStats}
       actions={
-        <button
-          type="button"
-          onClick={openCreateForm}
-          className={`catalog-action-button${showForm && !editingUserId ? ' is-secondary' : ''}`}
-        >
-          {showForm && !editingUserId ? 'Fechar formulário' : 'Novo usuário'}
+        <button type="button" onClick={openCreateForm} className="catalog-action-button">
+          Novo usuário
         </button>
       }
     >
-      {showForm && (
-        <section
-          ref={formSectionRef}
-          className="catalog-surface catalog-form-surface--premium users-form-surface users-form-surface--premium"
-        >
-          <div className="catalog-section-header users-form-section-header">
-            <div>
-              <span className="catalog-section-kicker">Cadastro</span>
-              <h2>{editingUserId ? 'Editar usuário' : 'Criar novo usuário'}</h2>
-            </div>
-            <p>
-              {editingUserId
-                ? 'Atualize os dados do perfil, permissões e foto do usuário.'
-                : 'Preencha os dados abaixo para liberar acesso ao sistema.'}
-            </p>
-          </div>
-
-          <form className="users-form users-form--premium" onSubmit={handleSubmit}>
+      <RegistryFormModal
+        isOpen={showForm}
+        wide
+        title={editingUserId ? 'Editar usuário' : 'Novo usuário'}
+        subtitle={
+          editingUserId
+            ? 'Atualize os dados do perfil, permissões e foto do usuário.'
+            : 'Preencha os dados para liberar acesso ao sistema.'
+        }
+        isSaving={isSavingUser}
+        onClose={closeFormModal}
+        onSubmit={handleSubmit}
+        footer={
+          <>
+            <button
+              type="button"
+              className="users-form-footer-btn users-form-footer-btn--ghost"
+              disabled={isSavingUser}
+              onClick={closeFormModal}
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className={`users-form-footer-btn users-form-footer-btn--primary${isSavingUser ? ' is-loading' : ''}`}
+              disabled={isSavingUser}
+              aria-busy={isSavingUser}
+            >
+              {isSavingUser ? (
+                <>
+                  <span className="users-form-btn-spinner" aria-hidden />
+                  {editingUserId ? 'Salvando…' : 'Criando…'}
+                </>
+              ) : editingUserId ? (
+                'Salvar alterações'
+              ) : (
+                'Criar usuário'
+              )}
+            </button>
+          </>
+        }
+      >
+        <div className="users-form users-form--premium users-form-surface users-form-surface--premium">
             <div className="users-form-grid">
               <div className="form-group">
                 <label htmlFor="user-name">Nome *</label>
@@ -516,39 +504,8 @@ const Users: React.FC = () => {
               </div>
             </div>
 
-            <div className="users-form-footer users-form-footer--premium">
-              <button
-                type="button"
-                className="users-form-footer-btn users-form-footer-btn--ghost"
-                disabled={isSavingUser}
-                onClick={() => {
-                  setShowForm(false);
-                  resetForm();
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className={`users-form-footer-btn users-form-footer-btn--primary${isSavingUser ? ' is-loading' : ''}`}
-                disabled={isSavingUser}
-                aria-busy={isSavingUser}
-              >
-                {isSavingUser ? (
-                  <>
-                    <span className="users-form-btn-spinner" aria-hidden />
-                    {editingUserId ? 'Salvando…' : 'Criando…'}
-                  </>
-                ) : editingUserId ? (
-                  'Salvar alterações'
-                ) : (
-                  'Criar usuário'
-                )}
-              </button>
-            </div>
-          </form>
-        </section>
-      )}
+        </div>
+      </RegistryFormModal>
 
       <section className="catalog-surface">
         <div className="catalog-section-header">
