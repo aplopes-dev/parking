@@ -18,7 +18,10 @@ import {
   CreatePrepaidWalletDto,
   CreateReceiptDto,
   CreateRecurringRuleDto,
+  FinanceBankLinesQueryDto,
+  FinanceBillsQueryDto,
   FinanceCalendarQueryDto,
+  FinanceListQueryDto,
   FinancePeriodQueryDto,
   MatchBankLineDto,
   OpenCashSessionDto,
@@ -42,8 +45,8 @@ export class FinanceOperationsController {
   ) {}
 
   @Get('bills')
-  listBills(@CurrentUser() user: User, @Query('billType') billType?: FinanceBillType) {
-    return this.ops.listBills(user.tenantId, billType);
+  listBills(@CurrentUser() user: User, @Query() query: FinanceBillsQueryDto) {
+    return this.ops.listBills(user.tenantId, query);
   }
 
   @Post('bills')
@@ -62,8 +65,8 @@ export class FinanceOperationsController {
   }
 
   @Get('transfers')
-  listTransfers(@CurrentUser() user: User) {
-    return this.ops.listTransfers(user.tenantId);
+  listTransfers(@CurrentUser() user: User, @Query() query: FinanceListQueryDto) {
+    return this.ops.listTransfers(user.tenantId, query);
   }
 
   @Post('transfers')
@@ -72,8 +75,8 @@ export class FinanceOperationsController {
   }
 
   @Get('recurring')
-  listRecurring(@CurrentUser() user: User) {
-    return this.ops.listRecurring(user.tenantId);
+  listRecurring(@CurrentUser() user: User, @Query() query: FinanceListQueryDto) {
+    return this.ops.listRecurring(user.tenantId, query);
   }
 
   @Post('recurring')
@@ -87,8 +90,8 @@ export class FinanceOperationsController {
   }
 
   @Get('advances')
-  listAdvances(@CurrentUser() user: User) {
-    return this.ops.listAdvances(user.tenantId);
+  listAdvances(@CurrentUser() user: User, @Query() query: FinanceListQueryDto) {
+    return this.ops.listAdvances(user.tenantId, query);
   }
 
   @Post('advances')
@@ -102,8 +105,8 @@ export class FinanceOperationsController {
   }
 
   @Get('payroll')
-  listPayroll(@CurrentUser() user: User) {
-    return this.ops.listPayrollRuns(user.tenantId);
+  listPayroll(@CurrentUser() user: User, @Query() query: FinanceListQueryDto) {
+    return this.ops.listPayrollRuns(user.tenantId, query);
   }
 
   @Get('payroll/users')
@@ -145,8 +148,8 @@ export class FinanceOperationsController {
   }
 
   @Get('cash-sessions')
-  listCashSessions(@CurrentUser() user: User) {
-    return this.ops.listCashSessions(user.tenantId);
+  listCashSessions(@CurrentUser() user: User, @Query() query: FinanceListQueryDto) {
+    return this.ops.listCashSessions(user.tenantId, query);
   }
 
   @Post('cash-sessions/open')
@@ -174,8 +177,8 @@ export class FinanceOperationsController {
   }
 
   @Get('card-receivables')
-  listCards(@CurrentUser() user: User) {
-    return this.ops.listCardReceivables(user.tenantId);
+  listCards(@CurrentUser() user: User, @Query() query: FinanceListQueryDto) {
+    return this.ops.listCardReceivables(user.tenantId, query);
   }
 
   @Post('card-receivables')
@@ -193,8 +196,8 @@ export class FinanceOperationsController {
   }
 
   @Get('bank-lines')
-  listBankLines(@CurrentUser() user: User, @Query('accountId') accountId?: string) {
-    return this.ops.listBankLines(user.tenantId, accountId);
+  listBankLines(@CurrentUser() user: User, @Query() query: FinanceBankLinesQueryDto) {
+    return this.ops.listBankLines(user.tenantId, query);
   }
 
   @Post('bank-lines')
@@ -212,8 +215,8 @@ export class FinanceOperationsController {
   }
 
   @Get('prepaid-wallets')
-  listPrepaid(@CurrentUser() user: User) {
-    return this.ops.listPrepaidWallets(user.tenantId);
+  listPrepaid(@CurrentUser() user: User, @Query() query: FinanceListQueryDto) {
+    return this.ops.listPrepaidWallets(user.tenantId, query);
   }
 
   @Post('prepaid-wallets')
@@ -231,8 +234,8 @@ export class FinanceOperationsController {
   }
 
   @Get('receipts')
-  listReceipts(@CurrentUser() user: User) {
-    return this.ops.listReceipts(user.tenantId);
+  listReceipts(@CurrentUser() user: User, @Query() query: FinanceListQueryDto) {
+    return this.ops.listReceipts(user.tenantId, query);
   }
 
   @Post('receipts')

@@ -18,6 +18,7 @@ import {
   FinanceRecurringFrequency,
 } from '../entities/finance-extended.entities';
 import { FinanceTransactionType } from '../entities/finance.entities';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 export class CreateFinanceBillDto {
   @IsEnum(FinanceBillType)
@@ -348,4 +349,18 @@ export class UpdateCardReceivableDto {
   @IsOptional()
   @IsDateString()
   expectedDepositDate?: string;
+}
+
+export class FinanceListQueryDto extends PaginationQueryDto {}
+
+export class FinanceBillsQueryDto extends PaginationQueryDto {
+  @IsOptional()
+  @IsEnum(FinanceBillType)
+  billType?: FinanceBillType;
+}
+
+export class FinanceBankLinesQueryDto extends PaginationQueryDto {
+  @IsOptional()
+  @IsUUID()
+  accountId?: string;
 }

@@ -13,6 +13,7 @@ import {
   buildPaginatedMeta,
   resolvePagination,
 } from '../common/dto/pagination-query.dto';
+import { paginateRepository } from '../common/utils/paginate-typeorm';
 import {
   CancelFiscalInvoiceDto,
   CreateFiscalAccountantDto,
@@ -23,6 +24,7 @@ import {
   EmitFiscalInvoiceDto,
   FISCAL_RETURN_SORT_FIELDS,
   FiscalInvoicesQueryDto,
+  FiscalListQueryDto,
   FiscalOrdersQueryDto,
   FiscalReturnsQueryDto,
   FiscalReturnSortField,
@@ -86,10 +88,11 @@ export class FiscalService {
     if (query.status) where.status = query.status;
     if (query.from && query.to) where.issueDate = Between(query.from, query.to);
 
-    return this.ordersRepo.find({
+    return paginateRepository(this.ordersRepo, query, {
       where,
       relations: ['items', 'pdvOrder', 'customer'],
       order: { issueDate: 'DESC', createdAt: 'DESC' },
+      sortBy: 'issueDate',
     });
   }
 
@@ -274,9 +277,10 @@ export class FiscalService {
     if (query.direction) where.direction = query.direction;
     if (query.status) where.status = query.status;
 
-    return this.invoicesRepo.find({
+    return paginateRepository(this.invoicesRepo, query, {
       where,
       order: { issueDate: 'DESC', number: 'DESC' },
+      sortBy: 'issueDate',
     });
   }
 
@@ -448,10 +452,11 @@ export class FiscalService {
     );
   }
 
-  listNumberVoids(tenantId: string) {
-    return this.voidsRepo.find({
+  listNumberVoids(tenantId: string, query: FiscalListQueryDto) {
+    return paginateRepository(this.voidsRepo, query, {
       where: { tenantId },
       order: { voidDate: 'DESC' },
+      sortBy: 'voidDate',
     });
   }
 
@@ -468,11 +473,12 @@ export class FiscalService {
     );
   }
 
-  listAccountants(tenantId: string) {
-    return this.accountantsRepo.find({
+  listAccountants(tenantId: string, query: FiscalListQueryDto) {
+    return paginateRepository(this.accountantsRepo, query, {
       where: { tenantId },
       relations: ['user'],
       order: { name: 'ASC' },
+      sortBy: 'name',
     });
   }
 

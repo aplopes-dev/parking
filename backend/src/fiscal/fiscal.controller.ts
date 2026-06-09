@@ -27,6 +27,7 @@ import {
   CreateFiscalReturnDto,
   EmitFiscalInvoiceDto,
   FiscalInvoicesQueryDto,
+  FiscalListQueryDto,
   FiscalOrdersQueryDto,
   FiscalReturnsQueryDto,
   UpdateFiscalReturnDto,
@@ -156,8 +157,8 @@ export class FiscalController {
   }
 
   @Get('number-voids')
-  listVoids(@CurrentUser() user: User) {
-    return this.fiscal.listNumberVoids(user.tenantId);
+  listVoids(@CurrentUser() user: User, @Query() query: FiscalListQueryDto) {
+    return this.fiscal.listNumberVoids(user.tenantId, query);
   }
 
   @Post('number-voids')
@@ -166,8 +167,8 @@ export class FiscalController {
   }
 
   @Get('accountants')
-  listAccountants(@CurrentUser() user: User) {
-    return this.fiscal.listAccountants(user.tenantId);
+  listAccountants(@CurrentUser() user: User, @Query() query: FiscalListQueryDto) {
+    return this.fiscal.listAccountants(user.tenantId, query);
   }
 
   @Post('accountants')

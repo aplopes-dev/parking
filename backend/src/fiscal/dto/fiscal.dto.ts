@@ -71,7 +71,7 @@ export class UpdateFiscalOrderDto {
   items?: FiscalOrderItemDto[];
 }
 
-export class FiscalOrdersQueryDto {
+export class FiscalOrdersQueryDto extends PaginationQueryDto {
   @IsOptional() @IsEnum(FiscalOrderType) orderType?: FiscalOrderType;
   @IsOptional() @IsEnum(FiscalOrderStatus) status?: FiscalOrderStatus;
   @IsOptional() @IsDateString() from?: string;
@@ -128,13 +128,15 @@ export class FiscalReturnsQueryDto extends PaginationQueryDto {
   dateTo?: string;
 }
 
-export class FiscalInvoicesQueryDto {
+export class FiscalInvoicesQueryDto extends PaginationQueryDto {
   @IsOptional() @IsEnum(FiscalInvoiceType) invoiceType?: FiscalInvoiceType;
   @IsOptional() @IsEnum(FiscalInvoiceDirection) direction?: FiscalInvoiceDirection;
   @IsOptional() @IsEnum(FiscalInvoiceStatus) status?: FiscalInvoiceStatus;
   @IsOptional() @IsDateString() from?: string;
   @IsOptional() @IsDateString() to?: string;
 }
+
+export class FiscalListQueryDto extends PaginationQueryDto {}
 
 export class EmitFiscalInvoiceDto {
   @IsEnum(FiscalInvoiceType) invoiceType: FiscalInvoiceType;

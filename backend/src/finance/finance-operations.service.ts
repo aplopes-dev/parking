@@ -14,12 +14,16 @@ import {
   CreatePrepaidWalletDto,
   CreateReceiptDto,
   CreateRecurringRuleDto,
+  FinanceBankLinesQueryDto,
+  FinanceBillsQueryDto,
+  FinanceListQueryDto,
+  FinancePeriodQueryDto,
   PrepaidMovementDto,
   SettleBillsDto,
   SettleByCounterpartyDto,
   UpsertDailyReconciliationDto,
 } from './dto/finance-operations.dto';
-import { FinancePeriodQueryDto } from './dto/finance-operations.dto';
+import { paginateRepository } from '../common/utils/paginate-typeorm';
 import {
   FinanceAdvanceStatus,
   FinanceBill,
@@ -82,11 +86,12 @@ export class FinanceOperationsService {
   ) {}
 
   // —— Contas a pagar / receber ——
-  listBills(tenantId: string, billType?: FinanceBillType) {
-    return this.billsRepo.find({
-      where: billType ? { tenantId, billType } : { tenantId },
+  listBills(tenantId: string, query: FinanceBillsQueryDto) {
+    return paginateRepository(this.billsRepo, query, {
+      where: query.billType ? { tenantId, billType: query.billType } : { tenantId },
       order: { dueDate: 'ASC' },
       relations: ['account', 'category', 'customer'],
+      sortBy: 'dueDate',
     });
   }
 
@@ -206,18 +211,20 @@ export class FinanceOperationsService {
     );
   }
 
-  listTransfers(tenantId: string) {
-    return this.transfersRepo.find({
+  listTransfers(tenantId: string, query: FinanceListQueryDto) {
+    return paginateRepository(this.transfersRepo, query, {
       where: { tenantId },
       order: { transferDate: 'DESC', createdAt: 'DESC' },
+      sortBy: 'transferDate',
     });
   }
 
   // —— Recorrentes ——
-  listRecurring(tenantId: string) {
-    return this.recurringRepo.find({
+  listRecurring(tenantId: string, query: FinanceListQueryDto) {
+    return paginateRepository(this.recurringRepo, query, {
       where: { tenantId },
       order: { nextDueDate: 'ASC' },
+      sortBy: 'nextDueDate',
     });
   }
 
@@ -265,11 +272,12 @@ export class FinanceOperationsService {
   }
 
   // —— Adiantamentos ——
-  listAdvances(tenantId: string) {
-    return this.advancesRepo.find({
+  listAdvances(tenantId: string, query: FinanceListQueryDto) {
+    return paginateRepository(this.advancesRepo, query, {
       where: { tenantId },
       relations: ['user'],
       order: { advanceDate: 'DESC' },
+      sortBy: 'advanceDate',
     });
   }
 
@@ -292,10 +300,11 @@ export class FinanceOperationsService {
   }
 
   // —— Folha ——
-  listPayrollRuns(tenantId: string) {
-    return this.payrollRunsRepo.find({
+  listPayrollRuns(tenantId: string, query: FinanceListQueryDto) {
+    return paginateRepository(this.payrollRunsRepo, query, {
       where: { tenantId },
       order: { periodEnd: 'DESC' },
+      sortBy: 'periodEnd',
     });
   }
 
@@ -406,11 +415,12 @@ export class FinanceOperationsService {
   }
 
   // —— Caixas ——
-  listCashSessions(tenantId: string) {
-    return this.cashSessionsRepo.find({
+  listCashSessions(tenantId: string, query: FinanceListQueryDto) {
+    return paginateRepository(this.cashSessionsRepo, query, {
       where: { tenantId },
       relations: ['account'],
       order: { openedAt: 'DESC' },
+      sortBy: 'openedAt',
     });
   }
 
@@ -582,10 +592,11 @@ export class FinanceOperationsService {
   }
 
   // —— Cartão ——
-  listCardReceivables(tenantId: string) {
-    return this.cardRepo.find({
+  listCardReceivables(tenantId: string, query: FinanceListQueryDto) {
+    return paginateRepository(this.cardRepo, query, {
       where: { tenantId },
       order: { referenceDate: 'DESC' },
+      sortBy: 'referenceDate',
     });
   }
 
@@ -628,11 +639,12 @@ export class FinanceOperationsService {
   }
 
   // —— Conciliação ——
-  listBankLines(tenantId: string, accountId?: string) {
-    return this.bankLinesRepo.find({
-      where: accountId ? { tenantId, accountId } : { tenantId },
+  listBankLines(tenantId: string, query: FinanceBankLinesQueryDto) {
+    return paginateRepository(this.bankLinesRepo, query, {
+      where: query.accountId ? { tenantId, accountId: query.accountId } : { tenantId },
       order: { lineDate: 'DESC' },
       relations: ['matchedTransaction'],
+      sortBy: 'lineDate',
     });
   }
 
@@ -650,11 +662,12 @@ export class FinanceOperationsService {
   }
 
   // —— Crédito pré-pago ——
-  listPrepaidWallets(tenantId: string) {
-    return this.prepaidRepo.find({
+  listPrepaidWallets(tenantId: string, query: FinanceListQueryDto) {
+    return paginateRepository(this.prepaidRepo, query, {
       where: { tenantId },
       relations: ['customer'],
       order: { holderName: 'ASC' },
+      sortBy: 'holderName',
     });
   }
 
@@ -679,10 +692,11 @@ export class FinanceOperationsService {
   }
 
   // —— Recibos ——
-  listReceipts(tenantId: string) {
-    return this.receiptsRepo.find({
+  listReceipts(tenantId: string, query: FinanceListQueryDto) {
+    return paginateRepository(this.receiptsRepo, query, {
       where: { tenantId },
       order: { issuedAt: 'DESC' },
+      sortBy: 'issuedAt',
     });
   }
 
