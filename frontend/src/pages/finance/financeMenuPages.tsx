@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import AlertModal from '../../components/AlertModal';
@@ -57,7 +57,13 @@ import {
 } from './financeShared';
 import CatalogPagination from '../../components/catalog/CatalogPagination';
 import CatalogSortableTh from '../../components/catalog/CatalogSortableTh';
-import type { SortDirection } from '../../types/pagination';
+import {
+  DEFAULT_PAGE_SIZE,
+  type PaginatedMeta,
+  type SortDirection,
+  type TablePaginationProps,
+} from '../../types/pagination';
+import type { FinanceListResult } from '../../services/financeApi';
 import './Finance.css';
 
 type FinanceAlert = { open: boolean; message: string; type: 'success' | 'error' };
@@ -84,40 +90,105 @@ function FinanceTable({
   headers,
   rows,
   title = 'Registros',
+  pagination,
 }: {
   headers: string[];
   rows: React.ReactNode[][];
   title?: string;
+  pagination?: TablePaginationProps;
 }) {
+  const showEmpty = !rows.length && (!pagination || pagination.total === 0);
   return (
     <section className="catalog-surface finance-list-panel">
       <h2 className="finance-list-panel__title">{title}</h2>
-      {!rows.length ? (
+      {showEmpty ? (
         <p className="catalog-empty">Nenhum registro.</p>
       ) : (
-        <div className="finance-table-wrap">
-          <table className="finance-table">
-            <thead>
-              <tr>
-                {headers.map((h) => (
-                  <th key={h}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((cells, i) => (
-                <tr key={i}>
-                  {cells.map((c, j) => (
-                    <td key={j}>{c}</td>
+        <>
+          <div className="finance-table-wrap">
+            <table className="finance-table">
+              <thead>
+                <tr>
+                  {headers.map((h) => (
+                    <th key={h}>{h}</th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {rows.map((cells, i) => (
+                  <tr key={i}>
+                    {cells.map((c, j) => (
+                      <td key={j}>{c}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {pagination && pagination.total > 0 ? (
+            <CatalogPagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              total={pagination.total}
+              limit={pagination.limit}
+              disabled={pagination.disabled}
+              onPageChange={pagination.onPageChange}
+              onLimitChange={pagination.onLimitChange}
+            />
+          ) : null}
+        </>
       )}
     </section>
   );
+}
+
+function useFinanceTableData<T>(
+  loadFn: (page: number, limit: number) => Promise<FinanceListResult<T>>,
+  resetDeps: unknown[] = [],
+) {
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(DEFAULT_PAGE_SIZE);
+  const [items, setItems] = useState<T[]>([]);
+  const [meta, setMeta] = useState<PaginatedMeta | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const reload = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await loadFn(page, limit);
+      setItems(result.items);
+      setMeta(result.meta);
+    } finally {
+      setLoading(false);
+    }
+  }, [loadFn, page, limit]);
+
+  useEffect(() => {
+    setPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, resetDeps);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  const pagination: TablePaginationProps | undefined =
+    meta && meta.total > 0
+      ? {
+          page: meta.page,
+          totalPages: meta.totalPages,
+          total: meta.total,
+          limit,
+          disabled: loading,
+          onPageChange: setPage,
+          onLimitChange: (next) => {
+            setLimit(next);
+            setPage(1);
+          },
+        }
+      : undefined;
+
+  return { items, loading, reload, pagination, meta };
 }
 
 // —— Contas a pagar e receber ——
@@ -125,8 +196,11 @@ export const FinanceBillsPage: React.FC = () => {
   const can = useFinanceAccess();
   const { accounts, categories, reload: reloadMaster } = useFinanceMasterData();
   const [billType, setBillType] = useState<FinanceBillType>('payable');
-  const [items, setItems] = useState<FinanceBill[]>([]);
-  const [loading, setLoading] = useState(true);
+  const loadBills = useCallback(
+    (page: number, limit: number) => fetchBills({ billType, page, limit }),
+    [billType],
+  );
+  const { items, loading, reload, pagination } = useFinanceTableData<FinanceBill>(loadBills, [billType, can]);
   const [alert, setAlert] = useState<FinanceAlert>(closedAlert);
   const [form, setForm] = useState({
     description: '',
@@ -136,22 +210,6 @@ export const FinanceBillsPage: React.FC = () => {
     accountId: '',
     categoryId: '',
   });
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      setItems(await fetchBills(billType));
-    } catch (err) {
-      setAlert(errorAlert(err));
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [billType]);
-
-  useEffect(() => {
-    if (can) load();
-  }, [can, load]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,7 +224,7 @@ export const FinanceBillsPage: React.FC = () => {
         categoryId: form.categoryId || undefined,
       });
       setForm({ description: '', counterpartyName: '', amount: '', dueDate: todayIso(), accountId: '', categoryId: '' });
-      await load();
+      await reload();
       await reloadMaster();
       setAlert(successAlert('Título cadastrado.'));
     } catch (err) {
@@ -274,6 +332,7 @@ export const FinanceBillsPage: React.FC = () => {
             b.dueDate?.slice(0, 10),
             b.status,
           ])}
+          pagination={pagination}
         />
       )}
       <AlertModal isOpen={alert.open} message={alert.message} type={alert.type} onClose={() => setAlert(closedAlert)} />
@@ -325,17 +384,10 @@ export const FinanceSettlePage: React.FC = () => {
 export const FinanceTransfersPage: React.FC = () => {
   const can = useFinanceAccess();
   const { accounts } = useFinanceMasterData();
-  const [rows, setRows] = useState<any[]>([]);
+  const loadTransfers = useCallback((page: number, limit: number) => fetchTransfers({ page, limit }), []);
+  const { items: rows, reload: load, pagination } = useFinanceTableData(loadTransfers, [can]);
   const [form, setForm] = useState({ fromAccountId: '', toAccountId: '', amount: '', transferDate: todayIso(), description: '' });
   const [alert, setAlert] = useState<FinanceAlert>(closedAlert);
-
-  const load = useCallback(async () => {
-    setRows(await fetchTransfers());
-  }, []);
-
-  useEffect(() => {
-    if (can) load();
-  }, [can, load]);
 
   if (!can) return <AccessDenied />;
 
@@ -362,7 +414,11 @@ export const FinanceTransfersPage: React.FC = () => {
           <button type="submit" className="catalog-form-footer-btn catalog-form-footer-btn--primary">Transferir</button>
         </form>
       </FinanceSection>
-      <FinanceTable headers={['Data', 'Valor', 'Descrição']} rows={rows.map((r) => [r.transferDate?.slice(0, 10), formatMoney(r.amount), r.description || '—'])} />
+      <FinanceTable
+        headers={['Data', 'Valor', 'Descrição']}
+        rows={rows.map((r) => [r.transferDate?.slice(0, 10), formatMoney(r.amount), r.description || '—'])}
+        pagination={pagination}
+      />
       <AlertModal isOpen={alert.open} message={alert.message} type={alert.type} onClose={() => setAlert(closedAlert)} />
     </CatalogPageLayout>
   );
@@ -424,15 +480,10 @@ export const FinanceCalendarPage: React.FC = () => {
 export const FinanceRecurringPage: React.FC = () => {
   const can = useFinanceAccess();
   const { accounts, categories } = useFinanceMasterData();
-  const [rows, setRows] = useState<any[]>([]);
+  const loadRecurring = useCallback((page: number, limit: number) => fetchRecurring({ page, limit }), []);
+  const { items: rows, reload: load, pagination } = useFinanceTableData(loadRecurring, [can]);
   const [form, setForm] = useState({ description: '', type: 'expense', amount: '', frequency: 'monthly', nextDueDate: todayIso(), accountId: '', categoryId: '' });
   const [alert, setAlert] = useState<FinanceAlert>(closedAlert);
-
-  const load = useCallback(async () => setRows(await fetchRecurring()), []);
-
-  useEffect(() => {
-    if (can) load();
-  }, [can, load]);
 
   if (!can) return <AccessDenied />;
 
@@ -480,7 +531,11 @@ export const FinanceRecurringPage: React.FC = () => {
           </FinanceFormActions>
         </form>
       </FinanceSection>
-      <FinanceTable headers={['Descrição', 'Tipo', 'Valor', 'Próximo']} rows={rows.map((r) => [r.description, r.type, formatMoney(r.amount), r.nextDueDate?.slice(0, 10)])} />
+      <FinanceTable
+        headers={['Descrição', 'Tipo', 'Valor', 'Próximo']}
+        rows={rows.map((r) => [r.description, r.type, formatMoney(r.amount), r.nextDueDate?.slice(0, 10)])}
+        pagination={pagination}
+      />
       <AlertModal isOpen={alert.open} message={alert.message} type={alert.type} onClose={() => setAlert(closedAlert)} />
     </CatalogPageLayout>
   );
@@ -490,14 +545,14 @@ export const FinanceRecurringPage: React.FC = () => {
 export const FinanceAdvancesPage: React.FC = () => {
   const can = useFinanceAccess();
   const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
-  const [rows, setRows] = useState<any[]>([]);
+  const loadAdvances = useCallback((page: number, limit: number) => fetchAdvances({ page, limit }), []);
+  const { items: rows, reload, pagination } = useFinanceTableData(loadAdvances, [can]);
   const [form, setForm] = useState({ userId: '', amount: '', advanceDate: todayIso(), notes: '' });
   const [alert, setAlert] = useState<FinanceAlert>(closedAlert);
 
   useEffect(() => {
     if (!can) return;
     fetchPayrollUsers().then((u) => setUsers(u.map((x) => ({ id: x.id, name: x.name }))));
-    fetchAdvances().then(setRows);
   }, [can]);
 
   if (!can) return <AccessDenied />;
@@ -509,7 +564,7 @@ export const FinanceAdvancesPage: React.FC = () => {
           e.preventDefault();
           try {
             await createAdvance({ ...form, amount: parseFloat(form.amount) });
-            setRows(await fetchAdvances());
+            await reload();
             setAlert(successAlert('Adiantamento registrado.'));
           } catch (err) {
             setAlert(errorAlert(err));
@@ -523,7 +578,11 @@ export const FinanceAdvancesPage: React.FC = () => {
           <button type="submit" className="catalog-form-footer-btn catalog-form-footer-btn--primary">Registrar</button>
         </form>
       </FinanceSection>
-      <FinanceTable headers={['Colaborador', 'Valor', 'Data', 'Status']} rows={rows.map((r) => [r.user?.name ?? r.userId, formatMoney(r.amount), r.advanceDate?.slice(0, 10), r.status])} />
+      <FinanceTable
+        headers={['Colaborador', 'Valor', 'Data', 'Status']}
+        rows={rows.map((r) => [r.user?.name ?? r.userId, formatMoney(r.amount), r.advanceDate?.slice(0, 10), r.status])}
+        pagination={pagination}
+      />
       <AlertModal isOpen={alert.open} message={alert.message} type={alert.type} onClose={() => setAlert(closedAlert)} />
     </CatalogPageLayout>
   );
@@ -567,52 +626,17 @@ export const FinanceStatementPage: React.FC = () => {
 
 // —— Folha ——
 const PAYROLL_STATUS_LABEL: Record<string, string> = { draft: 'Rascunho', closed: 'Fechada' };
-const PAYROLL_PAGE_SIZE = 10;
-
 export const FinancePayrollPage: React.FC = () => {
   const can = useFinanceAccess();
-  const [allRuns, setAllRuns] = useState<any[]>([]);
+  const loadPayroll = useCallback((page: number, limit: number) => fetchPayrollRuns({ page, limit }), []);
+  const { items: paged, reload, pagination, meta } = useFinanceTableData(loadPayroll, [can]);
   const [newRun, setNewRun] = useState({ reference: '', periodStart: firstDayOfMonth(), periodEnd: todayIso() });
   const [alert, setAlert] = useState<FinanceAlert>(closedAlert);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(PAYROLL_PAGE_SIZE);
   const [sortBy, setSortBy] = useState('periodEnd');
   const [sortOrder, setSortOrder] = useState<SortDirection>('DESC');
-
-  const reload = useCallback(async () => {
-    setAllRuns(await fetchPayrollRuns());
-  }, []);
-
-  useEffect(() => {
-    if (can) reload();
-  }, [can, reload]);
-
-  const filtered = useMemo(() => {
-    let list = [...allRuns];
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (r) =>
-          r.reference?.toLowerCase().includes(q) ||
-          (PAYROLL_STATUS_LABEL[r.status] ?? r.status).toLowerCase().includes(q),
-      );
-    }
-    list.sort((a, b) => {
-      const aVal = a[sortBy] ?? '';
-      const bVal = b[sortBy] ?? '';
-      const cmp = String(aVal).localeCompare(String(bVal));
-      return sortOrder === 'ASC' ? cmp : -cmp;
-    });
-    return list;
-  }, [allRuns, search, sortBy, sortOrder]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / limit));
-  const safePage = Math.min(page, totalPages);
-  const paged = filtered.slice((safePage - 1) * limit, safePage * limit);
 
   const handleSort = (col: string) => {
     if (sortBy === col) {
@@ -621,7 +645,6 @@ export const FinancePayrollPage: React.FC = () => {
       setSortBy(col);
       setSortOrder('ASC');
     }
-    setPage(1);
   };
 
   const handleDeleteConfirm = async () => {
@@ -681,33 +704,7 @@ export const FinancePayrollPage: React.FC = () => {
             <span className="catalog-section-kicker">Histórico</span>
             <h2>Folhas cadastradas</h2>
           </div>
-          <p>{filtered.length} registro(s)</p>
-        </div>
-
-        <div className="catalog-toolbar catalog-filter-toolbar finance-filters">
-          <div className="form-group catalog-search catalog-filter-toolbar__search catalog-filter-toolbar__search--wide">
-            <label htmlFor="payroll-search">Buscar</label>
-            <input
-              id="payroll-search"
-              className="premium-text-input"
-              placeholder="Buscar por referência…"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-            />
-          </div>
-          <button
-            type="button"
-            className="catalog-form-footer-btn catalog-form-footer-btn--ghost catalog-filter-toolbar__action"
-            onClick={() => {
-              setSearch('');
-              setPage(1);
-            }}
-          >
-            Limpar
-          </button>
+          <p>{meta?.total ?? paged.length} registro(s)</p>
         </div>
 
         {paged.length === 0 ? (
@@ -757,14 +754,17 @@ export const FinancePayrollPage: React.FC = () => {
           </div>
         )}
 
-        <CatalogPagination
-          page={safePage}
-          totalPages={totalPages}
-          total={filtered.length}
-          limit={limit}
-          onPageChange={setPage}
-          onLimitChange={(v) => { setLimit(v); setPage(1); }}
-        />
+        {pagination ? (
+          <CatalogPagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            total={pagination.total}
+            limit={pagination.limit}
+            disabled={pagination.disabled}
+            onPageChange={pagination.onPageChange}
+            onLimitChange={pagination.onLimitChange}
+          />
+        ) : null}
       </section>
 
       <ConfirmModal
@@ -785,13 +785,10 @@ export const FinancePayrollPage: React.FC = () => {
 // —— Recibos ——
 export const FinanceReceiptsPage: React.FC = () => {
   const can = useFinanceAccess();
-  const [rows, setRows] = useState<any[]>([]);
+  const loadReceipts = useCallback((page: number, limit: number) => fetchReceipts({ page, limit }), []);
+  const { items: rows, reload, pagination } = useFinanceTableData(loadReceipts, [can]);
   const [form, setForm] = useState({ issuedTo: '', amount: '', issuedAt: todayIso(), description: '' });
   const [alert, setAlert] = useState<FinanceAlert>(closedAlert);
-
-  useEffect(() => {
-    if (can) fetchReceipts().then(setRows);
-  }, [can]);
 
   if (!can) return <AccessDenied />;
 
@@ -802,7 +799,7 @@ export const FinanceReceiptsPage: React.FC = () => {
           e.preventDefault();
           try {
             await createReceipt({ ...form, amount: parseFloat(form.amount) });
-            setRows(await fetchReceipts());
+            await reload();
             setAlert(successAlert('Recibo criado.'));
           } catch (err) {
             setAlert(errorAlert(err));
@@ -817,7 +814,11 @@ export const FinanceReceiptsPage: React.FC = () => {
           <button type="submit" className="catalog-form-footer-btn catalog-form-footer-btn--primary">Emitir</button>
         </form>
       </FinanceSection>
-      <FinanceTable headers={['Nº', 'Para', 'Valor', 'Data']} rows={rows.map((r) => [r.receiptNumber, r.issuedTo, formatMoney(r.amount), r.issuedAt?.slice(0, 10)])} />
+      <FinanceTable
+        headers={['Nº', 'Para', 'Valor', 'Data']}
+        rows={rows.map((r) => [r.receiptNumber, r.issuedTo, formatMoney(r.amount), r.issuedAt?.slice(0, 10)])}
+        pagination={pagination}
+      />
       <AlertModal isOpen={alert.open} message={alert.message} type={alert.type} onClose={() => setAlert(closedAlert)} />
     </CatalogPageLayout>
   );
@@ -915,17 +916,12 @@ export const FinanceDailyPage: React.FC = () => {
 export const FinanceCashPage: React.FC = () => {
   const can = useFinanceAccess();
   const { accounts } = useFinanceMasterData();
-  const [sessions, setSessions] = useState<any[]>([]);
+  const loadSessions = useCallback((page: number, limit: number) => fetchCashSessions({ page, limit }), []);
+  const { items: sessions, reload: load, pagination } = useFinanceTableData(loadSessions, [can]);
   const [openForm, setOpenForm] = useState({ accountId: '', openingBalance: '0', notes: '' });
   const [closeId, setCloseId] = useState('');
   const [closeForm, setCloseForm] = useState({ countedBalance: '', notes: '' });
   const [alert, setAlert] = useState<FinanceAlert>(closedAlert);
-
-  const load = useCallback(async () => setSessions(await fetchCashSessions()), []);
-
-  useEffect(() => {
-    if (can) load();
-  }, [can, load]);
 
   if (!can) return <AccessDenied />;
 
@@ -972,7 +968,11 @@ export const FinanceCashPage: React.FC = () => {
           </button>
         </form>
       </FinanceSection>
-      <FinanceTable headers={['Conta', 'Abertura', 'Status', 'Saldo abertura']} rows={sessions.map((s) => [s.account?.name, s.openedAt?.slice(0, 16), s.status, formatMoney(s.openingBalance)])} />
+      <FinanceTable
+        headers={['Conta', 'Abertura', 'Status', 'Saldo abertura']}
+        rows={sessions.map((s) => [s.account?.name, s.openedAt?.slice(0, 16), s.status, formatMoney(s.openingBalance)])}
+        pagination={pagination}
+      />
       <FinanceSection title="Fechar caixa">
         <div className="catalog-toolbar catalog-filter-toolbar">
           <PremiumSelect
@@ -1078,17 +1078,12 @@ export const FinanceDrcPage: React.FC = () => {
 export const FinanceCardPage: React.FC = () => {
   const can = useFinanceAccess();
   const { accounts } = useFinanceMasterData();
-  const [rows, setRows] = useState<any[]>([]);
+  const loadCards = useCallback((page: number, limit: number) => fetchCardReceivables({ page, limit }), []);
+  const { items: rows, reload: load, pagination } = useFinanceTableData(loadCards, [can]);
   const [form, setForm] = useState({ acquirer: '', grossAmount: '', feeAmount: '0', expectedDepositDate: todayIso(), referenceDate: todayIso() });
   const [depositId, setDepositId] = useState('');
   const [depositAccount, setDepositAccount] = useState('');
   const [alert, setAlert] = useState<FinanceAlert>(closedAlert);
-
-  const load = useCallback(async () => setRows(await fetchCardReceivables()), []);
-
-  useEffect(() => {
-    if (can) load();
-  }, [can, load]);
 
   if (!can) return <AccessDenied />;
 
@@ -1111,7 +1106,11 @@ export const FinanceCardPage: React.FC = () => {
         </div>
         <button type="submit" className="catalog-form-footer-btn catalog-form-footer-btn--primary">Registrar</button>
       </form>
-      <FinanceTable headers={['Adquirente', 'Líquido', 'Status', 'Previsão']} rows={rows.map((r) => [r.acquirer, formatMoney(r.netAmount), r.status, r.expectedDepositDate?.slice(0, 10)])} />
+      <FinanceTable
+        headers={['Adquirente', 'Líquido', 'Status', 'Previsão']}
+        rows={rows.map((r) => [r.acquirer, formatMoney(r.netAmount), r.status, r.expectedDepositDate?.slice(0, 10)])}
+        pagination={pagination}
+      />
       <section className="catalog-surface">
         <div className="catalog-toolbar catalog-filter-toolbar finance-filters">
         <PremiumSelect label="Recebível" value={depositId} options={rows.filter((r) => r.status === 'pending').map((r) => ({ value: r.id, label: r.acquirerName }))} wrapperClassName="form-group catalog-filter-toolbar__field" onChange={setDepositId} />
@@ -1137,15 +1136,44 @@ export const FinanceReconciliationPage: React.FC = () => {
   const can = useFinanceAccess();
   const { accounts, data } = useFinanceMasterData();
   const [accountId, setAccountId] = useState('');
+  const [bankPage, setBankPage] = useState(1);
+  const [bankLimit, setBankLimit] = useState(DEFAULT_PAGE_SIZE);
   const [lines, setLines] = useState<any[]>([]);
+  const [linesMeta, setLinesMeta] = useState<PaginatedMeta | null>(null);
   const [form, setForm] = useState({ lineDate: todayIso(), description: '', amount: '' });
   const [matchLine, setMatchLine] = useState('');
   const [matchTx, setMatchTx] = useState('');
   const [alert, setAlert] = useState<FinanceAlert>(closedAlert);
 
+  const loadLines = useCallback(async () => {
+    if (!accountId) return;
+    const result = await fetchBankLines({ accountId, page: bankPage, limit: bankLimit });
+    setLines(result.items);
+    setLinesMeta(result.meta);
+  }, [accountId, bankPage, bankLimit]);
+
   useEffect(() => {
-    if (can && accountId) fetchBankLines(accountId).then(setLines);
-  }, [can, accountId]);
+    setBankPage(1);
+  }, [accountId]);
+
+  useEffect(() => {
+    if (can && accountId) void loadLines();
+  }, [can, accountId, loadLines]);
+
+  const bankPagination: TablePaginationProps | undefined =
+    linesMeta && linesMeta.total > 0
+      ? {
+          page: linesMeta.page,
+          totalPages: linesMeta.totalPages,
+          total: linesMeta.total,
+          limit: bankLimit,
+          onPageChange: setBankPage,
+          onLimitChange: (next) => {
+            setBankLimit(next);
+            setBankPage(1);
+          },
+        }
+      : undefined;
 
   if (!can) return <AccessDenied />;
 
@@ -1173,7 +1201,7 @@ export const FinanceReconciliationPage: React.FC = () => {
                 e.preventDefault();
                 try {
                   await createBankLine({ accountId, ...form, amount: parseFloat(form.amount) });
-                  setLines(await fetchBankLines(accountId));
+                  await loadLines();
                   setForm({ lineDate: todayIso(), description: '', amount: '' });
                   setAlert(successAlert('Linha importada.'));
                 } catch (err) {
@@ -1227,6 +1255,7 @@ export const FinanceReconciliationPage: React.FC = () => {
               formatMoney(l.amount),
               l.matchedTransactionId ? 'Sim' : 'Não',
             ])}
+            pagination={bankPagination}
           />
 
           <FinanceSection title="Vincular a lançamento" kicker="Conciliação">
@@ -1262,7 +1291,7 @@ export const FinanceReconciliationPage: React.FC = () => {
                     }
                     try {
                       await matchBankLine(matchLine, matchTx);
-                      setLines(await fetchBankLines(accountId));
+                      await loadLines();
                       setMatchLine('');
                       setMatchTx('');
                       setAlert(successAlert('Conciliado.'));
@@ -1287,17 +1316,12 @@ export const FinanceReconciliationPage: React.FC = () => {
 // —— Pré-pago ——
 export const FinancePrepaidPage: React.FC = () => {
   const can = useFinanceAccess();
-  const [wallets, setWallets] = useState<any[]>([]);
+  const loadWallets = useCallback((page: number, limit: number) => fetchPrepaidWallets({ page, limit }), []);
+  const { items: wallets, reload: load, pagination } = useFinanceTableData(loadWallets, [can]);
   const [form, setForm] = useState({ holderName: '' });
   const [movWallet, setMovWallet] = useState('');
   const [mov, setMov] = useState({ movementType: 'credit', amount: '', description: '' });
   const [alert, setAlert] = useState<FinanceAlert>(closedAlert);
-
-  const load = useCallback(async () => setWallets(await fetchPrepaidWallets()), []);
-
-  useEffect(() => {
-    if (can) load();
-  }, [can, load]);
 
   if (!can) return <AccessDenied />;
 
@@ -1338,6 +1362,7 @@ export const FinancePrepaidPage: React.FC = () => {
         title="Carteiras cadastradas"
         headers={['Titular', 'Saldo']}
         rows={wallets.map((w) => [w.holderName, formatMoney(w.balance)])}
+        pagination={pagination}
       />
 
       <FinanceSection title="Registrar movimento" kicker="Operação">

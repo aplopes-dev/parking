@@ -9,6 +9,22 @@ import type {
   FinanceTransactionType,
   TenantUser,
 } from '../types/finance';
+import { DEFAULT_PAGE_SIZE, type PaginatedMeta, type PaginatedResponse } from '../types/pagination';
+import { normalizePaginatedResponse } from '../utils/paginatedResponse';
+
+export type FinanceListParams = { page?: number; limit?: number };
+export type FinanceListResult<T> = { items: T[]; meta: PaginatedMeta };
+
+async function fetchFinanceList<T>(
+  url: string,
+  params?: Record<string, unknown>,
+): Promise<FinanceListResult<T>> {
+  const page = Number(params?.page ?? 1);
+  const limit = Number(params?.limit ?? DEFAULT_PAGE_SIZE);
+  const { data } = await api.get<PaginatedResponse<T> | T[]>(url, { params });
+  const normalized = normalizePaginatedResponse(data, { page, limit });
+  return { items: normalized.items, meta: normalized.meta };
+}
 
 export async function fetchFinanceOverview(params?: FinancePeriod & {
   type?: FinanceTransactionType;
@@ -94,11 +110,10 @@ export async function updateFinanceTransaction(id: string, payload: FormData | R
   return data;
 }
 
-export async function fetchBills(billType?: FinanceBillType): Promise<FinanceBill[]> {
-  const { data } = await api.get<FinanceBill[]>('/finance/bills', {
-    params: billType ? { billType } : undefined,
-  });
-  return data;
+export async function fetchBills(
+  params?: FinanceListParams & { billType?: FinanceBillType },
+): Promise<FinanceListResult<FinanceBill>> {
+  return fetchFinanceList<FinanceBill>('/finance/bills', params);
 }
 
 export async function createBill(body: Record<string, unknown>) {
@@ -116,9 +131,8 @@ export async function settleByCounterparty(body: Record<string, unknown>) {
   return data;
 }
 
-export async function fetchTransfers() {
-  const { data } = await api.get('/finance/transfers');
-  return data;
+export async function fetchTransfers(params?: FinanceListParams) {
+  return fetchFinanceList<any>('/finance/transfers', params);
 }
 
 export async function createTransfer(body: Record<string, unknown>) {
@@ -126,9 +140,8 @@ export async function createTransfer(body: Record<string, unknown>) {
   return data;
 }
 
-export async function fetchRecurring() {
-  const { data } = await api.get('/finance/recurring');
-  return data;
+export async function fetchRecurring(params?: FinanceListParams) {
+  return fetchFinanceList<any>('/finance/recurring', params);
 }
 
 export async function createRecurring(body: Record<string, unknown>) {
@@ -141,9 +154,8 @@ export async function runRecurringDue() {
   return data;
 }
 
-export async function fetchAdvances() {
-  const { data } = await api.get('/finance/advances');
-  return data;
+export async function fetchAdvances(params?: FinanceListParams) {
+  return fetchFinanceList<any>('/finance/advances', params);
 }
 
 export async function createAdvance(body: Record<string, unknown>) {
@@ -151,9 +163,8 @@ export async function createAdvance(body: Record<string, unknown>) {
   return data;
 }
 
-export async function fetchPayrollRuns() {
-  const { data } = await api.get('/finance/payroll');
-  return data;
+export async function fetchPayrollRuns(params?: FinanceListParams) {
+  return fetchFinanceList<any>('/finance/payroll', params);
 }
 
 export async function fetchPayrollUsers(): Promise<TenantUser[]> {
@@ -186,9 +197,8 @@ export async function deletePayrollRun(id: string) {
   return data;
 }
 
-export async function fetchCashSessions() {
-  const { data } = await api.get('/finance/cash-sessions');
-  return data;
+export async function fetchCashSessions(params?: FinanceListParams) {
+  return fetchFinanceList<any>('/finance/cash-sessions', params);
 }
 
 export async function openCashSession(body: Record<string, unknown>) {
@@ -211,9 +221,8 @@ export async function upsertDailyReconciliation(body: Record<string, unknown>) {
   return data;
 }
 
-export async function fetchCardReceivables() {
-  const { data } = await api.get('/finance/card-receivables');
-  return data;
+export async function fetchCardReceivables(params?: FinanceListParams) {
+  return fetchFinanceList<any>('/finance/card-receivables', params);
 }
 
 export async function createCardReceivable(body: Record<string, unknown>) {
@@ -226,9 +235,8 @@ export async function depositCard(id: string, accountId: string) {
   return data;
 }
 
-export async function fetchBankLines(accountId?: string) {
-  const { data } = await api.get('/finance/bank-lines', { params: accountId ? { accountId } : undefined });
-  return data;
+export async function fetchBankLines(params?: FinanceListParams & { accountId?: string }) {
+  return fetchFinanceList<any>('/finance/bank-lines', params);
 }
 
 export async function createBankLine(body: Record<string, unknown>) {
@@ -241,9 +249,8 @@ export async function matchBankLine(lineId: string, transactionId: string) {
   return data;
 }
 
-export async function fetchPrepaidWallets() {
-  const { data } = await api.get('/finance/prepaid-wallets');
-  return data;
+export async function fetchPrepaidWallets(params?: FinanceListParams) {
+  return fetchFinanceList<any>('/finance/prepaid-wallets', params);
 }
 
 export async function createPrepaidWallet(body: Record<string, unknown>) {
@@ -256,9 +263,8 @@ export async function prepaidMovement(walletId: string, body: Record<string, unk
   return data;
 }
 
-export async function fetchReceipts() {
-  const { data } = await api.get('/finance/receipts');
-  return data;
+export async function fetchReceipts(params?: FinanceListParams) {
+  return fetchFinanceList<any>('/finance/receipts', params);
 }
 
 export async function createReceipt(body: Record<string, unknown>) {
