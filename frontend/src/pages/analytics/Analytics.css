@@ -47,7 +47,7 @@
 
 .analytics-bar-fill {
   height: 100%;
-  background: var(--brand-primary, #ea1d2c);
+  background: var(--brand-primary, #2c4778);
   border-radius: 999px;
   min-width: 2px;
 }

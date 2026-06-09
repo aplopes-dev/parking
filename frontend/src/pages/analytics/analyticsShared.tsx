@@ -1,6 +1,8 @@
 import React, { useContext } from 'react';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import CatalogPagination from '../../components/catalog/CatalogPagination';
 import { AuthContext } from '../../contexts/AuthContext';
+import type { TablePaginationProps } from '../../types/pagination';
 import '../catalog/Catalog.css';
 import '../finance/Finance.css';
 import './Analytics.css';
@@ -281,33 +283,49 @@ export function ReportTable({
   headers,
   rows,
   footer,
+  pagination,
 }: {
   title: string;
   headers: string[];
   rows: React.ReactNode[][];
   footer?: React.ReactNode[];
+  pagination?: TablePaginationProps;
 }) {
+  const showEmpty = !rows.length && (!pagination || pagination.total === 0);
   return (
     <section className="report-section">
       <h3 className="report-section__title">{title}</h3>
-      {!rows.length ? (
+      {showEmpty ? (
         <p className="report-empty">Nenhum dado no período.</p>
       ) : (
-        <table className="report-table">
-          <thead>
-            <tr>{headers.map((h) => <th key={h}>{h}</th>)}</tr>
-          </thead>
-          <tbody>
-            {rows.map((cells, i) => (
-              <tr key={i}>{cells.map((c, j) => <td key={j}>{c}</td>)}</tr>
-            ))}
-          </tbody>
-          {footer && (
-            <tfoot>
-              <tr>{footer.map((c, j) => <td key={j}>{c}</td>)}</tr>
-            </tfoot>
-          )}
-        </table>
+        <>
+          <table className="report-table">
+            <thead>
+              <tr>{headers.map((h) => <th key={h}>{h}</th>)}</tr>
+            </thead>
+            <tbody>
+              {rows.map((cells, i) => (
+                <tr key={i}>{cells.map((c, j) => <td key={j}>{c}</td>)}</tr>
+              ))}
+            </tbody>
+            {footer && (
+              <tfoot>
+                <tr>{footer.map((c, j) => <td key={j}>{c}</td>)}</tr>
+              </tfoot>
+            )}
+          </table>
+          {pagination && pagination.total > 0 ? (
+            <CatalogPagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              total={pagination.total}
+              limit={pagination.limit}
+              disabled={pagination.disabled}
+              onPageChange={pagination.onPageChange}
+              onLimitChange={pagination.onLimitChange}
+            />
+          ) : null}
+        </>
       )}
     </section>
   );
