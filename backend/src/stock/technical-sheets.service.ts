@@ -4,8 +4,10 @@ import { Repository } from 'typeorm';
 import { TechnicalSheet } from './entities/technical-sheet.entity';
 import { TechnicalSheetItem } from './entities/technical-sheet-item.entity';
 import { Product } from '../products/entities/product.entity';
+import { paginateRepository } from '../common/utils/paginate-typeorm';
 import {
   CreateTechnicalSheetDto,
+  StockListQueryDto,
   TechnicalSheetItemDto,
   UpdateTechnicalSheetDto,
 } from './dto/stock.dto';
@@ -21,11 +23,12 @@ export class TechnicalSheetsService {
     private readonly productRepository: Repository<Product>,
   ) {}
 
-  findAll(tenantId: string): Promise<TechnicalSheet[]> {
-    return this.repository.find({
+  findAll(tenantId: string, query: StockListQueryDto) {
+    return paginateRepository(this.repository, query, {
       where: { tenantId },
       relations: ['product', 'items', 'items.ingredientProduct'],
       order: { sortOrder: 'ASC', name: 'ASC' },
+      sortBy: 'sortOrder',
     });
   }
 

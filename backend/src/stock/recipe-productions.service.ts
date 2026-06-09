@@ -3,7 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { RecipeProduction } from './entities/recipe-production.entity';
 import { TechnicalSheet } from './entities/technical-sheet.entity';
-import { CreateRecipeProductionDto } from './dto/stock.dto';
+import { paginateRepository } from '../common/utils/paginate-typeorm';
+import { CreateRecipeProductionDto, StockListQueryDto } from './dto/stock.dto';
 import { StockLedgerService } from './stock-ledger.service';
 import { StockMovementType } from './entities/stock-movement.entity';
 
@@ -18,12 +19,12 @@ export class RecipeProductionsService {
     private readonly ledger: StockLedgerService,
   ) {}
 
-  findAll(tenantId: string, limit = 50): Promise<RecipeProduction[]> {
-    return this.repository.find({
+  findAll(tenantId: string, query: StockListQueryDto) {
+    return paginateRepository(this.repository, query, {
       where: { tenantId },
       relations: ['sheet', 'sheet.product', 'location', 'createdByUser'],
       order: { createdAt: 'DESC' },
-      take: limit,
+      sortBy: 'createdAt',
     });
   }
 

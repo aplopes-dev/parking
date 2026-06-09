@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { buildPaginatedMeta, resolvePagination } from '../common/dto/pagination-query.dto';
+import { StockBalanceListQueryDto } from './dto/stock.dto';
 import { StockBalance } from './entities/stock-balance.entity';
 import { StockMinimum } from './entities/stock-minimum.entity';
 
@@ -18,10 +20,9 @@ export class StockBalancesService {
     private readonly minimumRepository: Repository<StockMinimum>,
   ) {}
 
-  async findAll(
-    tenantId: string,
-    filters?: { locationId?: string; productId?: string; belowMinimumOnly?: boolean },
-  ): Promise<BalanceWithAlert[]> {
+  async findAll(tenantId: string, query: StockBalanceListQueryDto) {
+    const { page, limit, skip, sortOrder } = resolvePagination(query);
+    const belowMinimumOnly = query.belowMinimumOnly === 'true';
     const qb = this.balanceRepository
       .createQueryBuilder('balance')
       .leftJoinAndSelect('balance.product', 'product')
@@ -30,14 +31,15 @@ export class StockBalancesService {
       .where('balance.tenantId = :tenantId', { tenantId })
       .orderBy('product.name', 'ASC');
 
-    if (filters?.locationId) {
-      qb.andWhere('balance.locationId = :locationId', { locationId: filters.locationId });
+    if (query.locationId) {
+      qb.andWhere('balance.locationId = :locationId', { locationId: query.locationId });
     }
-    if (filters?.productId) {
-      qb.andWhere('balance.productId = :productId', { productId: filters.productId });
+    if (query.productId) {
+      qb.andWhere('balance.productId = :productId', { productId: query.productId });
     }
 
-    const balances = await qb.getMany();
+    const total = await qb.getCount();
+    const balances = await qb.skip(skip).take(limit).getMany();
     const minimums = await this.minimumRepository.find({
       where: { tenantId, active: true },
       relations: ['product', 'location'],
@@ -53,10 +55,8 @@ export class StockBalancesService {
       });
     });
 
-    if (filters?.belowMinimumOnly) {
-      return enriched.filter((b) => b.belowMinimum);
-    }
-    return enriched;
+    const data = belowMinimumOnly ? enriched.filter((b) => b.belowMinimum) : enriched;
+    return buildPaginatedMeta(data, total, page, limit, 'product.name', sortOrder);
   }
 
   private resolveMinimum(

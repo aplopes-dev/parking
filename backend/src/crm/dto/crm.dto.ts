@@ -148,6 +148,26 @@ export class CreateCrmCampaignDto {
 
 export class UpdateCrmCampaignDto extends PartialType(CreateCrmCampaignDto) {}
 
+export class CrmCampaignListQueryDto extends PaginationQueryDto {
+  @IsOptional()
+  @IsEnum(CrmCampaignStatus)
+  status?: CrmCampaignStatus;
+}
+
+export class CrmLoyaltyListQueryDto extends PaginationQueryDto {}
+
+export class CrmLoyaltyAccountsQueryDto extends PaginationQueryDto {
+  @IsOptional()
+  @IsUUID()
+  programId?: string;
+}
+
+export class CrmLoyaltyTransactionsQueryDto extends PaginationQueryDto {
+  @IsOptional()
+  @IsUUID()
+  accountId?: string;
+}
+
 export class CreateLoyaltyProgramDto {
   @IsString()
   @MinLength(2)

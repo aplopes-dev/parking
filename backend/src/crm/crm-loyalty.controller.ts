@@ -9,6 +9,9 @@ import { CrmLoyaltyService } from './crm-loyalty.service';
 import {
   AdjustLoyaltyPointsDto,
   CreateLoyaltyProgramDto,
+  CrmLoyaltyAccountsQueryDto,
+  CrmLoyaltyListQueryDto,
+  CrmLoyaltyTransactionsQueryDto,
   EarnLoyaltyFromPurchaseDto,
   UpdateLoyaltyProgramDto,
 } from './dto/crm.dto';
@@ -21,8 +24,8 @@ export class CrmLoyaltyController {
   constructor(private readonly service: CrmLoyaltyService) {}
 
   @Get('programs')
-  findPrograms(@CurrentUser() user: User) {
-    return this.service.findPrograms(user.tenantId);
+  findPrograms(@CurrentUser() user: User, @Query() query: CrmLoyaltyListQueryDto) {
+    return this.service.findPrograms(user.tenantId, query);
   }
 
   @Post('programs')
@@ -44,21 +47,13 @@ export class CrmLoyaltyController {
   }
 
   @Get('accounts')
-  findAccounts(@CurrentUser() user: User, @Query('programId') programId?: string) {
-    return this.service.findAccounts(user.tenantId, programId);
+  findAccounts(@CurrentUser() user: User, @Query() query: CrmLoyaltyAccountsQueryDto) {
+    return this.service.findAccounts(user.tenantId, query);
   }
 
   @Get('transactions')
-  findTransactions(
-    @CurrentUser() user: User,
-    @Query('accountId') accountId?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.service.findTransactions(
-      user.tenantId,
-      accountId,
-      limit ? Number(limit) : 50,
-    );
+  findTransactions(@CurrentUser() user: User, @Query() query: CrmLoyaltyTransactionsQueryDto) {
+    return this.service.findTransactions(user.tenantId, query);
   }
 
   @Post('adjust')

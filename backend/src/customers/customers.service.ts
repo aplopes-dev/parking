@@ -71,7 +71,7 @@ export class CustomersService {
     const total = await qb.getCount();
 
     if (sortBy === 'sortOrder') {
-      qb.orderBy('customer.sort_order', sortOrder);
+      qb.orderBy('customer.sortOrder', sortOrder);
       qb.addOrderBy('customer.name', 'ASC');
     } else {
       qb.orderBy(`customer.${sortBy}`, sortOrder);

@@ -11,6 +11,7 @@ import {
   DeliveryAssignmentStatus,
   DeliveryCourierStatus,
 } from '../entities/delivery.entities';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 export class CreateCourierDto {
   @IsString() name: string;
@@ -55,3 +56,5 @@ export class DeliveryOrdersQueryDto {
   @IsOptional() @IsEnum(DeliveryAssignmentStatus) assignmentStatus?: DeliveryAssignmentStatus;
   @IsOptional() @IsString() openOnly?: string;
 }
+
+export class DeliveryListQueryDto extends PaginationQueryDto {}

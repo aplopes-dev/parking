@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -16,7 +17,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User, UserRole } from '../users/entities/user.entity';
 import { TechnicalSheetsService } from './technical-sheets.service';
 import { SortOrderOnlyDto } from '../common/dto/sort-order-only.dto';
-import { CreateTechnicalSheetDto, UpdateTechnicalSheetDto } from './dto/stock.dto';
+import { CreateTechnicalSheetDto, StockListQueryDto, UpdateTechnicalSheetDto } from './dto/stock.dto';
 
 @ApiTags('technical-sheets')
 @Controller('technical-sheets')
@@ -26,8 +27,8 @@ export class TechnicalSheetsController {
   constructor(private readonly service: TechnicalSheetsService) {}
 
   @Get()
-  findAll(@CurrentUser() user: User) {
-    return this.service.findAll(user.tenantId);
+  findAll(@CurrentUser() user: User, @Query() query: StockListQueryDto) {
+    return this.service.findAll(user.tenantId, query);
   }
 
   @Get(':id')

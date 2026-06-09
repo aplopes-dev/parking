@@ -19,6 +19,7 @@ import {
   AssignDeliveryDto,
   CreateCourierDto,
   CreateRouteDto,
+  DeliveryListQueryDto,
   DeliveryOrdersQueryDto,
   UpdateAssignmentStatusDto,
   UpdateCourierDto,
@@ -66,8 +67,8 @@ export class DeliveryController {
   }
 
   @Get('couriers')
-  listCouriers(@CurrentUser() user: User) {
-    return this.service.listCouriers(user.tenantId);
+  listCouriers(@CurrentUser() user: User, @Query() query: DeliveryListQueryDto) {
+    return this.service.listCouriers(user.tenantId, query);
   }
 
   @Post('couriers')
@@ -90,8 +91,8 @@ export class DeliveryController {
   }
 
   @Get('routes')
-  listRoutes(@CurrentUser() user: User) {
-    return this.service.listRoutes(user.tenantId);
+  listRoutes(@CurrentUser() user: User, @Query() query: DeliveryListQueryDto) {
+    return this.service.listRoutes(user.tenantId, query);
   }
 
   @Post('routes')

@@ -6,9 +6,13 @@ import { CrmLoyaltyAccount } from './entities/crm-loyalty-account.entity';
 import { CrmLoyaltyTransaction } from './entities/crm-loyalty-transaction.entity';
 import { CrmLoyaltyTier, CrmLoyaltyTxType } from './entities/crm.enums';
 import { Customer } from '../customers/entities/customer.entity';
+import { paginateRepository } from '../common/utils/paginate-typeorm';
 import {
   AdjustLoyaltyPointsDto,
   CreateLoyaltyProgramDto,
+  CrmLoyaltyAccountsQueryDto,
+  CrmLoyaltyListQueryDto,
+  CrmLoyaltyTransactionsQueryDto,
   EarnLoyaltyFromPurchaseDto,
   UpdateLoyaltyProgramDto,
 } from './dto/crm.dto';
@@ -27,10 +31,11 @@ export class CrmLoyaltyService {
     private readonly customerRepository: Repository<Customer>,
   ) {}
 
-  findPrograms(tenantId: string): Promise<CrmLoyaltyProgram[]> {
-    return this.programRepository.find({
+  findPrograms(tenantId: string, query: CrmLoyaltyListQueryDto) {
+    return paginateRepository(this.programRepository, query, {
       where: { tenantId },
       order: { isDefault: 'DESC', name: 'ASC' },
+      sortBy: 'name',
     });
   }
 
@@ -89,20 +94,21 @@ export class CrmLoyaltyService {
     return this.programRepository.save(program);
   }
 
-  findAccounts(tenantId: string, programId?: string): Promise<CrmLoyaltyAccount[]> {
-    return this.accountRepository.find({
-      where: { tenantId, ...(programId ? { programId } : {}) },
+  findAccounts(tenantId: string, query: CrmLoyaltyAccountsQueryDto) {
+    return paginateRepository(this.accountRepository, query, {
+      where: { tenantId, ...(query.programId ? { programId: query.programId } : {}) },
       relations: ['customer', 'program'],
       order: { pointsBalance: 'DESC' },
+      sortBy: 'pointsBalance',
     });
   }
 
-  findTransactions(tenantId: string, accountId?: string, limit = 50): Promise<CrmLoyaltyTransaction[]> {
-    return this.txRepository.find({
-      where: { tenantId, ...(accountId ? { accountId } : {}) },
+  findTransactions(tenantId: string, query: CrmLoyaltyTransactionsQueryDto) {
+    return paginateRepository(this.txRepository, query, {
+      where: { tenantId, ...(query.accountId ? { accountId: query.accountId } : {}) },
       relations: ['account', 'account.customer', 'createdByUser'],
       order: { createdAt: 'DESC' },
-      take: limit,
+      sortBy: 'createdAt',
     });
   }
 

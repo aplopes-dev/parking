@@ -16,7 +16,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User, UserRole } from '../users/entities/user.entity';
 import { CrmCampaignsService } from './crm-campaigns.service';
-import { CreateCrmCampaignDto, UpdateCrmCampaignDto } from './dto/crm.dto';
+import { CreateCrmCampaignDto, CrmCampaignListQueryDto, UpdateCrmCampaignDto } from './dto/crm.dto';
 
 @ApiTags('crm-campaigns')
 @Controller('crm/campaigns')
@@ -26,8 +26,8 @@ export class CrmCampaignsController {
   constructor(private readonly service: CrmCampaignsService) {}
 
   @Get()
-  findAll(@CurrentUser() user: User, @Query('status') status?: string) {
-    return this.service.findAll(user.tenantId, status);
+  findAll(@CurrentUser() user: User, @Query() query: CrmCampaignListQueryDto) {
+    return this.service.findAllPaginated(user.tenantId, query);
   }
 
   @Get(':id')

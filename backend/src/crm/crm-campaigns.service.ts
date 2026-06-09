@@ -4,7 +4,8 @@ import { In, Repository } from 'typeorm';
 import { Product } from '../products/entities/product.entity';
 import { CrmCampaignProduct } from './entities/crm-campaign-product.entity';
 import { CrmCampaign } from './entities/crm-campaign.entity';
-import { CreateCrmCampaignDto, UpdateCrmCampaignDto } from './dto/crm.dto';
+import { buildPaginatedMeta, resolvePagination } from '../common/dto/pagination-query.dto';
+import { CreateCrmCampaignDto, CrmCampaignListQueryDto, UpdateCrmCampaignDto } from './dto/crm.dto';
 
 export type CrmCampaignProductSummary = {
   id: string;
@@ -86,17 +87,21 @@ export class CrmCampaignsService {
     );
   }
 
-  async findAll(tenantId: string, status?: string): Promise<CrmCampaignResponse[]> {
-    const campaigns = await this.repository.find({
-      where: { tenantId, ...(status ? { status: status as CrmCampaign['status'] } : {}) },
+  async findAllPaginated(tenantId: string, query: CrmCampaignListQueryDto) {
+    const { page, limit, skip, sortOrder } = resolvePagination(query);
+    const [campaigns, total] = await this.repository.findAndCount({
+      where: { tenantId, ...(query.status ? { status: query.status } : {}) },
       order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
     });
-    return Promise.all(
+    const data = await Promise.all(
       campaigns.map(async (campaign) => {
         const links = await this.loadProductLinks(campaign.id, tenantId);
         return this.toResponse(campaign, links);
       }),
     );
+    return buildPaginatedMeta(data, total, page, limit, 'createdAt', sortOrder);
   }
 
   async findOne(id: string, tenantId: string): Promise<CrmCampaignResponse> {

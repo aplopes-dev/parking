@@ -6,7 +6,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User, UserRole } from '../users/entities/user.entity';
 import { RecipeProductionsService } from './recipe-productions.service';
-import { CreateRecipeProductionDto } from './dto/stock.dto';
+import { CreateRecipeProductionDto, StockListQueryDto } from './dto/stock.dto';
 
 @ApiTags('recipe-productions')
 @Controller('recipe-productions')
@@ -16,8 +16,8 @@ export class RecipeProductionsController {
   constructor(private readonly service: RecipeProductionsService) {}
 
   @Get()
-  findAll(@CurrentUser() user: User, @Query('limit') limit?: string) {
-    return this.service.findAll(user.tenantId, limit ? Number(limit) : 50);
+  findAll(@CurrentUser() user: User, @Query() query: StockListQueryDto) {
+    return this.service.findAll(user.tenantId, query);
   }
 
   @Post()

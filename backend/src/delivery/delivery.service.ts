@@ -3,10 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, In, Not, Repository } from 'typeorm';
 import { Order } from '../pdv/entities/order.entity';
 import { OrderStatus, OrderType } from '../pdv/entities/pdv.enums';
+import { paginateRepository } from '../common/utils/paginate-typeorm';
 import {
   AssignDeliveryDto,
   CreateCourierDto,
   CreateRouteDto,
+  DeliveryListQueryDto,
   DeliveryOrdersQueryDto,
   UpdateAssignmentStatusDto,
   UpdateCourierDto,
@@ -38,10 +40,11 @@ export class DeliveryService {
   ) {}
 
   // —— Motoboys ——
-  listCouriers(tenantId: string) {
-    return this.couriersRepo.find({
+  listCouriers(tenantId: string, query: DeliveryListQueryDto) {
+    return paginateRepository(this.couriersRepo, query, {
       where: { tenantId },
       order: { name: 'ASC' },
+      sortBy: 'name',
     });
   }
 
@@ -66,10 +69,11 @@ export class DeliveryService {
   }
 
   // —— Rotas ——
-  listRoutes(tenantId: string) {
-    return this.routesRepo.find({
+  listRoutes(tenantId: string, query: DeliveryListQueryDto) {
+    return paginateRepository(this.routesRepo, query, {
       where: { tenantId },
       order: { name: 'ASC' },
+      sortBy: 'name',
     });
   }
 

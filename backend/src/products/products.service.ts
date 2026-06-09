@@ -82,7 +82,7 @@ export class ProductsService {
     const total = await qb.getCount();
 
     if (sortBy === 'salePrice') {
-      qb.orderBy('p.sale_price', sortOrder);
+      qb.orderBy('p.salePrice', sortOrder);
     } else {
       qb.orderBy(`p.${sortBy}`, sortOrder);
     }

@@ -5,7 +5,8 @@ import { StockMinimum } from './entities/stock-minimum.entity';
 import { StockBalance } from './entities/stock-balance.entity';
 import { Product } from '../products/entities/product.entity';
 import { StockLocation } from './entities/stock-location.entity';
-import { CreateStockMinimumDto, UpdateStockMinimumDto } from './dto/stock.dto';
+import { paginateRepository } from '../common/utils/paginate-typeorm';
+import { CreateStockMinimumDto, StockListQueryDto, UpdateStockMinimumDto } from './dto/stock.dto';
 
 export type MinimumAlert = StockMinimum & {
   currentQuantity: number;
@@ -25,11 +26,12 @@ export class StockMinimumsService {
     private readonly locationRepository: Repository<StockLocation>,
   ) {}
 
-  findAll(tenantId: string): Promise<StockMinimum[]> {
-    return this.repository.find({
+  findAll(tenantId: string, query: StockListQueryDto) {
+    return paginateRepository(this.repository, query, {
       where: { tenantId },
       relations: ['product', 'location'],
       order: { createdAt: 'DESC' },
+      sortBy: 'createdAt',
     });
   }
 

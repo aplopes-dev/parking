@@ -15,6 +15,7 @@ import {
 import { Transform, Type } from 'class-transformer';
 import { ProductUnit } from '../../products/entities/product.entity';
 import { StockMovementType } from '../entities/stock-movement.entity';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 export class CreateStockLocationDto {
   @IsString()
@@ -280,4 +281,20 @@ export class CreateRecipeProductionDto {
   @IsString()
   @IsOptional()
   notes?: string;
+}
+
+export class StockListQueryDto extends PaginationQueryDto {}
+
+export class StockBalanceListQueryDto extends PaginationQueryDto {
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  productId?: string;
+
+  @IsOptional()
+  @IsString()
+  belowMinimumOnly?: string;
 }

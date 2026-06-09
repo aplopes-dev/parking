@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -15,7 +16,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User, UserRole } from '../users/entities/user.entity';
 import { StockMinimumsService } from './stock-minimums.service';
-import { CreateStockMinimumDto, UpdateStockMinimumDto } from './dto/stock.dto';
+import { CreateStockMinimumDto, StockListQueryDto, UpdateStockMinimumDto } from './dto/stock.dto';
 
 @ApiTags('stock-minimums')
 @Controller('stock-minimums')
@@ -25,8 +26,8 @@ export class StockMinimumsController {
   constructor(private readonly service: StockMinimumsService) {}
 
   @Get()
-  findAll(@CurrentUser() user: User) {
-    return this.service.findAll(user.tenantId);
+  findAll(@CurrentUser() user: User, @Query() query: StockListQueryDto) {
+    return this.service.findAll(user.tenantId, query);
   }
 
   @Get('alerts')
