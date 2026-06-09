@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import AlertModal from '../../components/AlertModal';
-import ModalPortal from '../../components/ModalPortal';
 import PremiumSelect from '../../components/PremiumSelect';
-import '../../components/AppModal.css';
+import RegistryFormModal, { registryModalFooterButtons } from '../../components/RegistryFormModal';
 import {
   cancelFiscalInvoice,
   createAccountant,
@@ -13,6 +12,8 @@ import {
   createNumberVoid,
   emitFiscalInvoice,
   fetchAccountants,
+  fetchAllFiscalInvoices,
+  fetchAllFiscalOrders,
   fetchFiscalInvoices,
   fetchFiscalOrders,
   fetchFiscalReturns,
@@ -24,7 +25,7 @@ import {
   updateFiscalSettings,
 } from '../../services/fiscalApi';
 import type { FiscalInvoiceType, FiscalOrderType } from '../../types/fiscal';
-import type { PaginatedMeta, SortDirection } from '../../types/pagination';
+import { DEFAULT_PAGE_SIZE, type PaginatedMeta, type SortDirection } from '../../types/pagination';
 import CatalogPagination from '../../components/catalog/CatalogPagination';
 import CatalogSortableTh from '../../components/catalog/CatalogSortableTh';
 import {
@@ -79,7 +80,7 @@ function SettingsForm({ onSaved }: { onSaved?: () => void }) {
   }, []);
 
   return (
-    <FiscalSection title="Configuração do emitente" kicker="Emitente">
+    <FiscalSection title="Configuração do emitente">
       <form
         className="catalog-form"
         onSubmit={async (e) => {
@@ -170,20 +171,30 @@ function SettingsForm({ onSaved }: { onSaved?: () => void }) {
 }
 
 // —— Pedidos venda/compra ——
+const emptyManualOrderForm = () => ({
+  counterpartyName: '',
+  counterpartyDocument: '',
+  issueDate: todayIso(),
+  notes: '',
+  productName: '',
+  quantity: '1',
+  unitPrice: '',
+});
+
 export const FiscalOrdersPage: React.FC = () => {
   const can = useFiscalAccess();
   const [orderType, setOrderType] = useState<FiscalOrderType>('sale');
-  const [form, setForm] = useState({
-    counterpartyName: '',
-    counterpartyDocument: '',
-    issueDate: todayIso(),
-    notes: '',
-    productName: '',
-    quantity: '1',
-    unitPrice: '',
-  });
+  const [form, setForm] = useState(emptyManualOrderForm);
   const [pdvOrderId, setPdvOrderId] = useState('');
+  const [showManualOrder, setShowManualOrder] = useState(false);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
   const [alert, setAlert] = useState({ open: false, message: '' });
+
+  const closeManualOrderModal = () => {
+    if (isSavingOrder) return;
+    setShowManualOrder(false);
+    setForm(emptyManualOrderForm());
+  };
 
   if (!can) return <AccessDenied />;
 
@@ -191,9 +202,14 @@ export const FiscalOrdersPage: React.FC = () => {
     <FiscalPageLayout
       title="Pedidos de venda e compra"
       description="Registre pedidos fiscais manuais ou importe do PDV."
+      actions={
+        <button type="button" className="catalog-action-button" onClick={() => setShowManualOrder(true)}>
+          Novo pedido
+        </button>
+      }
     >
       <SettingsForm />
-      <FiscalSection title="Importar do PDV" kicker="Integração">
+      <FiscalSection title="Importar do PDV">
         <section className="finance-toolbar" aria-label="Pedido PDV">
           <FiscalField label="ID do pedido PDV">
             <input
@@ -230,99 +246,107 @@ export const FiscalOrdersPage: React.FC = () => {
           </div>
         </section>
       </FiscalSection>
-      <FiscalSection title="Pedido manual" kicker="Cadastro">
-        <form
-          className="catalog-form"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            try {
-              await createFiscalOrder({
-                orderType,
-                counterpartyName: form.counterpartyName,
-                counterpartyDocument: form.counterpartyDocument || undefined,
-                issueDate: form.issueDate,
-                notes: form.notes || undefined,
-                items: [
-                  {
-                    productName: form.productName,
-                    quantity: parseFloat(form.quantity),
-                    unitPrice: parseFloat(form.unitPrice),
-                  },
-                ],
-              });
-              setAlert({ open: true, message: 'Pedido fiscal salvo.' });
-            } catch (err) {
-              setAlert({ open: true, message: errMsg(err) });
-            }
-          }}
-        >
-          <div className="catalog-form-grid">
-            <PremiumSelect
-              label="Tipo"
-              value={orderType}
-              options={[
-                { value: 'sale', label: 'Venda' },
-                { value: 'purchase', label: 'Compra' },
-              ]}
-              onChange={(v) => setOrderType(v as FiscalOrderType)}
+      <RegistryFormModal
+        isOpen={showManualOrder}
+        wide
+        title="Novo pedido fiscal"
+        subtitle="Cadastre um pedido de venda ou compra manualmente."
+        isSaving={isSavingOrder}
+        onClose={closeManualOrderModal}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setIsSavingOrder(true);
+          try {
+            await createFiscalOrder({
+              orderType,
+              counterpartyName: form.counterpartyName,
+              counterpartyDocument: form.counterpartyDocument || undefined,
+              issueDate: form.issueDate,
+              notes: form.notes || undefined,
+              items: [
+                {
+                  productName: form.productName,
+                  quantity: parseFloat(form.quantity),
+                  unitPrice: parseFloat(form.unitPrice),
+                },
+              ],
+            });
+            setShowManualOrder(false);
+            setForm(emptyManualOrderForm());
+            setAlert({ open: true, message: 'Pedido fiscal salvo.' });
+          } catch (err) {
+            setAlert({ open: true, message: errMsg(err) });
+          } finally {
+            setIsSavingOrder(false);
+          }
+        }}
+        footer={registryModalFooterButtons({
+          onClose: closeManualOrderModal,
+          isSaving: isSavingOrder,
+          submitLabel: 'Criar pedido',
+        })}
+      >
+        <div className="catalog-form-grid">
+          <PremiumSelect
+            label="Tipo"
+            value={orderType}
+            options={[
+              { value: 'sale', label: 'Venda' },
+              { value: 'purchase', label: 'Compra' },
+            ]}
+            onChange={(v) => setOrderType(v as FiscalOrderType)}
+          />
+          <FiscalField label="Cliente / fornecedor">
+            <input
+              className="premium-text-input"
+              value={form.counterpartyName}
+              onChange={(e) => setForm({ ...form, counterpartyName: e.target.value })}
+              required
             />
-            <FiscalField label="Cliente / fornecedor">
-              <input
-                className="premium-text-input"
-                value={form.counterpartyName}
-                onChange={(e) => setForm({ ...form, counterpartyName: e.target.value })}
-                required
-              />
-            </FiscalField>
-            <FiscalField label="CPF / CNPJ">
-              <input
-                className="premium-text-input"
-                value={form.counterpartyDocument}
-                onChange={(e) => setForm({ ...form, counterpartyDocument: e.target.value })}
-              />
-            </FiscalField>
-            <FiscalField label="Data">
-              <input
-                type="date"
-                className="premium-text-input"
-                value={form.issueDate}
-                onChange={(e) => setForm({ ...form, issueDate: e.target.value })}
-              />
-            </FiscalField>
-            <FiscalField label="Produto">
-              <input
-                className="premium-text-input"
-                value={form.productName}
-                onChange={(e) => setForm({ ...form, productName: e.target.value })}
-                required
-              />
-            </FiscalField>
-            <FiscalField label="Quantidade">
-              <input
-                type="number"
-                className="premium-text-input"
-                value={form.quantity}
-                onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-              />
-            </FiscalField>
-            <FiscalField label="Preço unitário (R$)">
-              <input
-                type="number"
-                step="0.01"
-                className="premium-text-input"
-                value={form.unitPrice}
-                onChange={(e) => setForm({ ...form, unitPrice: e.target.value })}
-                required
-              />
-            </FiscalField>
-          </div>
-          <FiscalFormActions>
-            <button type="submit" className="catalog-form-footer-btn catalog-form-footer-btn--primary">
-              Criar pedido
-            </button>
-          </FiscalFormActions>
-        </form>
-      </FiscalSection>
+          </FiscalField>
+          <FiscalField label="CPF / CNPJ">
+            <input
+              className="premium-text-input"
+              value={form.counterpartyDocument}
+              onChange={(e) => setForm({ ...form, counterpartyDocument: e.target.value })}
+            />
+          </FiscalField>
+          <FiscalField label="Data">
+            <input
+              type="date"
+              className="premium-text-input"
+              value={form.issueDate}
+              onChange={(e) => setForm({ ...form, issueDate: e.target.value })}
+            />
+          </FiscalField>
+          <FiscalField label="Produto">
+            <input
+              className="premium-text-input"
+              value={form.productName}
+              onChange={(e) => setForm({ ...form, productName: e.target.value })}
+              required
+            />
+          </FiscalField>
+          <FiscalField label="Quantidade">
+            <input
+              type="number"
+              className="premium-text-input"
+              value={form.quantity}
+              onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+            />
+          </FiscalField>
+          <FiscalField label="Preço unitário (R$)">
+            <input
+              type="number"
+              step="0.01"
+              className="premium-text-input"
+              value={form.unitPrice}
+              onChange={(e) => setForm({ ...form, unitPrice: e.target.value })}
+              required
+            />
+          </FiscalField>
+        </div>
+      </RegistryFormModal>
       <AlertModal isOpen={alert.open} message={alert.message} onClose={() => setAlert({ open: false, message: '' })} />
     </FiscalPageLayout>
   );
@@ -335,19 +359,28 @@ export const FiscalListPage: React.FC = () => {
   const [filterType, setFilterType] = useState<'' | FiscalOrderType>('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(DEFAULT_PAGE_SIZE);
+  const [meta, setMeta] = useState<PaginatedMeta | null>(null);
 
   const load = useCallback(async () => {
-    setRows(
-      await fetchFiscalOrders({
-        orderType: filterType || undefined,
-        from: from || undefined,
-        to: to || undefined,
-      }),
-    );
+    const result = await fetchFiscalOrders({
+      orderType: filterType || undefined,
+      from: from || undefined,
+      to: to || undefined,
+      page,
+      limit,
+    });
+    setRows(result.items);
+    setMeta(result.meta);
+  }, [filterType, from, to, page, limit]);
+
+  useEffect(() => {
+    setPage(1);
   }, [filterType, from, to]);
 
   useEffect(() => {
-    if (can) load();
+    if (can) void load();
   }, [can, load]);
 
   if (!can) return <AccessDenied />;
@@ -402,6 +435,21 @@ export const FiscalListPage: React.FC = () => {
           formatMoney(r.totalAmount),
           STATUS_LABEL[r.status] ?? r.status,
         ])}
+        pagination={
+          meta && meta.total > 0
+            ? {
+                page: meta.page,
+                totalPages: meta.totalPages,
+                total: meta.total,
+                limit,
+                onPageChange: setPage,
+                onLimitChange: (next) => {
+                  setLimit(next);
+                  setPage(1);
+                },
+              }
+            : undefined
+        }
       />
     </FiscalPageLayout>
   );
@@ -421,7 +469,7 @@ export const FiscalReturnsPage: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [meta, setMeta] = useState<PaginatedMeta | null>(null);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
+  const [limit, setLimit] = useState(DEFAULT_PAGE_SIZE);
   const [sortBy, setSortBy] = useState('returnDate');
   const [sortOrder, setSortOrder] = useState<SortDirection>('DESC');
   const [search, setSearch] = useState('');
@@ -528,105 +576,66 @@ export const FiscalReturnsPage: React.FC = () => {
         </button>
       }
     >
-      <ModalPortal isOpen={showForm}>
-        <div
-          className="app-modal-overlay"
-          role="presentation"
-          onClick={isSaving ? undefined : closeFormModal}
-        >
-          <div
-            className="app-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="fiscal-return-modal-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="app-modal-header">
-              <div>
-                <h3 id="fiscal-return-modal-title">
-                  {editingId ? 'Editar devolução' : 'Nova devolução'}
-                </h3>
-                <p className="app-modal-subtitle">
-                  Registre devoluções de venda ou de compra vinculadas a pedidos fiscais.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="app-modal-close"
-                onClick={closeFormModal}
-                disabled={isSaving}
-                aria-label="Fechar"
-              >
-                ×
-              </button>
-            </div>
-            <form className="app-modal-body catalog-form" onSubmit={handleSubmitReturn}>
-              <div className="catalog-form-grid">
-                <PremiumSelect
-                  label="Tipo"
-                  value={form.returnType}
-                  options={[
-                    { value: 'sale_return', label: 'Devolução de venda' },
-                    { value: 'purchase_return', label: 'Devolução de compra' },
-                  ]}
-                  onChange={(v) => setForm({ ...form, returnType: v as 'sale_return' | 'purchase_return' })}
-                />
-                <FiscalField label="Data">
-                  <input
-                    type="date"
-                    className="premium-text-input"
-                    value={form.returnDate}
-                    onChange={(e) => setForm({ ...form, returnDate: e.target.value })}
-                  />
-                </FiscalField>
-                <FiscalField label="Valor (R$)">
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="premium-text-input"
-                    value={form.totalAmount}
-                    onChange={(e) => setForm({ ...form, totalAmount: e.target.value })}
-                    required
-                  />
-                </FiscalField>
-                <FiscalField label="ID pedido fiscal (opcional)">
-                  <input
-                    className="premium-text-input"
-                    value={form.fiscalOrderId}
-                    onChange={(e) => setForm({ ...form, fiscalOrderId: e.target.value })}
-                  />
-                </FiscalField>
-                <FiscalField label="Motivo" className="form-group--full fiscal-return-motivo-field">
-                  <textarea
-                    className="premium-text-input fiscal-return-motivo-input"
-                    rows={6}
-                    value={form.reason}
-                    onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                    required
-                  />
-                </FiscalField>
-              </div>
-              <div className="app-modal-footer">
-                <button
-                  type="button"
-                  className="catalog-form-footer-btn catalog-form-footer-btn--ghost"
-                  onClick={closeFormModal}
-                  disabled={isSaving}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="catalog-form-footer-btn catalog-form-footer-btn--primary"
-                  disabled={isSaving}
-                >
-                  {isSaving ? 'Salvando…' : editingId ? 'Salvar alterações' : 'Registrar devolução'}
-                </button>
-              </div>
-            </form>
-          </div>
+      <RegistryFormModal
+        isOpen={showForm}
+        wide
+        title={editingId ? 'Editar devolução' : 'Nova devolução'}
+        subtitle="Registre devoluções de venda ou de compra vinculadas a pedidos fiscais."
+        isSaving={isSaving}
+        onClose={closeFormModal}
+        onSubmit={handleSubmitReturn}
+        footer={registryModalFooterButtons({
+          onClose: closeFormModal,
+          isSaving,
+          submitLabel: editingId ? 'Salvar alterações' : 'Registrar devolução',
+        })}
+      >
+        <div className="catalog-form-grid">
+          <PremiumSelect
+            label="Tipo"
+            value={form.returnType}
+            options={[
+              { value: 'sale_return', label: 'Devolução de venda' },
+              { value: 'purchase_return', label: 'Devolução de compra' },
+            ]}
+            onChange={(v) => setForm({ ...form, returnType: v as 'sale_return' | 'purchase_return' })}
+          />
+          <FiscalField label="Data">
+            <input
+              type="date"
+              className="premium-text-input"
+              value={form.returnDate}
+              onChange={(e) => setForm({ ...form, returnDate: e.target.value })}
+            />
+          </FiscalField>
+          <FiscalField label="Valor (R$)">
+            <input
+              type="number"
+              step="0.01"
+              className="premium-text-input"
+              value={form.totalAmount}
+              onChange={(e) => setForm({ ...form, totalAmount: e.target.value })}
+              required
+            />
+          </FiscalField>
+          <FiscalField label="ID pedido fiscal (opcional)">
+            <input
+              className="premium-text-input"
+              value={form.fiscalOrderId}
+              onChange={(e) => setForm({ ...form, fiscalOrderId: e.target.value })}
+            />
+          </FiscalField>
+          <FiscalField label="Motivo" className="form-group--full fiscal-return-motivo-field">
+            <textarea
+              className="premium-text-input fiscal-return-motivo-input"
+              rows={6}
+              value={form.reason}
+              onChange={(e) => setForm({ ...form, reason: e.target.value })}
+              required
+            />
+          </FiscalField>
         </div>
-      </ModalPortal>
+      </RegistryFormModal>
       <section className="catalog-surface">
         <div className="catalog-toolbar catalog-filter-toolbar">
           <div className="form-group catalog-search catalog-filter-toolbar__search catalog-filter-toolbar__search--wide">
@@ -802,13 +811,26 @@ export const FiscalInvoicesPage: React.FC = () => {
   const can = useFiscalAccess();
   const [rows, setRows] = useState<any[]>([]);
   const [direction, setDirection] = useState<'' | 'emitted' | 'received'>('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(DEFAULT_PAGE_SIZE);
+  const [meta, setMeta] = useState<PaginatedMeta | null>(null);
 
   const load = useCallback(async () => {
-    setRows(await fetchFiscalInvoices({ direction: direction || undefined }));
+    const result = await fetchFiscalInvoices({
+      direction: direction || undefined,
+      page,
+      limit,
+    });
+    setRows(result.items);
+    setMeta(result.meta);
+  }, [direction, page, limit]);
+
+  useEffect(() => {
+    setPage(1);
   }, [direction]);
 
   useEffect(() => {
-    if (can) load();
+    if (can) void load();
   }, [can, load]);
 
   if (!can) return <AccessDenied />;
@@ -849,6 +871,21 @@ export const FiscalInvoicesPage: React.FC = () => {
           STATUS_LABEL[r.status] ?? r.status,
           r.accessKey ? `${r.accessKey.slice(0, 8)}…` : '—',
         ])}
+        pagination={
+          meta && meta.total > 0
+            ? {
+                page: meta.page,
+                totalPages: meta.totalPages,
+                total: meta.total,
+                limit,
+                onPageChange: setPage,
+                onLimitChange: (next) => {
+                  setLimit(next);
+                  setPage(1);
+                },
+              }
+            : undefined
+        }
       />
     </FiscalPageLayout>
   );
@@ -866,7 +903,7 @@ export const FiscalImportPage: React.FC = () => {
 
   return (
     <FiscalPageLayout title="Importação de notas (XML/SEFAZ)" description="Importe XML de notas de entrada do fornecedor.">
-      <FiscalSection title="Importar XML" kicker="Entrada">
+      <FiscalSection title="Importar XML">
         <div className="catalog-form">
           <FiscalFileField
             label="Arquivo XML"
@@ -924,7 +961,7 @@ export const FiscalEmitPage: React.FC = () => {
   const [alert, setAlert] = useState({ open: false, message: '' });
 
   useEffect(() => {
-    if (can) fetchFiscalOrders({ status: 'draft' }).then(setOrders).catch(() => setOrders([]));
+    if (can) fetchAllFiscalOrders({ status: 'draft' }).then(setOrders).catch(() => setOrders([]));
   }, [can]);
 
   if (!can) return <AccessDenied />;
@@ -935,7 +972,7 @@ export const FiscalEmitPage: React.FC = () => {
       description="Emita nota a partir de pedido fiscal ou pedido PDV (homologação simula autorização)."
     >
       <SettingsForm />
-      <FiscalSection title="Emitir documento" kicker="Operação">
+      <FiscalSection title="Emitir documento">
         <section className="finance-toolbar">
           <PremiumSelect
             label="Documento"
@@ -1005,7 +1042,7 @@ export const FiscalCancelPage: React.FC = () => {
 
   useEffect(() => {
     if (can) {
-      fetchFiscalInvoices({ direction: 'emitted', status: 'authorized' }).then(setInvoices);
+      fetchAllFiscalInvoices({ direction: 'emitted', status: 'authorized' }).then(setInvoices);
     }
   }, [can]);
 
@@ -1016,7 +1053,7 @@ export const FiscalCancelPage: React.FC = () => {
       title="Cancelar NF-e / NFC-e"
       description="Cancelamento de notas autorizadas (homologação/produção conforme configuração)."
     >
-      <FiscalSection title="Cancelar nota" kicker="Operação">
+      <FiscalSection title="Cancelar nota">
         <div className="catalog-form">
           <PremiumSelect
             label="Nota"
@@ -1051,7 +1088,7 @@ export const FiscalCancelPage: React.FC = () => {
                 }
                 try {
                   await cancelFiscalInvoice(selected, reason);
-                  setInvoices(await fetchFiscalInvoices({ direction: 'emitted', status: 'authorized' }));
+                  setInvoices(await fetchAllFiscalInvoices({ direction: 'emitted', status: 'authorized' }));
                   setAlert({ open: true, message: 'Nota cancelada.' });
                 } catch (err) {
                   setAlert({ open: true, message: errMsg(err) });
@@ -1069,104 +1106,153 @@ export const FiscalCancelPage: React.FC = () => {
 };
 
 // —— Inutilização ——
+const emptyVoidForm = () => ({
+  invoiceType: 'nfce' as FiscalInvoiceType,
+  series: '1',
+  numberFrom: '',
+  numberTo: '',
+  reason: '',
+  voidDate: todayIso(),
+});
+
 export const FiscalVoidPage: React.FC = () => {
   const can = useFiscalAccess();
   const [rows, setRows] = useState<any[]>([]);
-  const [form, setForm] = useState({
-    invoiceType: 'nfce' as FiscalInvoiceType,
-    series: '1',
-    numberFrom: '',
-    numberTo: '',
-    reason: '',
-    voidDate: todayIso(),
-  });
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(DEFAULT_PAGE_SIZE);
+  const [meta, setMeta] = useState<PaginatedMeta | null>(null);
+  const [form, setForm] = useState(emptyVoidForm);
+  const [showForm, setShowForm] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [alert, setAlert] = useState({ open: false, message: '' });
 
+  const load = useCallback(async () => {
+    const result = await fetchNumberVoids({ page, limit });
+    setRows(result.items);
+    setMeta(result.meta);
+  }, [page, limit]);
+
   useEffect(() => {
-    if (can) fetchNumberVoids().then(setRows);
-  }, [can]);
+    if (can) void load();
+  }, [can, load]);
+
+  const closeVoidModal = () => {
+    if (isSaving) return;
+    setShowForm(false);
+    setForm(emptyVoidForm());
+  };
 
   if (!can) return <AccessDenied />;
 
   return (
-    <FiscalPageLayout title="Inutilização de notas" description="Registre faixa de numeração inutilizada na SEFAZ.">
-      <FiscalSection title="Nova inutilização" kicker="Cadastro">
-        <form
-          className="catalog-form"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            try {
-              await createNumberVoid({
-                ...form,
-                series: parseInt(form.series, 10),
-                numberFrom: parseInt(form.numberFrom, 10),
-                numberTo: parseInt(form.numberTo, 10),
-              });
-              setRows(await fetchNumberVoids());
-              setAlert({ open: true, message: 'Inutilização registrada.' });
-            } catch (err) {
-              setAlert({ open: true, message: errMsg(err) });
-            }
-          }}
-        >
-          <div className="catalog-form-grid">
-            <PremiumSelect
-              label="Tipo"
-              value={form.invoiceType}
-              options={[
-                { value: 'nfe', label: 'NF-e' },
-                { value: 'nfce', label: 'NFC-e' },
-              ]}
-              onChange={(v) => setForm({ ...form, invoiceType: v as FiscalInvoiceType })}
+    <FiscalPageLayout
+      title="Inutilização de notas"
+      description="Registre faixa de numeração inutilizada na SEFAZ."
+      actions={
+        <button type="button" className="catalog-action-button" onClick={() => setShowForm(true)}>
+          Nova inutilização
+        </button>
+      }
+    >
+      <RegistryFormModal
+        isOpen={showForm}
+        title="Nova inutilização"
+        subtitle="Registre faixa de numeração inutilizada na SEFAZ."
+        isSaving={isSaving}
+        onClose={closeVoidModal}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setIsSaving(true);
+          try {
+            await createNumberVoid({
+              ...form,
+              series: parseInt(form.series, 10),
+              numberFrom: parseInt(form.numberFrom, 10),
+              numberTo: parseInt(form.numberTo, 10),
+            });
+            await load();
+            setShowForm(false);
+            setForm(emptyVoidForm());
+            setAlert({ open: true, message: 'Inutilização registrada.' });
+          } catch (err) {
+            setAlert({ open: true, message: errMsg(err) });
+          } finally {
+            setIsSaving(false);
+          }
+        }}
+        footer={registryModalFooterButtons({
+          onClose: closeVoidModal,
+          isSaving,
+          submitLabel: 'Registrar inutilização',
+        })}
+      >
+        <div className="catalog-form-grid">
+          <PremiumSelect
+            label="Tipo"
+            value={form.invoiceType}
+            options={[
+              { value: 'nfe', label: 'NF-e' },
+              { value: 'nfce', label: 'NFC-e' },
+            ]}
+            onChange={(v) => setForm({ ...form, invoiceType: v as FiscalInvoiceType })}
+          />
+          <FiscalField label="Série">
+            <input
+              type="number"
+              className="premium-text-input"
+              value={form.series}
+              onChange={(e) => setForm({ ...form, series: e.target.value })}
             />
-            <FiscalField label="Série">
-              <input
-                type="number"
-                className="premium-text-input"
-                value={form.series}
-                onChange={(e) => setForm({ ...form, series: e.target.value })}
-              />
-            </FiscalField>
-            <FiscalField label="De nº">
-              <input
-                type="number"
-                className="premium-text-input"
-                value={form.numberFrom}
-                onChange={(e) => setForm({ ...form, numberFrom: e.target.value })}
-                required
-              />
-            </FiscalField>
-            <FiscalField label="Até nº">
-              <input
-                type="number"
-                className="premium-text-input"
-                value={form.numberTo}
-                onChange={(e) => setForm({ ...form, numberTo: e.target.value })}
-                required
-              />
-            </FiscalField>
-            <FiscalField label="Justificativa" className="form-group--full">
-              <textarea
-                className="premium-text-input"
-                rows={3}
-                value={form.reason}
-                onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                required
-                minLength={15}
-              />
-            </FiscalField>
-          </div>
-          <FiscalFormActions>
-            <button type="submit" className="catalog-form-footer-btn catalog-form-footer-btn--primary">
-              Registrar inutilização
-            </button>
-          </FiscalFormActions>
-        </form>
-      </FiscalSection>
+          </FiscalField>
+          <FiscalField label="De nº">
+            <input
+              type="number"
+              className="premium-text-input"
+              value={form.numberFrom}
+              onChange={(e) => setForm({ ...form, numberFrom: e.target.value })}
+              required
+            />
+          </FiscalField>
+          <FiscalField label="Até nº">
+            <input
+              type="number"
+              className="premium-text-input"
+              value={form.numberTo}
+              onChange={(e) => setForm({ ...form, numberTo: e.target.value })}
+              required
+            />
+          </FiscalField>
+          <FiscalField label="Justificativa" className="form-group--full">
+            <textarea
+              className="premium-text-input"
+              rows={3}
+              value={form.reason}
+              onChange={(e) => setForm({ ...form, reason: e.target.value })}
+              required
+              minLength={15}
+            />
+          </FiscalField>
+        </div>
+      </RegistryFormModal>
       <FiscalTable
         title="Faixas inutilizadas"
         headers={['Tipo', 'Série', 'Faixa', 'Data']}
         rows={rows.map((r) => [r.invoiceType, r.series, `${r.numberFrom}-${r.numberTo}`, r.voidDate?.slice(0, 10)])}
+        pagination={
+          meta && meta.total > 0
+            ? {
+                page: meta.page,
+                totalPages: meta.totalPages,
+                total: meta.total,
+                limit,
+                onPageChange: setPage,
+                onLimitChange: (next) => {
+                  setLimit(next);
+                  setPage(1);
+                },
+              }
+            : undefined
+        }
       />
       <AlertModal isOpen={alert.open} message={alert.message} onClose={() => setAlert({ open: false, message: '' })} />
     </FiscalPageLayout>
@@ -1174,70 +1260,107 @@ export const FiscalVoidPage: React.FC = () => {
 };
 
 // —— Contador ——
+const emptyAccountantForm = () => ({
+  name: '',
+  email: '',
+  crc: '',
+  canExport: true,
+  canEmit: false,
+});
+
 export const FiscalAccountantsPage: React.FC = () => {
   const can = useFiscalAccess();
   const [rows, setRows] = useState<any[]>([]);
-  const [form, setForm] = useState({ name: '', email: '', crc: '', canExport: true, canEmit: false });
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(DEFAULT_PAGE_SIZE);
+  const [meta, setMeta] = useState<PaginatedMeta | null>(null);
+  const [form, setForm] = useState(emptyAccountantForm);
+  const [showForm, setShowForm] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [alert, setAlert] = useState({ open: false, message: '' });
 
-  const load = useCallback(() => fetchAccountants().then(setRows), []);
+  const load = useCallback(async () => {
+    const result = await fetchAccountants({ page, limit });
+    setRows(result.items);
+    setMeta(result.meta);
+  }, [page, limit]);
 
   useEffect(() => {
     if (can) load();
   }, [can, load]);
 
+  const closeAccountantModal = () => {
+    if (isSaving) return;
+    setShowForm(false);
+    setForm(emptyAccountantForm());
+  };
+
   if (!can) return <AccessDenied />;
 
   return (
-    <FiscalPageLayout title="Usuário contador" description="Acesso do escritório contábil para exportação e consulta.">
-      <FiscalSection title="Novo contador" kicker="Cadastro">
-        <form
-          className="catalog-form"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            try {
-              await createAccountant(form);
-              await load();
-              setForm({ name: '', email: '', crc: '', canExport: true, canEmit: false });
-              setAlert({ open: true, message: 'Contador cadastrado.' });
-            } catch (err) {
-              setAlert({ open: true, message: errMsg(err) });
-            }
-          }}
-        >
-          <div className="catalog-form-grid">
-            <FiscalField label="Nome">
-              <input
-                className="premium-text-input"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                required
-              />
-            </FiscalField>
-            <FiscalField label="E-mail">
-              <input
-                type="email"
-                className="premium-text-input"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                required
-              />
-            </FiscalField>
-            <FiscalField label="CRC">
-              <input
-                className="premium-text-input"
-                value={form.crc}
-                onChange={(e) => setForm({ ...form, crc: e.target.value })}
-              />
-            </FiscalField>
-          </div>
-          <FiscalFormActions>
-            <button type="submit" className="catalog-form-footer-btn catalog-form-footer-btn--primary">
-              Adicionar contador
-            </button>
-          </FiscalFormActions>
-        </form>
-      </FiscalSection>
+    <FiscalPageLayout
+      title="Usuário contador"
+      description="Acesso do escritório contábil para exportação e consulta."
+      actions={
+        <button type="button" className="catalog-action-button" onClick={() => setShowForm(true)}>
+          Novo contador
+        </button>
+      }
+    >
+      <RegistryFormModal
+        isOpen={showForm}
+        title="Novo contador"
+        subtitle="Cadastre o acesso do escritório contábil para exportação e consulta."
+        isSaving={isSaving}
+        onClose={closeAccountantModal}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setIsSaving(true);
+          try {
+            await createAccountant(form);
+            await load();
+            setShowForm(false);
+            setForm(emptyAccountantForm());
+            setAlert({ open: true, message: 'Contador cadastrado.' });
+          } catch (err) {
+            setAlert({ open: true, message: errMsg(err) });
+          } finally {
+            setIsSaving(false);
+          }
+        }}
+        footer={registryModalFooterButtons({
+          onClose: closeAccountantModal,
+          isSaving,
+          submitLabel: 'Adicionar contador',
+        })}
+      >
+        <div className="catalog-form-grid">
+          <FiscalField label="Nome">
+            <input
+              className="premium-text-input"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              required
+            />
+          </FiscalField>
+          <FiscalField label="E-mail">
+            <input
+              type="email"
+              className="premium-text-input"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              required
+            />
+          </FiscalField>
+          <FiscalField label="CRC">
+            <input
+              className="premium-text-input"
+              value={form.crc}
+              onChange={(e) => setForm({ ...form, crc: e.target.value })}
+            />
+          </FiscalField>
+        </div>
+      </RegistryFormModal>
       <FiscalTable
         title="Contadores cadastrados"
         headers={['Nome', 'E-mail', 'Exportar', 'Ativo', '']}
@@ -1258,6 +1381,21 @@ export const FiscalAccountantsPage: React.FC = () => {
             {r.active ? 'Desativar' : 'Ativar'}
           </button>,
         ])}
+        pagination={
+          meta && meta.total > 0
+            ? {
+                page: meta.page,
+                totalPages: meta.totalPages,
+                total: meta.total,
+                limit,
+                onPageChange: setPage,
+                onLimitChange: (next) => {
+                  setLimit(next);
+                  setPage(1);
+                },
+              }
+            : undefined
+        }
       />
       <AlertModal isOpen={alert.open} message={alert.message} onClose={() => setAlert({ open: false, message: '' })} />
     </FiscalPageLayout>

@@ -1,6 +1,8 @@
 import React, { useContext, useId, useRef } from 'react';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
 import { AuthContext } from '../../contexts/AuthContext';
+import CatalogPagination from '../../components/catalog/CatalogPagination';
+import type { TablePaginationProps } from '../../types/pagination';
 import '../catalog/Catalog.css';
 import '../finance/Finance.css';
 
@@ -52,16 +54,10 @@ export const FiscalField: React.FC<{
 
 export const FiscalSection: React.FC<{
   title: string;
-  kicker?: string;
   children: React.ReactNode;
-}> = ({ title, kicker, children }) => (
+}> = ({ title, children }) => (
   <section className="catalog-surface catalog-form-surface--premium finance-section">
-    <div className="catalog-section-header">
-      <div>
-        {kicker ? <span className="catalog-section-kicker">{kicker}</span> : null}
-        <h2>{title}</h2>
-      </div>
-    </div>
+    <h2 className="finance-list-panel__title">{title}</h2>
     {children}
   </section>
 );
@@ -99,37 +95,53 @@ export function FiscalTable({
   headers,
   rows,
   title = 'Registros',
+  pagination,
 }: {
   headers: string[];
   rows: React.ReactNode[][];
   title?: string;
+  pagination?: TablePaginationProps;
 }) {
+  const showEmpty = !rows.length && (!pagination || pagination.total === 0);
   return (
     <section className="catalog-surface finance-list-panel">
       <h2 className="finance-list-panel__title">{title}</h2>
-      {!rows.length ? (
+      {showEmpty ? (
         <p className="catalog-empty">Nenhum registro.</p>
       ) : (
-        <div className="finance-table-wrap">
-          <table className="finance-table">
-            <thead>
-              <tr>
-                {headers.map((h) => (
-                  <th key={h}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((cells, i) => (
-                <tr key={i}>
-                  {cells.map((c, j) => (
-                    <td key={j}>{c}</td>
+        <>
+          <div className="finance-table-wrap">
+            <table className="finance-table">
+              <thead>
+                <tr>
+                  {headers.map((h) => (
+                    <th key={h}>{h}</th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {rows.map((cells, i) => (
+                  <tr key={i}>
+                    {cells.map((c, j) => (
+                      <td key={j}>{c}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {pagination && pagination.total > 0 ? (
+            <CatalogPagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              total={pagination.total}
+              limit={pagination.limit}
+              disabled={pagination.disabled}
+              onPageChange={pagination.onPageChange}
+              onLimitChange={pagination.onLimitChange}
+            />
+          ) : null}
+        </>
       )}
     </section>
   );

@@ -11,7 +11,27 @@ import type {
   FiscalReturnType,
   FiscalSettings,
 } from '../types/fiscal';
-import type { PaginatedResponse, SortDirection } from '../types/pagination';
+import {
+  DEFAULT_PAGE_SIZE,
+  type PaginatedMeta,
+  type PaginatedResponse,
+  type SortDirection,
+} from '../types/pagination';
+import { normalizePaginatedResponse } from '../utils/paginatedResponse';
+
+export type FiscalListParams = { page?: number; limit?: number };
+export type FiscalListResult<T> = { items: T[]; meta: PaginatedMeta };
+
+async function fetchFiscalList<T>(
+  url: string,
+  params?: Record<string, unknown>,
+): Promise<FiscalListResult<T>> {
+  const page = Number(params?.page ?? 1);
+  const limit = Number(params?.limit ?? DEFAULT_PAGE_SIZE);
+  const { data } = await api.get<PaginatedResponse<T> | T[]>(url, { params });
+  const normalized = normalizePaginatedResponse(data, { page, limit });
+  return { items: normalized.items, meta: normalized.meta };
+}
 
 export async function fetchFiscalOverview(): Promise<FiscalOverview> {
   const { data } = await api.get<FiscalOverview>('/fiscal/overview');
@@ -28,14 +48,23 @@ export async function updateFiscalSettings(body: Partial<FiscalSettings>) {
   return data;
 }
 
-export async function fetchFiscalOrders(params?: {
+export async function fetchFiscalOrders(params?: FiscalListParams & {
+  orderType?: FiscalOrderType;
+  status?: FiscalOrderStatus;
+  from?: string;
+  to?: string;
+}): Promise<FiscalListResult<FiscalOrder>> {
+  return fetchFiscalList<FiscalOrder>('/fiscal/orders', params);
+}
+
+export async function fetchAllFiscalOrders(params?: {
   orderType?: FiscalOrderType;
   status?: FiscalOrderStatus;
   from?: string;
   to?: string;
 }): Promise<FiscalOrder[]> {
-  const { data } = await api.get<FiscalOrder[]>('/fiscal/orders', { params });
-  return data;
+  const { items } = await fetchFiscalOrders({ ...params, page: 1, limit: 100 });
+  return items;
 }
 
 export async function getFiscalOrder(id: string) {
@@ -101,13 +130,23 @@ export async function deleteFiscalReturn(id: string) {
   return data;
 }
 
-export async function fetchFiscalInvoices(params?: {
+export async function fetchFiscalInvoices(params?: FiscalListParams & {
+  invoiceType?: FiscalInvoiceType;
+  direction?: FiscalInvoiceDirection;
+  status?: FiscalInvoiceStatus;
+  from?: string;
+  to?: string;
+}): Promise<FiscalListResult<FiscalInvoice>> {
+  return fetchFiscalList<FiscalInvoice>('/fiscal/invoices', params);
+}
+
+export async function fetchAllFiscalInvoices(params?: {
   invoiceType?: FiscalInvoiceType;
   direction?: FiscalInvoiceDirection;
   status?: FiscalInvoiceStatus;
 }): Promise<FiscalInvoice[]> {
-  const { data } = await api.get<FiscalInvoice[]>('/fiscal/invoices', { params });
-  return data;
+  const { items } = await fetchFiscalInvoices({ ...params, page: 1, limit: 100 });
+  return items;
 }
 
 export async function emitFiscalInvoice(body: Record<string, unknown>) {
@@ -128,9 +167,8 @@ export async function importFiscalInvoice(payload: FormData | { xmlContent: stri
   return data;
 }
 
-export async function fetchNumberVoids() {
-  const { data } = await api.get('/fiscal/number-voids');
-  return data;
+export async function fetchNumberVoids(params?: FiscalListParams) {
+  return fetchFiscalList<any>('/fiscal/number-voids', params);
 }
 
 export async function createNumberVoid(body: Record<string, unknown>) {
@@ -138,9 +176,8 @@ export async function createNumberVoid(body: Record<string, unknown>) {
   return data;
 }
 
-export async function fetchAccountants() {
-  const { data } = await api.get('/fiscal/accountants');
-  return data;
+export async function fetchAccountants(params?: FiscalListParams) {
+  return fetchFiscalList<any>('/fiscal/accountants', params);
 }
 
 export async function createAccountant(body: Record<string, unknown>) {
