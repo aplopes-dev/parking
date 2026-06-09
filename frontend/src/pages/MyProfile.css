@@ -51,11 +51,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 28px;
-  background:
-    radial-gradient(circle at top right, rgba(251, 146, 60, 0.22), transparent 36%),
-    var(--food-gradient-brand);
-  box-shadow: var(--food-shadow-brand);
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid var(--border-default, #e5e5e5);
   overflow: hidden;
 }
 
@@ -75,10 +73,10 @@
 }
 
 .my-profile-avatar span {
-  color: #ffffff;
+  color: var(--text-muted, #6b6b6b);
   font-size: clamp(2.4rem, 5vw, 4.2rem);
-  font-weight: 800;
-  letter-spacing: -0.08em;
+  font-weight: 700;
+  letter-spacing: -0.04em;
 }
 
 .my-profile-main {
@@ -96,7 +94,6 @@
 }
 
 .my-profile-fields-grid {
-  margin-top: 14px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
@@ -129,18 +126,16 @@
   min-width: 0;
   padding: 18px;
   border-radius: var(--radius-md, 8px);
-  border: 1px solid var(--border-default, #ddd9d0);
-  background: var(--surface-page, #f3f1eb);
+  border: 1px solid var(--border-default, #e5e5e5);
+  background: #ffffff;
 }
 
 .my-profile-info-card span {
   display: block;
   margin-bottom: 8px;
-  color: #64748b;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: var(--text-muted, #6b6b6b);
+  font-size: 0.86rem;
+  font-weight: 500;
 }
 
 .my-profile-info-card strong {

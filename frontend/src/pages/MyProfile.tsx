@@ -169,7 +169,7 @@ const MyProfile: React.FC = () => {
 
   return (
     <CatalogPageLayout
-      className="users-page my-profile-page"
+      className="users-page my-profile-page catalog-page--ifood"
       moduleLabel="Sistema"
       modulePath="/meu-perfil"
       title={user.name}
@@ -204,7 +204,6 @@ const MyProfile: React.FC = () => {
 
           {activeTab === 'account' ? (
             <div className="my-profile-main my-profile-main--full">
-              <span className="catalog-section-kicker">Dados da conta</span>
               <div className="my-profile-fields-grid">
                 <div className="my-profile-field">
                   <label htmlFor="profile-name">Nome</label>
@@ -252,7 +251,6 @@ const MyProfile: React.FC = () => {
 
           {activeTab === 'security' ? (
             <div className="my-profile-main my-profile-main--full">
-              <span className="catalog-section-kicker">Senha de acesso</span>
               <div className="my-profile-fields-grid">
                 <div className="my-profile-field">
                   <label htmlFor="profile-password">Nova senha</label>
