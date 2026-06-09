@@ -5,11 +5,12 @@ import AlertModal from '../components/AlertModal';
 import ConfirmModal from '../components/ConfirmModal';
 import RegistryFormModal from '../components/RegistryFormModal';
 import { User as UserType, AlertState } from '../types';
-import { getRoleLabel, ROLE_PILL_CLASS, UserRole } from '../types/userRole';
-import { activeStatusPillClass, SECTION_KICKER_CLASS } from '../utils/catalogTags';
+import { getRoleLabel, UserRole } from '../types/userRole';
 import { getUserPhotoUrl } from '../utils/userPhoto';
 import PremiumSelect from '../components/PremiumSelect';
 import CatalogPageLayout from '../components/CatalogPageLayout';
+import CatalogPagination from '../components/catalog/CatalogPagination';
+import { DEFAULT_PAGE_SIZE, PaginatedMeta, PaginatedResponse } from '../types/pagination';
 import './Users.css';
 
 interface UserFormData {
@@ -32,6 +33,9 @@ const Users: React.FC = () => {
   const authContext = useContext(AuthContext);
   const { user, refreshUser } = authContext || {};
   const [users, setUsers] = useState<UserType[]>([]);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(DEFAULT_PAGE_SIZE);
+  const [listMeta, setListMeta] = useState<PaginatedMeta | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [showForm, setShowForm] = useState<boolean>(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
@@ -52,17 +56,27 @@ const Users: React.FC = () => {
 
   const loadUsers = useCallback(async (): Promise<void> => {
     try {
-      const response = await api.get<UserType[]>('/users');
-      setUsers(response.data);
+      const response = await api.get<PaginatedResponse<UserType> | UserType[]>('/users', {
+        params: { page, limit },
+      });
+      const data = response.data;
+      if (Array.isArray(data)) {
+        setUsers(data);
+        setListMeta({ page: 1, limit: data.length, total: data.length, totalPages: 1, sortBy: 'name', sortOrder: 'ASC' });
+      } else {
+        setUsers(data.data ?? []);
+        setListMeta(data.meta);
+      }
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, limit]);
 
   useEffect(() => {
     if (user) {
+      setLoading(true);
       loadUsers();
     }
   }, [loadUsers, user]);
@@ -281,26 +295,22 @@ const Users: React.FC = () => {
   }
 
   const usersStats = (
-    <section className="catalog-stats-grid users-stats-grid">
-      <article className="catalog-stat-card">
-        <span>Total de usuários</span>
+    <section className="users-stats-grid" aria-label="Resumo de usuários">
+      <article className="users-stat-card">
+        <p className="users-stat-card__label">Total de usuários</p>
         <strong>{users.length}</strong>
-        <p>Todos os perfis cadastrados no sistema.</p>
       </article>
-      <article className="catalog-stat-card">
-        <span>Usuários ativos</span>
+      <article className="users-stat-card">
+        <p className="users-stat-card__label">Usuários ativos</p>
         <strong>{totalActiveUsers}</strong>
-        <p>Perfis disponíveis para uso e autenticação.</p>
       </article>
-      <article className="catalog-stat-card">
-        <span>Garçons</span>
+      <article className="users-stat-card">
+        <p className="users-stat-card__label">Garçons</p>
         <strong>{totalGarcons}</strong>
-        <p>Atendimento de mesas e envio à cozinha.</p>
       </article>
-      <article className="catalog-stat-card">
-        <span>Cozinha</span>
+      <article className="users-stat-card">
+        <p className="users-stat-card__label">Cozinha</p>
         <strong>{totalCozinha}</strong>
-        <p>Acesso à fila KDS de produção.</p>
       </article>
     </section>
   );
@@ -316,7 +326,7 @@ const Users: React.FC = () => {
   if (loading) {
     return (
       <CatalogPageLayout
-        className="users-page"
+        className="users-page catalog-page--ifood"
         moduleLabel="Sistema"
         modulePath="/usuarios"
         title="Usuários e permissões"
@@ -328,7 +338,7 @@ const Users: React.FC = () => {
 
   return (
     <CatalogPageLayout
-      className="users-page"
+      className="users-page catalog-page--ifood"
       moduleLabel="Sistema"
       modulePath="/usuarios"
       title="Usuários e permissões"
@@ -507,16 +517,17 @@ const Users: React.FC = () => {
         </div>
       </RegistryFormModal>
 
-      <section className="catalog-surface">
-        <div className="catalog-section-header">
+      <section className="catalog-registry-panel" aria-labelledby="users-panel-title">
+        <header className="catalog-registry-panel__header">
           <div>
-            <span className={SECTION_KICKER_CLASS}>Equipe</span>
-            <h2>Perfis cadastrados</h2>
+            <h2 id="users-panel-title">Perfis cadastrados</h2>
+            <p className="catalog-registry-panel__meta">
+              {listMeta?.total ?? users.length} usuário(s) encontrado(s)
+            </p>
           </div>
-          <p>{users.length} usuário(s) encontrado(s)</p>
-        </div>
+        </header>
 
-        <div className="catalog-grid users-grid">
+        <div className="catalog-grid users-grid users-grid--panel">
           {users.map((u) => (
             <article className="catalog-card user-card" key={u.id}>
               <div className="user-card-header">
@@ -538,14 +549,15 @@ const Users: React.FC = () => {
                 </div>
               </div>
 
-              <div className="catalog-chip-row">
-                <span className={ROLE_PILL_CLASS}>{getRoleLabel(u.role)}</span>
-                <span className={activeStatusPillClass(u.active)}>
-                  {u.active ? 'Ativo' : 'Inativo'}
-                </span>
-              </div>
-
               <dl className="catalog-meta-grid user-meta-grid">
+                <div>
+                  <dt>Perfil</dt>
+                  <dd>{getRoleLabel(u.role)}</dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd>{u.active ? 'Ativo' : 'Inativo'}</dd>
+                </div>
                 <div>
                   <dt>Criado em</dt>
                   <dd>{new Date(u.createdAt).toLocaleDateString('pt-BR')}</dd>
@@ -573,6 +585,22 @@ const Users: React.FC = () => {
             </article>
           ))}
         </div>
+        {listMeta && listMeta.total > 0 ? (
+          <div className="users-pagination-wrap">
+            <CatalogPagination
+              page={listMeta.page}
+              totalPages={listMeta.totalPages}
+              total={listMeta.total}
+              limit={limit}
+              disabled={loading}
+              onPageChange={setPage}
+              onLimitChange={(next) => {
+                setLimit(next);
+                setPage(1);
+              }}
+            />
+          </div>
+        ) : null}
       </section>
 
       <AlertModal
