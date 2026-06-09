@@ -16,6 +16,9 @@ import {
   MenuCatalogItem,
   Product,
 } from '../../types';
+import CatalogPagination from '../../components/catalog/CatalogPagination';
+import { normalizePaginatedResponse } from '../../utils/paginatedResponse';
+import { DEFAULT_PAGE_SIZE } from '../../types/pagination';
 import {
   campaignChannelLabel,
   campaignStatusLabel,
@@ -105,11 +108,17 @@ const CrmCampaignsPage: React.FC = () => {
     }
   }, []);
 
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(DEFAULT_PAGE_SIZE);
+  const [listMeta, setListMeta] = useState<{ page: number; totalPages: number; total: number; limit: number } | null>(null);
+
   const load = useCallback(async () => {
-    const { data } = await api.get<CrmCampaign[]>('/crm/campaigns');
-    setItems(data);
+    const { data } = await api.get('/crm/campaigns', { params: { page, limit } });
+    const normalized = normalizePaginatedResponse<CrmCampaign>(data, { page, limit });
+    setItems(normalized.items);
+    setListMeta(normalized.meta);
     setLoading(false);
-  }, []);
+  }, [page, limit]);
 
   useEffect(() => {
     if (canManage) void load();
@@ -457,6 +466,20 @@ const CrmCampaignsPage: React.FC = () => {
             </article>
           ))}
         </div>
+        {listMeta && listMeta.total > 0 ? (
+          <CatalogPagination
+            page={listMeta.page}
+            totalPages={listMeta.totalPages}
+            total={listMeta.total}
+            limit={limit}
+            disabled={loading}
+            onPageChange={setPage}
+            onLimitChange={(next) => {
+              setLimit(next);
+              setPage(1);
+            }}
+          />
+        ) : null}
       </section>
 
       <AlertModal

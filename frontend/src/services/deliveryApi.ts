@@ -1,4 +1,20 @@
 import api from './api';
+import { DEFAULT_PAGE_SIZE, type PaginatedMeta, type PaginatedResponse } from '../types/pagination';
+import { normalizePaginatedResponse } from '../utils/paginatedResponse';
+
+export type DeliveryListParams = { page?: number; limit?: number };
+export type DeliveryListResult<T> = { items: T[]; meta: PaginatedMeta };
+
+async function fetchDeliveryList<T>(
+  url: string,
+  params?: Record<string, unknown>,
+): Promise<DeliveryListResult<T>> {
+  const page = Number(params?.page ?? 1);
+  const limit = Number(params?.limit ?? DEFAULT_PAGE_SIZE);
+  const { data } = await api.get<PaginatedResponse<T> | T[]>(url, { params });
+  const normalized = normalizePaginatedResponse(data, { page, limit });
+  return { items: normalized.items, meta: normalized.meta };
+}
 
 export async function fetchDeliveryOverview() {
   const { data } = await api.get('/delivery/overview');
@@ -23,9 +39,13 @@ export async function updateDeliveryAssignmentStatus(
   return data;
 }
 
-export async function fetchCouriers() {
-  const { data } = await api.get('/delivery/couriers');
-  return data;
+export async function fetchCouriers(params?: DeliveryListParams) {
+  return fetchDeliveryList<any>('/delivery/couriers', params);
+}
+
+export async function fetchAllCouriers() {
+  const { items } = await fetchCouriers({ page: 1, limit: 100 });
+  return items;
 }
 
 export async function createCourier(body: Record<string, unknown>) {
@@ -42,9 +62,13 @@ export async function deleteCourier(id: string) {
   await api.delete(`/delivery/couriers/${id}`);
 }
 
-export async function fetchRoutes() {
-  const { data } = await api.get('/delivery/routes');
-  return data;
+export async function fetchRoutes(params?: DeliveryListParams) {
+  return fetchDeliveryList<any>('/delivery/routes', params);
+}
+
+export async function fetchAllRoutes() {
+  const { items } = await fetchRoutes({ page: 1, limit: 100 });
+  return items;
 }
 
 export async function createRoute(body: Record<string, unknown>) {

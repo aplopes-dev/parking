@@ -1,5 +1,7 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import api from '../../services/api';
+import { normalizePaginatedResponse } from '../../utils/paginatedResponse';
+import { DEFAULT_PAGE_SIZE } from '../../types/pagination';
 import { AuthContext } from '../../contexts/AuthContext';
 import AlertModal from '../../components/AlertModal';
 import PremiumSelect from '../../components/PremiumSelect';
@@ -48,14 +50,14 @@ const CrmLoyaltyPage: React.FC = () => {
 
   const load = useCallback(async () => {
     const [progRes, accRes, txRes, custRes] = await Promise.all([
-      api.get<CrmLoyaltyProgram[]>('/crm/loyalty/programs'),
-      api.get<CrmLoyaltyAccount[]>('/crm/loyalty/accounts'),
-      api.get<CrmLoyaltyTransaction[]>('/crm/loyalty/transactions', { params: { limit: 30 } }),
+      api.get('/crm/loyalty/programs', { params: { page: 1, limit: DEFAULT_PAGE_SIZE } }),
+      api.get('/crm/loyalty/accounts', { params: { page: 1, limit: DEFAULT_PAGE_SIZE } }),
+      api.get('/crm/loyalty/transactions', { params: { page: 1, limit: DEFAULT_PAGE_SIZE } }),
       api.get<{ data: Customer[] }>('/customers', { params: { limit: 100 } }),
     ]);
-    setPrograms(progRes.data);
-    setAccounts(accRes.data);
-    setTransactions(txRes.data);
+    setPrograms(normalizePaginatedResponse<CrmLoyaltyProgram>(progRes.data, { page: 1, limit: DEFAULT_PAGE_SIZE }).items);
+    setAccounts(normalizePaginatedResponse<CrmLoyaltyAccount>(accRes.data, { page: 1, limit: DEFAULT_PAGE_SIZE }).items);
+    setTransactions(normalizePaginatedResponse<CrmLoyaltyTransaction>(txRes.data, { page: 1, limit: DEFAULT_PAGE_SIZE }).items);
     setCustomers(custRes.data.data.filter((c) => c.active));
     setLoading(false);
   }, []);

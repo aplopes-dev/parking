@@ -62,9 +62,9 @@
 }
 
 .crm-campaign-products__tab.is-active {
-  border-color: var(--brand-primary, #ea1d2c);
-  background: rgba(234, 29, 44, 0.08);
-  color: var(--brand-primary, #ea1d2c);
+  border-color: var(--brand-primary, #2c4778);
+  background: var(--btn-muted-surface, #f5f5f4);
+  color: var(--brand-primary, #2c4778);
   font-weight: 600;
 }
 
@@ -110,17 +110,17 @@
 }
 
 .crm-campaign-products__item:hover {
-  border-color: rgba(234, 29, 44, 0.35);
+  border-color: rgba(44, 71, 120, 0.35);
 }
 
 .crm-campaign-products__item.is-selected {
-  border-color: var(--brand-primary, #ea1d2c);
-  background: rgba(234, 29, 44, 0.05);
+  border-color: var(--brand-primary, #2c4778);
+  background: var(--btn-hover-bg, #fafafa);
 }
 
 .crm-campaign-products__item input {
   margin-top: 0.2rem;
-  accent-color: var(--brand-primary, #ea1d2c);
+  accent-color: var(--brand-primary, #2c4778);
 }
 
 .crm-campaign-products__item-body {

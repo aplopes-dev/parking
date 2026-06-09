@@ -1,5 +1,7 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import api from '../../services/api';
+import { normalizePaginatedResponse } from '../../utils/paginatedResponse';
+import { DEFAULT_PAGE_SIZE } from '../../types/pagination';
 import { AuthContext } from '../../contexts/AuthContext';
 import AlertModal from '../../components/AlertModal';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -29,10 +31,10 @@ const StockMinimumsPage: React.FC = () => {
 
   const load = useCallback(async () => {
     const [listRes, alertsRes] = await Promise.all([
-      api.get<StockMinimum[]>('/stock-minimums'),
+      api.get('/stock-minimums', { params: { page: 1, limit: DEFAULT_PAGE_SIZE } }),
       api.get<StockMinimum[]>('/stock-minimums/alerts'),
     ]);
-    setItems(listRes.data);
+    setItems(normalizePaginatedResponse<StockMinimum>(listRes.data, { page: 1, limit: DEFAULT_PAGE_SIZE }).items);
     setAlerts(alertsRes.data);
     setLoading(false);
   }, []);

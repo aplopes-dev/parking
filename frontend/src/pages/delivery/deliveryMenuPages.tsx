@@ -11,15 +11,19 @@ import {
   createRoute,
   deleteCourier,
   deleteRoute,
+  fetchAllCouriers,
   fetchCouriers,
   fetchDeliveryOrders,
   fetchDeliveryOverview,
+  fetchAllRoutes,
   fetchRoutes,
   updateCourier,
   updateDeliveryAssignmentStatus,
 } from '../../services/deliveryApi';
 import { formatMoney } from '../finance/financeShared';
 import { orderStatusLabel } from '../pdv/pdvUtils';
+import CatalogPagination from '../../components/catalog/CatalogPagination';
+import { DEFAULT_PAGE_SIZE, type PaginatedMeta } from '../../types/pagination';
 import './DeliveryPages.css';
 
 function errMsg(e: unknown): string {
@@ -82,7 +86,7 @@ export const DeliveryManagementPage: React.FC = () => {
   const load = useCallback(async () => {
     const [o, c, ov] = await Promise.all([
       fetchDeliveryOrders({ openOnly: true }),
-      fetchCouriers(),
+      fetchAllCouriers(),
       fetchDeliveryOverview(),
     ]);
     setOrders(o);
@@ -303,11 +307,23 @@ export const DeliveryMotoboysPage: React.FC = () => {
     label: string;
   } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [courierPage, setCourierPage] = useState(1);
+  const [courierLimit, setCourierLimit] = useState(DEFAULT_PAGE_SIZE);
+  const [courierMeta, setCourierMeta] = useState<PaginatedMeta | null>(null);
+  const [routePage, setRoutePage] = useState(1);
+  const [routeLimit, setRouteLimit] = useState(DEFAULT_PAGE_SIZE);
+  const [routeMeta, setRouteMeta] = useState<PaginatedMeta | null>(null);
 
   const load = useCallback(async () => {
-    setCouriers(await fetchCouriers());
-    setRoutes(await fetchRoutes());
-  }, []);
+    const [cResult, rResult] = await Promise.all([
+      fetchCouriers({ page: courierPage, limit: courierLimit }),
+      fetchRoutes({ page: routePage, limit: routeLimit }),
+    ]);
+    setCouriers(cResult.items);
+    setCourierMeta(cResult.meta);
+    setRoutes(rResult.items);
+    setRouteMeta(rResult.meta);
+  }, [courierPage, courierLimit, routePage, routeLimit]);
 
   useEffect(() => {
     if (can) load();
@@ -426,7 +442,7 @@ export const DeliveryMotoboysPage: React.FC = () => {
             <span className="catalog-section-kicker">Equipe</span>
             <h2>Entregadores cadastrados</h2>
           </div>
-          <p>{couriers.length} registro(s)</p>
+          <p>{courierMeta?.total ?? couriers.length} registro(s)</p>
         </div>
         {couriers.length === 0 ? (
           <div className="catalog-empty">Nenhum entregador cadastrado.</div>
@@ -491,6 +507,19 @@ export const DeliveryMotoboysPage: React.FC = () => {
             </table>
           </div>
         )}
+        {courierMeta && courierMeta.total > 0 ? (
+          <CatalogPagination
+            page={courierMeta.page}
+            totalPages={courierMeta.totalPages}
+            total={courierMeta.total}
+            limit={courierLimit}
+            onPageChange={setCourierPage}
+            onLimitChange={(next) => {
+              setCourierLimit(next);
+              setCourierPage(1);
+            }}
+          />
+        ) : null}
       </section>
 
       <RegistryFormModal
@@ -562,7 +591,7 @@ export const DeliveryMotoboysPage: React.FC = () => {
             <span className="catalog-section-kicker">Rotas</span>
             <h2>Rotas cadastradas</h2>
           </div>
-          <p>{routes.length} registro(s)</p>
+          <p>{routeMeta?.total ?? routes.length} registro(s)</p>
         </div>
         {routes.length === 0 ? (
           <div className="catalog-empty">Nenhuma rota cadastrada.</div>
@@ -605,6 +634,19 @@ export const DeliveryMotoboysPage: React.FC = () => {
             </table>
           </div>
         )}
+        {routeMeta && routeMeta.total > 0 ? (
+          <CatalogPagination
+            page={routeMeta.page}
+            totalPages={routeMeta.totalPages}
+            total={routeMeta.total}
+            limit={routeLimit}
+            onPageChange={setRoutePage}
+            onLimitChange={(next) => {
+              setRouteLimit(next);
+              setRoutePage(1);
+            }}
+          />
+        ) : null}
       </section>
 
       <ConfirmModal

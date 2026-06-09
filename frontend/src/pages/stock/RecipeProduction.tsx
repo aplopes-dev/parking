@@ -1,5 +1,7 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import api from '../../services/api';
+import { normalizePaginatedResponse } from '../../utils/paginatedResponse';
+import { DEFAULT_PAGE_SIZE } from '../../types/pagination';
 import { AuthContext } from '../../contexts/AuthContext';
 import AlertModal from '../../components/AlertModal';
 import PremiumSelect from '../../components/PremiumSelect';
@@ -24,11 +26,17 @@ const RecipeProductionPage: React.FC = () => {
 
   const load = useCallback(async () => {
     const [sheetsRes, histRes] = await Promise.all([
-      api.get<TechnicalSheet[]>('/technical-sheets'),
-      api.get<RecipeProduction[]>('/recipe-productions'),
+      api.get('/technical-sheets', { params: { page: 1, limit: 100 } }),
+      api.get('/recipe-productions', { params: { page: 1, limit: DEFAULT_PAGE_SIZE } }),
     ]);
-    setSheets(sheetsRes.data.filter((s) => s.active));
-    setHistory(histRes.data);
+    setSheets(
+      normalizePaginatedResponse<TechnicalSheet>(sheetsRes.data, { page: 1, limit: 100 }).items.filter(
+        (s) => s.active,
+      ),
+    );
+    setHistory(
+      normalizePaginatedResponse<RecipeProduction>(histRes.data, { page: 1, limit: DEFAULT_PAGE_SIZE }).items,
+    );
     setLoading(false);
   }, []);
 

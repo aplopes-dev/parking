@@ -38,7 +38,10 @@ const StockAdjustmentPage: React.FC = () => {
   }, [form.productId, form.locationId]);
 
   const loadRecent = () => {
-    api.get<StockBalance[]>('/stock-balances', { params: { limit: 20 } }).then((res) => setRecent(res.data.slice(0, 12)));
+    api.get('/stock-balances', { params: { page: 1, limit: 10 } }).then((res) => {
+      const data = Array.isArray(res.data) ? res.data : (res.data.data ?? []);
+      setRecent(data);
+    });
   };
 
   useEffect(() => {

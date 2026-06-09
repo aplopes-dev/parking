@@ -1,5 +1,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
+import { normalizePaginatedResponse } from '../../utils/paginatedResponse';
+import { DEFAULT_PAGE_SIZE } from '../../types/pagination';
 import { AuthContext } from '../../contexts/AuthContext';
 import AlertModal from '../../components/AlertModal';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -32,8 +34,9 @@ const TechnicalSheetsPage: React.FC = () => {
 
   const loadItems = useCallback(async () => {
     try {
-      const { data } = await api.get<TechnicalSheet[]>('/technical-sheets');
-      setItems(sortBySortOrder(data));
+      const { data } = await api.get('/technical-sheets', { params: { page: 1, limit: 100 } });
+      const items = normalizePaginatedResponse<TechnicalSheet>(data, { page: 1, limit: 100 }).items;
+      setItems(sortBySortOrder(items));
     } catch (error) {
       console.error(error);
       setAlert({ isOpen: true, message: 'Erro ao carregar fichas técnicas.', type: 'error' });

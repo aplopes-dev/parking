@@ -126,7 +126,7 @@
 }
 
 .delivery-toggle input:checked + .delivery-toggle__slider {
-  background: var(--brand-primary, #ea1d2c);
+  background: var(--brand-primary, #2c4778);
 }
 
 .delivery-toggle input:checked + .delivery-toggle__slider::after {
