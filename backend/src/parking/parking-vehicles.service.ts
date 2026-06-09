@@ -11,6 +11,7 @@ import { ParkingSession } from './entities/parking-session.entity';
 import { ParkingSubscriptionVehicle } from './entities/parking-subscription-vehicle.entity';
 import { ParkingVehicle } from './entities/parking-vehicle.entity';
 import { ContractStatus } from './entities/parking.enums';
+import { paginateQueryBuilder } from '../common/utils/paginate-typeorm';
 import {
   CreateParkingVehicleDto,
   ListParkingVehiclesQueryDto,
@@ -57,8 +58,11 @@ export class ParkingVehiclesService {
       );
     }
 
-    const vehicles = await qb.getMany();
-    return Promise.all(vehicles.map((v) => this.enrichVehicle(tenantId, v)));
+    const paginated = await paginateQueryBuilder(qb, query, 'plate');
+    const data = await Promise.all(
+      paginated.data.map((v) => this.enrichVehicle(tenantId, v)),
+    );
+    return { data, meta: paginated.meta };
   }
 
   async getByPlate(tenantId: string, plate: string) {

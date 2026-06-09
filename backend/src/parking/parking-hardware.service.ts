@@ -19,11 +19,14 @@ import {
   ParkingSessionStatus,
   VehicleType,
 } from './entities/parking.enums';
+import { buildPaginatedMeta, resolvePagination } from '../common/dto/pagination-query.dto';
+import { paginateQueryBuilder } from '../common/utils/paginate-typeorm';
 import {
   CreateParkingDeviceDto,
   HardwareHeartbeatDto,
   HardwareLprReadDto,
   ListAccessEventsQueryDto,
+  ListParkingDevicesQueryDto,
   ManualGateOpenDto,
   UpdateParkingDeviceDto,
 } from './dto/parking-hardware.dto';
@@ -68,14 +71,20 @@ export class ParkingHardwareService {
     private readonly cashService: ParkingCashService,
   ) {}
 
-  async listDevices(tenantId: string, facilityId?: string) {
-    const where: Record<string, unknown> = { tenantId };
-    if (facilityId) where.facilityId = facilityId;
-    return this.devicesRepo.find({
-      where,
+  async listDevices(tenantId: string, query: ListParkingDevicesQueryDto) {
+    const { page, limit, skip, sortOrder } = resolvePagination(query);
+    const sortBy = 'name';
+    const [data, total] = await this.devicesRepo.findAndCount({
+      where: {
+        tenantId,
+        ...(query.facilityId ? { facilityId: query.facilityId } : {}),
+      },
       relations: ['facility'],
-      order: { name: 'ASC' },
+      order: { name: sortOrder },
+      skip,
+      take: limit,
     });
+    return buildPaginatedMeta(data, total, page, limit, sortBy, sortOrder);
   }
 
   async createDevice(tenantId: string, dto: CreateParkingDeviceDto) {
@@ -131,8 +140,7 @@ export class ParkingHardwareService {
       .leftJoinAndSelect('e.facility', 'facility')
       .leftJoinAndSelect('e.session', 'session')
       .where('e.tenant_id = :tenantId', { tenantId })
-      .orderBy('e.created_at', 'DESC')
-      .take(200);
+      .orderBy('e.createdAt', 'DESC');
 
     if (query.facilityId) {
       qb.andWhere('e.facility_id = :facilityId', { facilityId: query.facilityId });
@@ -144,7 +152,7 @@ export class ParkingHardwareService {
       qb.andWhere('e.plate ILIKE :plate', { plate: `%${normalizePlate(query.plate)}%` });
     }
 
-    return qb.getMany();
+    return paginateQueryBuilder(qb, query, 'createdAt');
   }
 
   async manualOpenGate(tenantId: string, deviceId: string, dto: ManualGateOpenDto) {

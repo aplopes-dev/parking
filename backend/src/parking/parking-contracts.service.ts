@@ -31,6 +31,7 @@ import {
   UpdateParkingAgreementDto,
   UpdateParkingSubscriptionDto,
 } from './dto/parking-contracts.dto';
+import { paginateQueryBuilder } from '../common/utils/paginate-typeorm';
 import { ParkingVehiclesService } from './parking-vehicles.service';
 
 export type PlateAccessResult = {
@@ -164,7 +165,7 @@ export class ParkingContractsService {
       .leftJoinAndSelect('s.tariff', 'tariff')
       .leftJoinAndSelect('s.vehicles', 'vehicles')
       .where('s.tenant_id = :tenantId', { tenantId })
-      .orderBy('s.created_at', 'DESC');
+      .orderBy('s.createdAt', 'DESC');
 
     if (query.facilityId) {
       qb.andWhere('s.facility_id = :facilityId', { facilityId: query.facilityId });
@@ -180,7 +181,7 @@ export class ParkingContractsService {
       );
     }
 
-    return qb.getMany();
+    return paginateQueryBuilder(qb, query, 'createdAt');
   }
 
   async createSubscription(
@@ -331,7 +332,7 @@ export class ParkingContractsService {
       .leftJoinAndSelect('a.facility', 'facility')
       .leftJoinAndSelect('a.vehicles', 'vehicles')
       .where('a.tenant_id = :tenantId', { tenantId })
-      .orderBy('a.created_at', 'DESC');
+      .orderBy('a.createdAt', 'DESC');
 
     if (query.facilityId) {
       qb.andWhere('(a.facility_id = :facilityId OR a.facility_id IS NULL)', {
@@ -349,7 +350,7 @@ export class ParkingContractsService {
       );
     }
 
-    return qb.getMany();
+    return paginateQueryBuilder(qb, query, 'createdAt');
   }
 
   async createAgreement(

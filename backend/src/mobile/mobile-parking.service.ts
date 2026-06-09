@@ -15,7 +15,7 @@ export class MobileParkingService {
   ) {}
 
   async getBootstrap(tenantId: string, facilityId?: string) {
-    const facilities = (await this.parkingService.listFacilities(tenantId)).filter(
+    const facilities = (await this.parkingService.findAllFacilities(tenantId)).filter(
       (f) => f.active,
     );
     const selectedFacilityId =
@@ -25,14 +25,17 @@ export class MobileParkingService {
 
     const payload = await this.buildValetPayload(tenantId, selectedFacilityId ?? undefined);
     const spots = selectedFacilityId
-      ? await this.parkingService.listSpots(tenantId, selectedFacilityId)
+      ? await this.parkingService.findAllSpots(tenantId, selectedFacilityId)
       : [];
     const tariffsQuery: ListParkingTariffsQueryDto = {
       facilityId: selectedFacilityId ?? undefined,
+      limit: 100,
+      page: 1,
     };
-    const tariffs = selectedFacilityId
+    const tariffsResult = selectedFacilityId
       ? await this.parkingService.listTariffs(tenantId, tariffsQuery)
-      : [];
+      : { data: [] };
+    const tariffs = tariffsResult.data ?? [];
 
     return {
       facilities,

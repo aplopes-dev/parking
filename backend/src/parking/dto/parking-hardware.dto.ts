@@ -11,6 +11,7 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import {
   ParkingDeviceDirection,
   ParkingDeviceType,
@@ -106,7 +107,13 @@ export class UpdateParkingDeviceDto {
   config?: Record<string, unknown>;
 }
 
-export class ListAccessEventsQueryDto {
+export class ListParkingDevicesQueryDto extends PaginationQueryDto {
+  @IsOptional()
+  @IsUUID()
+  facilityId?: string;
+}
+
+export class ListAccessEventsQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsUUID()
   facilityId?: string;

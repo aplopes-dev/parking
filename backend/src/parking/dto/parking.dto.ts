@@ -10,6 +10,7 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import {
   ParkingSegment,
   ParkingSessionStatus,
@@ -288,7 +289,15 @@ export class TariffQuoteQueryDto {
   vehicleType?: VehicleType;
 }
 
-export class ListParkingTariffsQueryDto {
+export class ListParkingFacilitiesQueryDto extends PaginationQueryDto {}
+
+export class ListParkingSpotsQueryDto extends PaginationQueryDto {
+  @IsOptional()
+  @IsUUID()
+  facilityId?: string;
+}
+
+export class ListParkingTariffsQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsUUID()
   facilityId?: string;
@@ -298,7 +307,7 @@ export class ListParkingTariffsQueryDto {
   billingType?: TariffBillingType;
 }
 
-export class ListParkingSessionsQueryDto {
+export class ListParkingSessionsQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsUUID()
   facilityId?: string;

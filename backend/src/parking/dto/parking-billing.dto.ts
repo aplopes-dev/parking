@@ -8,6 +8,7 @@ import {
   IsUUID,
   Matches,
 } from 'class-validator';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { SubscriptionBillPaymentMethod } from '../entities/parking.enums';
 
 export class BillingPreviewQueryDto {
@@ -47,7 +48,7 @@ export class GenerateSubscriptionBillingDto {
   paymentMethod?: SubscriptionBillPaymentMethod;
 }
 
-export class ListSubscriptionBillingQueryDto {
+export class ListSubscriptionBillingQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   @Matches(/^\d{4}-\d{2}$/)

@@ -25,6 +25,7 @@ import {
   SubscriptionBillPaymentMethod,
   SubscriptionBillStatus,
 } from './entities/parking.enums';
+import { paginateQueryBuilder } from '../common/utils/paginate-typeorm';
 import {
   BillingPreviewQueryDto,
   ChargeSubscriptionBillDto,
@@ -307,7 +308,7 @@ export class ParkingBillingService {
       .leftJoinAndSelect('sub.facility', 'facility')
       .leftJoinAndSelect('b.financeBill', 'financeBill')
       .where('b.tenant_id = :tenantId', { tenantId })
-      .orderBy('b.reference_month', 'DESC')
+      .orderBy('b.referenceMonth', 'DESC')
       .addOrderBy('customer.name', 'ASC');
 
     if (query.referenceMonth) {
@@ -327,8 +328,11 @@ export class ParkingBillingService {
       qb.andWhere('b.status = :status', { status: query.status });
     }
 
-    const bills = await qb.getMany();
-    return bills.map((b) => this.mapBill(b));
+    const paginated = await paginateQueryBuilder(qb, query, 'referenceMonth');
+    return {
+      data: paginated.data.map((b) => this.mapBill(b)),
+      meta: paginated.meta,
+    };
   }
 
   async settle(user: User, dto: SettleSubscriptionBillingDto) {

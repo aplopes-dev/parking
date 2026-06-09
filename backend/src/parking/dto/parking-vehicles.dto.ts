@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
@@ -7,14 +8,16 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { VehicleType } from '../entities/parking.enums';
 
-export class ListParkingVehiclesQueryDto {
+export class ListParkingVehiclesQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
 
   @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   active?: boolean;
 

@@ -21,7 +21,9 @@ import {
   CreateParkingFacilityDto,
   CreateParkingSpotDto,
   CreateParkingTariffDto,
+  ListParkingFacilitiesQueryDto,
   ListParkingSessionsQueryDto,
+  ListParkingSpotsQueryDto,
   ListParkingTariffsQueryDto,
   TariffQuoteQueryDto,
   UpdateParkingFacilityDto,
@@ -51,8 +53,8 @@ export class ParkingController {
   }
 
   @Get('facilities')
-  listFacilities(@CurrentUser() user: User) {
-    return this.service.listFacilities(user.tenantId);
+  listFacilities(@CurrentUser() user: User, @Query() query: ListParkingFacilitiesQueryDto) {
+    return this.service.listFacilities(user.tenantId, query);
   }
 
   @Post('facilities')
@@ -70,8 +72,8 @@ export class ParkingController {
   }
 
   @Get('spots')
-  listSpots(@CurrentUser() user: User, @Query('facilityId') facilityId?: string) {
-    return this.service.listSpots(user.tenantId, facilityId);
+  listSpots(@CurrentUser() user: User, @Query() query: ListParkingSpotsQueryDto) {
+    return this.service.listSpots(user.tenantId, query);
   }
 
   @Post('spots')

@@ -17,6 +17,7 @@ import { User, UserRole } from '../users/entities/user.entity';
 import {
   CreateParkingDeviceDto,
   ListAccessEventsQueryDto,
+  ListParkingDevicesQueryDto,
   ManualGateOpenDto,
   SimulateLprDto,
   UpdateParkingDeviceDto,
@@ -34,8 +35,8 @@ export class ParkingHardwareController {
   constructor(private readonly hardwareService: ParkingHardwareService) {}
 
   @Get('devices')
-  listDevices(@CurrentUser() user: User, @Query('facilityId') facilityId?: string) {
-    return this.hardwareService.listDevices(user.tenantId, facilityId);
+  listDevices(@CurrentUser() user: User, @Query() query: ListParkingDevicesQueryDto) {
+    return this.hardwareService.listDevices(user.tenantId, query);
   }
 
   @Post('devices')

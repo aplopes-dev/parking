@@ -25,13 +25,20 @@ import {
   vehicleTypeMatches,
 } from './parking-tariff.util';
 import {
+  buildPaginatedMeta,
+  resolvePagination,
+} from '../common/dto/pagination-query.dto';
+import { paginateQueryBuilder } from '../common/utils/paginate-typeorm';
+import {
   BulkCreateParkingSpotsDto,
   CloseParkingSessionDto,
   CreateParkingEntryDto,
   CreateParkingFacilityDto,
   CreateParkingSpotDto,
   CreateParkingTariffDto,
+  ListParkingFacilitiesQueryDto,
   ListParkingSessionsQueryDto,
+  ListParkingSpotsQueryDto,
   ListParkingTariffsQueryDto,
   TariffQuoteQueryDto,
   UpdateParkingFacilityDto,
@@ -122,7 +129,19 @@ export class ParkingService {
     return facility;
   }
 
-  async listFacilities(tenantId: string) {
+  async listFacilities(tenantId: string, query: ListParkingFacilitiesQueryDto) {
+    const { page, limit, skip, sortOrder } = resolvePagination(query);
+    const sortBy = 'name';
+    const [data, total] = await this.facilitiesRepo.findAndCount({
+      where: { tenantId },
+      order: { name: sortOrder },
+      skip,
+      take: limit,
+    });
+    return buildPaginatedMeta(data, total, page, limit, sortBy, sortOrder);
+  }
+
+  async findAllFacilities(tenantId: string) {
     return this.facilitiesRepo.find({
       where: { tenantId },
       order: { name: 'ASC' },
@@ -156,7 +175,23 @@ export class ParkingService {
     return this.facilitiesRepo.save(facility);
   }
 
-  async listSpots(tenantId: string, facilityId?: string) {
+  async listSpots(tenantId: string, query: ListParkingSpotsQueryDto) {
+    const { page, limit, skip, sortOrder } = resolvePagination(query);
+    const sortBy = 'code';
+    const [data, total] = await this.spotsRepo.findAndCount({
+      where: {
+        tenantId,
+        ...(query.facilityId ? { facilityId: query.facilityId } : {}),
+      },
+      relations: ['facility'],
+      order: { code: sortOrder },
+      skip,
+      take: limit,
+    });
+    return buildPaginatedMeta(data, total, page, limit, sortBy, sortOrder);
+  }
+
+  async findAllSpots(tenantId: string, facilityId?: string) {
     return this.spotsRepo.find({
       where: {
         tenantId,
@@ -231,17 +266,21 @@ export class ParkingService {
   }
 
   async listSessions(tenantId: string, query: ListParkingSessionsQueryDto) {
+    const { page, limit, skip, sortOrder } = resolvePagination(query);
+    const sortBy = 'entryAt';
     const where: Record<string, unknown> = { tenantId };
     if (query.facilityId) where.facilityId = query.facilityId;
     if (query.status) where.status = query.status;
     if (query.plate) where.plate = ILike(`%${normalizePlate(query.plate)}%`);
 
-    return this.sessionsRepo.find({
+    const [data, total] = await this.sessionsRepo.findAndCount({
       where,
       relations: ['facility', 'spot', 'tariff', 'customer', 'subscription', 'agreement'],
-      order: { entryAt: 'DESC' },
-      take: 200,
+      order: { entryAt: sortOrder === 'ASC' ? 'ASC' : 'DESC' },
+      skip,
+      take: limit,
     });
+    return buildPaginatedMeta(data, total, page, limit, sortBy, sortOrder);
   }
 
   async registerEntry(tenantId: string, dto: CreateParkingEntryDto) {
@@ -451,7 +490,7 @@ export class ParkingService {
       .createQueryBuilder('t')
       .leftJoinAndSelect('t.facility', 'facility')
       .where('t.tenant_id = :tenantId', { tenantId })
-      .orderBy('t.sort_order', 'ASC')
+      .orderBy('t.sortOrder', 'ASC')
       .addOrderBy('t.name', 'ASC');
 
     if (query.facilityId) {
@@ -463,7 +502,7 @@ export class ParkingService {
       qb.andWhere('t.billing_type = :billingType', { billingType: query.billingType });
     }
 
-    return qb.getMany();
+    return paginateQueryBuilder(qb, query, 'sortOrder');
   }
 
   async createTariff(tenantId: string, dto: CreateParkingTariffDto) {
@@ -632,7 +671,7 @@ export class ParkingService {
   }
 
   async getDashboard(tenantId: string, facilityId?: string) {
-    const facilities = await this.listFacilities(tenantId);
+    const facilities = await this.findAllFacilities(tenantId);
     const targetFacilityId = facilityId ?? facilities[0]?.id;
 
     const spotWhere: Record<string, unknown> = { tenantId, active: true };

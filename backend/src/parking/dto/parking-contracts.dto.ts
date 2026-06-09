@@ -12,6 +12,7 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { ContractStatus, VehicleType } from '../entities/parking.enums';
 
 export class CreateParkingSubscriptionDto {
@@ -193,7 +194,7 @@ export class AddAgreementVehicleDto {
   department?: string;
 }
 
-export class ListContractsQueryDto {
+export class ListContractsQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsUUID()
   facilityId?: string;
