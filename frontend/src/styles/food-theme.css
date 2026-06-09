@@ -54,4 +54,9 @@
   --modal-body-gap: 16px;
   --modal-field-height: 48px;
   --modal-textarea-min-height: 88px;
+
+  /* Botões — hover/focus neutros (sem tom rosa/vermelho) */
+  --btn-hover-bg: #fafafa;
+  --btn-hover-border: #d4d4d4;
+  --btn-muted-surface: var(--surface-muted, #f5f5f4);
 }

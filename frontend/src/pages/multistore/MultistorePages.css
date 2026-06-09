@@ -30,7 +30,7 @@
   font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--brand-primary, #ea1d2c);
+  color: var(--brand-primary, #2c4778);
 }
 
 .multistore-units-grid {
@@ -50,8 +50,8 @@
 }
 
 .multistore-unit-card.is-current {
-  border-color: var(--brand-primary, #ea1d2c);
-  box-shadow: 0 0 0 1px rgba(234, 29, 44, 0.12);
+  border-color: var(--brand-primary, #2c4778);
+  box-shadow: 0 0 0 1px rgba(44, 71, 120, 0.12);
 }
 
 .multistore-unit-card strong {

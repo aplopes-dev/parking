@@ -64,9 +64,23 @@
 .finance-toolbar__actions {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-end;
   gap: 10px;
   margin-left: auto;
+}
+
+.finance-toolbar__actions .form-group {
+  margin: 0;
+  flex: 0 1 200px;
+  min-width: 160px;
+  max-width: 280px;
+}
+
+.finance-toolbar__actions .btn-primary,
+.finance-toolbar__actions .catalog-action-button,
+.finance-toolbar__actions .catalog-form-footer-btn {
+  flex-shrink: 0;
+  align-self: flex-end;
 }
 
 .finance-filters {
@@ -92,6 +106,11 @@
 /* —— Painéis —— */
 .finance-section {
   margin: 0;
+}
+
+.finance-section .finance-list-panel__title {
+  margin: 0 0 18px;
+  padding: 0;
 }
 
 .finance-panel {
@@ -176,7 +195,7 @@
   justify-content: center;
   border: 0;
   border-radius: var(--radius-md, 6px);
-  background: var(--brand-primary, #ea1d2c);
+  background: var(--brand-primary, #2c4778);
   color: var(--brand-on-primary, #ffffff);
   font-size: 0.92rem;
   font-weight: 700;
@@ -185,7 +204,7 @@
 }
 
 .finance-page .btn-primary:hover {
-  background: var(--brand-primary-hover, #d41928);
+  background: var(--brand-primary-hover, #243c64);
 }
 
 .finance-page .btn-secondary {

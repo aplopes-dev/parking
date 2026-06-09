@@ -71,7 +71,7 @@
   margin: 0;
   font-size: 0.95rem;
   font-weight: 650;
-  color: var(--brand-primary, #ea1d2c);
+  color: var(--brand-primary, #2c4778);
 }
 
 .pdv-close-order-payment-row__fields.catalog-form-grid {
@@ -97,7 +97,7 @@
   border: 1px solid var(--border-default, #e5e5e5);
   border-radius: 6px;
   background: #fff;
-  color: var(--brand-primary, #ea1d2c);
+  color: var(--brand-primary, #2c4778);
   font-size: 1.2rem;
   font-weight: 700;
   line-height: 1;
@@ -106,8 +106,8 @@
 }
 
 .pdv-close-order-payment-row__remove:hover:not(:disabled) {
-  background: rgba(234, 29, 44, 0.08);
-  border-color: var(--brand-primary, #ea1d2c);
+  background: var(--btn-muted-surface, #f5f5f4);
+  border-color: var(--brand-primary, #2c4778);
 }
 
 .pdv-close-order-payment-row__remove:disabled {

@@ -69,5 +69,5 @@
 .production-notifications-checkboxes input[type='checkbox'] {
   width: 1.1rem;
   height: 1.1rem;
-  accent-color: var(--brand-primary, #ea1d2c);
+  accent-color: var(--brand-primary, #2c4778);
 }

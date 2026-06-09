@@ -50,8 +50,9 @@
 }
 
 .smartpos-ws-strip-btn:hover {
-  border-color: var(--brand-primary, #ea1d2c);
-  color: var(--brand-primary, #ea1d2c);
+  border-color: var(--btn-hover-border, #d4d4d4);
+  background: var(--btn-hover-bg, #fafafa);
+  color: var(--text-primary, #1a1a1a);
 }
 
 .smartpos-live {
@@ -163,9 +164,9 @@
 }
 
 .smartpos-zone-tab.is-active {
-  border-color: var(--brand-primary, #ea1d2c);
-  background: rgba(234, 29, 44, 0.08);
-  color: var(--brand-primary, #ea1d2c);
+  border-color: var(--brand-primary, #2c4778);
+  background: var(--btn-muted-surface, #f5f5f4);
+  color: var(--brand-primary, #2c4778);
   box-shadow: none;
 }
 
@@ -203,8 +204,8 @@
 }
 
 .smartpos-table-card.is-selected {
-  border-color: var(--brand-primary, #ea1d2c);
-  box-shadow: 0 0 0 2px rgba(234, 29, 44, 0.2);
+  border-color: var(--brand-primary, #2c4778);
+  box-shadow: 0 0 0 2px rgba(44, 71, 120, 0.2);
 }
 
 .smartpos-table-ready-dot {
@@ -431,7 +432,7 @@
 .smartpos-zone-tab:focus-visible,
 .smartpos-table-card:focus-visible,
 .smartpos-actions .catalog-action-button:focus-visible {
-  outline: var(--brand-focus-ring, 0 0 0 4px rgba(234, 29, 44, 0.22));
+  outline: var(--brand-focus-ring, 0 0 0 4px rgba(44, 71, 120, 0.22));
   outline-offset: 2px;
 }
 

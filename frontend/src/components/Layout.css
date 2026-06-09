@@ -495,25 +495,22 @@
 }
 
 .app-logout-button {
-  border: 0;
   height: var(--header-control-height);
   padding: 0 14px;
   border-radius: 14px;
-  background: rgba(239, 68, 68, 0.14);
-  color: #fecaca;
+  background: #ffffff;
+  color: var(--text-primary, #1a1a1a);
   font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
-  border: 1px solid rgba(248, 113, 113, 0.16);
-  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  border: 1px solid var(--border-default, #e5e5e5);
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .app-logout-button:hover {
-  background: rgba(239, 68, 68, 0.22);
-  border-color: rgba(248, 113, 113, 0.28);
-  color: #ffffff;
-  box-shadow: 0 10px 22px rgba(239, 68, 68, 0.12);
-  transform: translateY(-1px);
+  background: var(--btn-hover-bg, #fafafa);
+  border-color: var(--btn-hover-border, #d4d4d4);
+  color: var(--text-primary, #1a1a1a);
 }
 
 @media (max-width: 1280px) {
@@ -854,7 +851,7 @@
   width: 44px;
   height: 44px;
   border-radius: var(--radius-md, 6px);
-  background: var(--brand-primary, #ea1d2c);
+  background: var(--brand-primary, #2c4778);
   color: #fff;
   font-size: 1.25rem;
   font-weight: 800;
@@ -1026,19 +1023,18 @@
 .app-topbar-home-btn:hover {
   border-color: #d4d4d4;
   background: #fafafa;
-  color: var(--brand-primary, #ea1d2c);
+  color: var(--text-primary, #1a1a1a);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
 }
 
 .app-topbar-home-btn.is-active {
-  border-color: var(--brand-primary, #ea1d2c);
-  background: rgba(234, 29, 44, 0.06);
-  color: var(--brand-primary, #ea1d2c);
+  border-color: var(--brand-primary, #2c4778);
+  background: #ffffff;
+  color: var(--brand-primary, #2c4778);
 }
 
 .app-topbar-home-btn:focus-visible {
-  outline: 2px solid var(--brand-primary, #ea1d2c);
+  outline: 2px solid var(--brand-primary, #2c4778);
   outline-offset: 2px;
 }
 
@@ -1077,7 +1073,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--brand-primary, #ea1d2c);
+  background: var(--brand-primary, #2c4778);
   color: #fff;
   font-weight: 700;
   font-size: 0.85rem;
@@ -1116,8 +1112,9 @@
 }
 
 .app-topbar-logout:hover {
-  border-color: var(--brand-primary, #ea1d2c);
-  color: var(--brand-primary, #ea1d2c);
+  border-color: var(--btn-hover-border, #d4d4d4);
+  background: var(--btn-hover-bg, #fafafa);
+  color: var(--text-primary, #1a1a1a);
 }
 
 .app-main--sidebar {

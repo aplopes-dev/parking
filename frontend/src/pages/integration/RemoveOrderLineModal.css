@@ -55,9 +55,9 @@
 }
 
 .remove-line-qty-btn.is-minus:hover:not(:disabled) {
-  border-color: var(--brand-primary, #ea1d2c);
-  background: rgba(234, 29, 44, 0.08);
-  color: var(--brand-primary, #ea1d2c);
+  border-color: var(--btn-hover-border, #d4d4d4);
+  background: var(--btn-hover-bg, #fafafa);
+  color: var(--text-primary, #1a1a1a);
 }
 
 .remove-line-qty-btn:disabled {
@@ -90,7 +90,7 @@
 }
 
 .remove-line-qty-btn:focus-visible {
-  outline: var(--brand-focus-ring, 0 0 0 4px rgba(234, 29, 44, 0.22));
+  outline: var(--brand-focus-ring, 0 0 0 4px rgba(44, 71, 120, 0.22));
   outline-offset: 2px;
 }
 

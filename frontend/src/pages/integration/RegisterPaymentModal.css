@@ -36,7 +36,7 @@
 }
 
 .payment-register-amount-row--due strong {
-  color: var(--brand-primary, #ea1d2c);
+  color: var(--brand-primary, #2c4778);
   font-size: 1.1rem;
 }
 
@@ -78,9 +78,9 @@
 }
 
 .payment-register-method.is-selected {
-  border-color: var(--brand-primary, #ea1d2c);
-  background: rgba(234, 29, 44, 0.06);
-  box-shadow: 0 0 0 1px rgba(234, 29, 44, 0.12);
+  border-color: var(--brand-primary, #2c4778);
+  background: var(--btn-hover-bg, #fafafa);
+  box-shadow: 0 0 0 1px rgba(44, 71, 120, 0.12);
 }
 
 .payment-register-method:disabled {

@@ -70,7 +70,7 @@
 }
 
 .toast__dismiss:focus-visible {
-  outline: 2px solid var(--brand-primary, #ea1d2c);
+  outline: 2px solid var(--brand-primary, #2c4778);
   outline-offset: 2px;
 }
 

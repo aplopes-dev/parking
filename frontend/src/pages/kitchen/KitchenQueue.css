@@ -20,7 +20,8 @@
 }
 
 .kitchen-refresh-btn:hover {
-  border-color: var(--brand-primary, #ea1d2c);
+  border-color: var(--btn-hover-border, #d4d4d4);
+  background: var(--btn-hover-bg, #fafafa);
 }
 
 .kitchen-error {

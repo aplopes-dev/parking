@@ -16,13 +16,13 @@
 }
 
 .catalog-breadcrumb__link {
-  color: var(--brand-primary, #ea1d2c);
+  color: var(--brand-primary, #2c4778);
   font-weight: 600;
   text-decoration: none;
 }
 
 .catalog-breadcrumb__link:hover {
-  color: var(--brand-primary-hover, #d41928);
+  color: var(--brand-primary-hover, #243c64);
   text-decoration: underline;
 }
 
@@ -123,8 +123,8 @@
   width: fit-content;
   padding: 6px 12px;
   border-radius: 999px;
-  background: rgba(234, 29, 44, 0.08);
-  color: var(--brand-primary, #ea1d2c);
+  background: var(--btn-muted-surface, #f5f5f4);
+  color: var(--brand-primary, #2c4778);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -132,8 +132,8 @@
 }
 
 .catalog-section-kicker--on-dark {
-  border: 1px solid rgba(234, 29, 44, 0.35);
-  background: rgba(234, 29, 44, 0.12);
+  border: 1px solid rgba(44, 71, 120, 0.35);
+  background: rgba(44, 71, 120, 0.12);
   color: #fecaca;
 }
 
@@ -153,48 +153,53 @@
   justify-content: center;
   border: 0;
   border-radius: var(--radius-md, 6px);
-  background: var(--brand-primary, #ea1d2c);
+  background: var(--brand-primary, #2c4778);
   color: var(--brand-on-primary, #ffffff);
   font-size: 0.92rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
-.catalog-action-button:hover {
-  background: var(--brand-primary-hover, #d41928);
+.catalog-action-button:hover:not(:disabled) {
+  background: var(--brand-primary-hover, #243c64);
 }
 
 .catalog-action-button.is-secondary {
   background: #ffffff;
-  border: 1px solid var(--brand-primary, #ea1d2c);
-  color: var(--brand-primary, #ea1d2c);
+  border: 1px solid var(--border-default, #e5e5e5);
+  color: var(--text-primary, #1a1a1a);
 }
 
-.catalog-action-button.is-secondary:hover {
-  background: rgba(234, 29, 44, 0.06);
+.catalog-action-button.is-secondary:hover:not(:disabled) {
+  background: var(--btn-hover-bg, #fafafa);
+  border-color: var(--btn-hover-border, #d4d4d4);
+  color: var(--text-primary, #1a1a1a);
 }
 
 .catalog-action-button.is-danger {
-  border: 1px solid rgba(234, 29, 44, 0.35);
+  border: 1px solid var(--border-default, #e5e5e5);
   background: #ffffff;
-  color: var(--brand-primary, #ea1d2c);
+  color: var(--text-primary, #1a1a1a);
 }
 
 .catalog-action-button.is-danger:hover:not(:disabled) {
-  background: rgba(234, 29, 44, 0.06);
-  border-color: var(--brand-primary, #ea1d2c);
+  background: var(--btn-hover-bg, #fafafa);
+  border-color: var(--btn-hover-border, #d4d4d4);
 }
 
 .catalog-action-button.is-accent {
-  border: 1px solid rgba(234, 29, 44, 0.28);
-  background: rgba(234, 29, 44, 0.06);
-  color: var(--brand-primary, #ea1d2c);
+  border: 1px solid var(--border-default, #e5e5e5);
+  background: #ffffff;
+  color: var(--text-primary, #1a1a1a);
 }
 
 .catalog-action-button.is-accent:hover:not(:disabled) {
-  background: rgba(234, 29, 44, 0.1);
-  border-color: var(--brand-primary, #ea1d2c);
+  background: var(--btn-hover-bg, #fafafa);
+  border-color: var(--btn-hover-border, #d4d4d4);
 }
 
 .catalog-action-button:disabled {
@@ -569,12 +574,12 @@
 
 .catalog-form-footer-btn--primary {
   border: 0;
-  background: var(--brand-primary, #ea1d2c);
+  background: var(--brand-primary, #2c4778);
   color: #ffffff;
 }
 
-.catalog-form-footer-btn--primary:hover {
-  background: var(--brand-primary-hover, #d41928);
+.catalog-form-footer-btn--primary:hover:not(:disabled) {
+  background: var(--brand-primary-hover, #243c64);
 }
 
 .catalog-form-footer-btn--primary.is-loading {
@@ -708,13 +713,14 @@
 }
 
 .catalog-photo-remove-btn {
-  border: 1px solid #fecaca;
-  background: #fef2f2;
-  color: #b91c1c;
+  border: 1px solid var(--border-default, #e5e5e5);
+  background: #ffffff;
+  color: var(--text-primary, #1a1a1a);
 }
 
 .catalog-photo-remove-btn:hover {
-  background: #fee2e2;
+  background: var(--btn-hover-bg, #fafafa);
+  border-color: var(--btn-hover-border, #d4d4d4);
 }
 
 .catalog-photo-change-btn:focus-visible,
@@ -767,8 +773,8 @@
 
 /** Perfil / categoria — mesmo tom do catalog-badge; válido para papéis novos sem CSS extra. */
 .catalog-pill.is-role {
-  background: rgba(234, 29, 44, 0.08);
-  color: var(--brand-primary, #ea1d2c);
+  background: var(--btn-muted-surface, #f5f5f4);
+  color: var(--brand-primary, #2c4778);
 }
 
 .catalog-pill.is-warning {
@@ -789,7 +795,7 @@
 }
 
 .catalog-pill.is-solid.is-role {
-  background: var(--brand-primary, #ea1d2c);
+  background: var(--brand-primary, #2c4778);
 }
 
 .catalog-pill.is-solid.is-active,
@@ -865,19 +871,21 @@
     background-color 0.15s ease;
 }
 
-.catalog-card-button:hover {
-  border-color: var(--brand-primary, #ea1d2c);
-  color: var(--brand-primary, #ea1d2c);
+.catalog-card-button:hover:not(:disabled) {
+  border-color: var(--btn-hover-border, #d4d4d4);
+  color: var(--text-primary, #1a1a1a);
+  background: var(--btn-hover-bg, #fafafa);
 }
 
 .catalog-card-button.is-danger {
-  border-color: rgba(234, 29, 44, 0.35);
+  border-color: var(--border-default, #e5e5e5);
   background: #ffffff;
-  color: var(--brand-primary, #ea1d2c);
+  color: var(--text-primary, #1a1a1a);
 }
 
-.catalog-card-button.is-danger:hover {
-  background: rgba(234, 29, 44, 0.06);
+.catalog-card-button.is-danger:hover:not(:disabled) {
+  background: var(--btn-hover-bg, #fafafa);
+  border-color: var(--btn-hover-border, #d4d4d4);
 }
 
 .catalog-state {
@@ -932,7 +940,7 @@ a.catalog-action-button {
 }
 
 .catalog-card.is-selected {
-  outline: 2px solid var(--brand-primary, #ea1d2c);
+  outline: 2px solid var(--brand-primary, #2c4778);
   outline-offset: 2px;
 }
 

@@ -224,12 +224,13 @@
 }
 
 .product-groups-icon-btn--delete {
-  color: var(--brand-primary, #ea1d2c);
+  color: var(--text-muted, #6b6b6b);
 }
 
 .product-groups-icon-btn--delete:hover:not(:disabled) {
-  border-color: var(--brand-primary, #ea1d2c);
-  background: rgba(234, 29, 44, 0.08);
+  border-color: var(--text-primary, #1a1a1a);
+  color: var(--text-primary, #1a1a1a);
+  background: var(--btn-hover-bg, #fafafa);
 }
 
 @media (max-width: 900px) {
