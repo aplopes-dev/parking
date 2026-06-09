@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   UseGuards,
   UploadedFile,
   UseInterceptors,
@@ -15,6 +16,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserListQueryDto } from './dto/user-list-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -51,8 +53,8 @@ export class UsersController {
 
   @Get()
   @ApiOperation({ summary: 'Listar usuários' })
-  findAll(@CurrentUser() user: User) {
-    return this.usersService.findAll(user.tenantId);
+  findAll(@CurrentUser() user: User, @Query() query: UserListQueryDto) {
+    return this.usersService.findAll(user.tenantId, query);
   }
 
   @Get('team')

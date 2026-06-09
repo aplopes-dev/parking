@@ -14,6 +14,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import { MinioService } from '../minio/minio.service';
+import { buildPaginatedMeta, resolvePagination } from '../common/dto/pagination-query.dto';
+import { UserListQueryDto } from './dto/user-list-query.dto';
 
 interface UploadedPhoto {
   originalname: string;
@@ -63,11 +65,17 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
-  async findAll(tenantId: string): Promise<User[]> {
-    return this.usersRepository.find({
+  async findAll(tenantId: string, query: UserListQueryDto) {
+    const { page, limit, skip, sortOrder } = resolvePagination(query);
+    const sortBy = 'name';
+    const [data, total] = await this.usersRepository.findAndCount({
       where: { tenantId },
       relations: ['manager', 'teamMembers'],
+      order: { name: sortOrder },
+      skip,
+      take: limit,
     });
+    return buildPaginatedMeta(data, total, page, limit, sortBy, sortOrder);
   }
 
   async findOneInTenant(id: string, tenantId: string): Promise<User> {
