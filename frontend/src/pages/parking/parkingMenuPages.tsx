@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import CatalogPagination from '../../components/catalog/CatalogPagination';
 import RegistryFormModal, {
   registryModalFooterButtons,
 } from '../../components/RegistryFormModal';
@@ -13,14 +14,15 @@ import {
   createParkingFacility,
   createParkingTariff,
   fetchParkingDashboard,
+  fetchAllParkingFacilities,
+  fetchAllParkingSpots,
+  fetchAllParkingTariffs,
   fetchParkingFacilities,
   fetchParkingMeta,
   fetchParkingSessions,
   fetchParkingSpots,
   fetchParkingTariffs,
-  lookupPlateAccess,
   quoteParkingTariff,
-  registerParkingEntry,
   updateParkingTariff,
   type ParkingDashboard,
   type ParkingFacility,
@@ -28,7 +30,6 @@ import {
   type ParkingSession,
   type ParkingSpot,
   type ParkingTariff,
-  type PlateAccess,
   type TariffQuote,
 } from '../../services/parkingApi';
 import { formatMoney } from '../finance/financeShared';
@@ -45,6 +46,8 @@ import {
   vehicleTypeSelectOptions,
 } from './parkingConstants';
 import { ParkingTicketReceipt } from './ParkingTicketQr';
+import ParkingEntryFormModal from './ParkingEntryFormModal';
+import type { PaginatedMeta } from '../../types/pagination';
 import './ParkingPages.css';
 
 const EMPTY_FACILITY_FORM = {
@@ -55,13 +58,6 @@ const EMPTY_FACILITY_FORM = {
 };
 
 const EMPTY_BULK_FORM = { prefix: 'A', count: 10, floor: 'Térreo', zone: 'Bloco A' };
-
-const EMPTY_ENTRY_FORM = {
-  plate: '',
-  vehicleType: 'car',
-  spotId: '',
-  driverName: '',
-};
 
 function SpotBadge({ status }: { status: string }) {
   return (
@@ -104,6 +100,20 @@ export const ParkingDashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState({ open: false, message: '' });
   const { facilityId, setFacilityId } = useFacilityFilter(data?.facilities ?? []);
+  const [entryModalOpen, setEntryModalOpen] = useState(false);
+  const [sessionsModalOpen, setSessionsModalOpen] = useState(false);
+  const [spotsModalOpen, setSpotsModalOpen] = useState(false);
+  const [sessionsModalLoading, setSessionsModalLoading] = useState(false);
+  const [spotsModalLoading, setSpotsModalLoading] = useState(false);
+  const [sessionsModalData, setSessionsModalData] = useState<ParkingSession[]>([]);
+  const [sessionsModalMeta, setSessionsModalMeta] = useState<PaginatedMeta | null>(null);
+  const [sessionsModalPage, setSessionsModalPage] = useState(1);
+  const [sessionsModalLimit, setSessionsModalLimit] = useState(10);
+  const [spotsModalData, setSpotsModalData] = useState<ParkingSpot[]>([]);
+  const [spotsModalMeta, setSpotsModalMeta] = useState<PaginatedMeta | null>(null);
+  const [spotsModalPage, setSpotsModalPage] = useState(1);
+  const [spotsModalLimit, setSpotsModalLimit] = useState(10);
+  const [lastTicket, setLastTicket] = useState<ParkingSession | null>(null);
 
   const load = useCallback(async () => {
     const [dash, metaData] = await Promise.all([
@@ -122,6 +132,42 @@ export const ParkingDashboardPage: React.FC = () => {
   }, [load]);
 
   const summary = data?.summary;
+
+  const openSessionsModal = () => {
+    if (!facilityId) return;
+    setSessionsModalPage(1);
+    setSessionsModalOpen(true);
+  };
+
+  const openSpotsModal = () => {
+    if (!facilityId) return;
+    setSpotsModalPage(1);
+    setSpotsModalOpen(true);
+  };
+
+  useEffect(() => {
+    if (!sessionsModalOpen || !facilityId) return;
+    setSessionsModalLoading(true);
+    fetchParkingSessions({ facilityId, page: sessionsModalPage, limit: sessionsModalLimit })
+      .then((result) => {
+        setSessionsModalData(result.items);
+        setSessionsModalMeta(result.meta);
+      })
+      .catch(() => setAlert({ open: true, message: 'Erro ao carregar sessões.' }))
+      .finally(() => setSessionsModalLoading(false));
+  }, [sessionsModalOpen, facilityId, sessionsModalPage, sessionsModalLimit]);
+
+  useEffect(() => {
+    if (!spotsModalOpen || !facilityId) return;
+    setSpotsModalLoading(true);
+    fetchParkingSpots({ facilityId, page: spotsModalPage, limit: spotsModalLimit })
+      .then((result) => {
+        setSpotsModalData(result.items);
+        setSpotsModalMeta(result.meta);
+      })
+      .catch(() => setAlert({ open: true, message: 'Erro ao carregar vagas.' }))
+      .finally(() => setSpotsModalLoading(false));
+  }, [spotsModalOpen, facilityId, spotsModalPage, spotsModalLimit]);
 
   return (
     <CatalogPageLayout
@@ -181,15 +227,27 @@ export const ParkingDashboardPage: React.FC = () => {
           </div>
 
           <div className="parking-actions-row">
-            <Link to="/operacao/entrada-saida" className="catalog-action-button">
+            <button
+              type="button"
+              className="catalog-action-button"
+              onClick={() => setEntryModalOpen(true)}
+            >
               Registrar entrada
-            </Link>
-            <Link to="/operacao/sessoes" className="catalog-action-button is-secondary">
+            </button>
+            <button
+              type="button"
+              className="catalog-action-button is-secondary"
+              onClick={openSessionsModal}
+            >
               Ver sessões
-            </Link>
-            <Link to="/estacionamento/vagas" className="catalog-action-button is-secondary">
+            </button>
+            <button
+              type="button"
+              className="catalog-action-button is-secondary"
+              onClick={openSpotsModal}
+            >
               Mapa de vagas
-            </Link>
+            </button>
           </div>
 
           <div className="parking-panel">
@@ -241,6 +299,160 @@ export const ParkingDashboardPage: React.FC = () => {
         </>
       )}
 
+      <ParkingEntryFormModal
+        isOpen={entryModalOpen}
+        facilityId={facilityId}
+        onClose={() => setEntryModalOpen(false)}
+        onSuccess={(session) => {
+          setEntryModalOpen(false);
+          setLastTicket(session);
+          void load();
+        }}
+        onError={(message) => setAlert({ open: true, message })}
+      />
+
+      <RegistryFormModal
+        isOpen={sessionsModalOpen}
+        wide
+        title="Sessões"
+        subtitle="Histórico de entradas e permanência na unidade selecionada."
+        onClose={() => setSessionsModalOpen(false)}
+        footer={
+          <button
+            type="button"
+            className="catalog-form-footer-btn catalog-form-footer-btn--primary"
+            onClick={() => setSessionsModalOpen(false)}
+          >
+            Fechar
+          </button>
+        }
+      >
+        {sessionsModalLoading ? (
+          <p className="parking-empty">Carregando sessões…</p>
+        ) : sessionsModalData.length === 0 ? (
+          <p className="parking-empty">Nenhuma sessão encontrada.</p>
+        ) : (
+          <>
+            <div className="parking-table-wrap">
+              <table className="parking-table">
+                <thead>
+                  <tr>
+                    <th>Ticket</th>
+                    <th>Placa</th>
+                    <th>Vaga</th>
+                    <th>Entrada</th>
+                    <th>Saída</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sessionsModalData.map((s) => (
+                    <tr key={s.id}>
+                      <td>{s.ticketCode}</td>
+                      <td className="parking-plate">{s.plate}</td>
+                      <td>{s.spot?.code ?? '—'}</td>
+                      <td>{formatDateTime(s.entryAt)}</td>
+                      <td>{s.exitAt ? formatDateTime(s.exitAt) : '—'}</td>
+                      <td>
+                        <SessionBadge status={s.status} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <CatalogPagination
+              page={sessionsModalMeta?.page ?? sessionsModalPage}
+              totalPages={sessionsModalMeta?.totalPages ?? 1}
+              total={sessionsModalMeta?.total ?? 0}
+              limit={sessionsModalLimit}
+              disabled={sessionsModalLoading}
+              onPageChange={setSessionsModalPage}
+              onLimitChange={(next) => {
+                setSessionsModalLimit(next);
+                setSessionsModalPage(1);
+              }}
+            />
+          </>
+        )}
+      </RegistryFormModal>
+
+      <RegistryFormModal
+        isOpen={spotsModalOpen}
+        wide
+        title="Mapa de vagas"
+        subtitle="Status de cada vaga na unidade selecionada."
+        onClose={() => setSpotsModalOpen(false)}
+        footer={
+          <button
+            type="button"
+            className="catalog-form-footer-btn catalog-form-footer-btn--primary"
+            onClick={() => setSpotsModalOpen(false)}
+          >
+            Fechar
+          </button>
+        }
+      >
+        {spotsModalLoading ? (
+          <p className="parking-empty">Carregando vagas…</p>
+        ) : spotsModalData.length === 0 ? (
+          <p className="parking-empty">Nenhuma vaga cadastrada.</p>
+        ) : (
+          <>
+            <div className="parking-table-wrap">
+              <table className="parking-table">
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Andar</th>
+                    <th>Setor</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {spotsModalData.map((s) => (
+                    <tr key={s.id}>
+                      <td>{s.code}</td>
+                      <td>{s.floor ?? '—'}</td>
+                      <td>{s.zone ?? '—'}</td>
+                      <td>
+                        <SpotBadge status={s.status} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <CatalogPagination
+              page={spotsModalMeta?.page ?? spotsModalPage}
+              totalPages={spotsModalMeta?.totalPages ?? 1}
+              total={spotsModalMeta?.total ?? 0}
+              limit={spotsModalLimit}
+              disabled={spotsModalLoading}
+              onPageChange={setSpotsModalPage}
+              onLimitChange={(next) => {
+                setSpotsModalLimit(next);
+                setSpotsModalPage(1);
+              }}
+            />
+          </>
+        )}
+      </RegistryFormModal>
+
+      {lastTicket ? (
+        <div className="parking-panel parking-ticket-panel">
+          <ParkingTicketReceipt
+            ticketCode={lastTicket.ticketCode}
+            qrPayload={lastTicket.ticketCode}
+            plate={lastTicket.plate}
+            facilityName={lastTicket.facility?.name ?? data?.facilities.find((f) => f.id === facilityId)?.name}
+            entryAt={lastTicket.entryAt}
+            onPrint={() => window.print()}
+            onClose={() => setLastTicket(null)}
+          />
+        </div>
+      ) : null}
+
       <AlertModal isOpen={alert.open} message={alert.message} onClose={() => setAlert({ open: false, message: '' })} />
     </CatalogPageLayout>
   );
@@ -248,7 +460,10 @@ export const ParkingDashboardPage: React.FC = () => {
 
 export const ParkingFacilitiesPage: React.FC = () => {
   const [facilities, setFacilities] = useState<ParkingFacility[]>([]);
+  const [listMeta, setListMeta] = useState<PaginatedMeta | null>(null);
   const [meta, setMeta] = useState<ParkingMeta | null>(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState({ open: false, message: '' });
   const [facilityModalOpen, setFacilityModalOpen] = useState(false);
@@ -256,10 +471,14 @@ export const ParkingFacilitiesPage: React.FC = () => {
   const [form, setForm] = useState(EMPTY_FACILITY_FORM);
 
   const load = useCallback(async () => {
-    const [list, metaData] = await Promise.all([fetchParkingFacilities(), fetchParkingMeta()]);
-    setFacilities(list);
+    const [list, metaData] = await Promise.all([
+      fetchParkingFacilities({ page, limit }),
+      fetchParkingMeta(),
+    ]);
+    setFacilities(list.items);
+    setListMeta(list.meta);
     setMeta(metaData);
-  }, []);
+  }, [page, limit]);
 
   useEffect(() => {
     setLoading(true);
@@ -399,6 +618,20 @@ export const ParkingFacilitiesPage: React.FC = () => {
             </table>
           </div>
         )}
+        {listMeta && listMeta.total > 0 ? (
+          <CatalogPagination
+            page={listMeta.page}
+            totalPages={listMeta.totalPages}
+            total={listMeta.total}
+            limit={limit}
+            disabled={loading}
+            onPageChange={setPage}
+            onLimitChange={(next) => {
+              setLimit(next);
+              setPage(1);
+            }}
+          />
+        ) : null}
       </div>
 
       <AlertModal isOpen={alert.open} message={alert.message} onClose={() => setAlert({ open: false, message: '' })} />
@@ -416,16 +649,23 @@ export const ParkingSpotsPage: React.FC = () => {
   const [isSavingBulk, setIsSavingBulk] = useState(false);
   const [bulk, setBulk] = useState(EMPTY_BULK_FORM);
 
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [spotsMeta, setSpotsMeta] = useState<PaginatedMeta | null>(null);
+
   const load = useCallback(async () => {
-    const facs = await fetchParkingFacilities();
+    const facs = await fetchAllParkingFacilities();
     setFacilities(facs);
     const fid = facilityId || facs[0]?.id;
     if (fid) {
-      setSpots(await fetchParkingSpots(fid));
+      const result = await fetchParkingSpots({ facilityId: fid, page, limit });
+      setSpots(result.items);
+      setSpotsMeta(result.meta);
     } else {
       setSpots([]);
+      setSpotsMeta(null);
     }
-  }, [facilityId]);
+  }, [facilityId, page, limit]);
 
   useEffect(() => {
     setLoading(true);
@@ -433,6 +673,10 @@ export const ParkingSpotsPage: React.FC = () => {
       .catch(() => setAlert({ open: true, message: 'Erro ao carregar vagas.' }))
       .finally(() => setLoading(false));
   }, [load]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [facilityId]);
 
   const closeBulkModal = () => {
     if (isSavingBulk) return;
@@ -573,6 +817,20 @@ export const ParkingSpotsPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+            {spotsMeta && spotsMeta.total > 0 ? (
+              <CatalogPagination
+                page={spotsMeta.page}
+                totalPages={spotsMeta.totalPages}
+                total={spotsMeta.total}
+                limit={limit}
+                disabled={loading}
+                onPageChange={setPage}
+                onLimitChange={(next) => {
+                  setLimit(next);
+                  setPage(1);
+                }}
+              />
+            ) : null}
           </div>
         </>
       )}
@@ -584,47 +842,25 @@ export const ParkingSpotsPage: React.FC = () => {
 
 export const ParkingEntryPage: React.FC = () => {
   const [facilities, setFacilities] = useState<ParkingFacility[]>([]);
-  const [spots, setSpots] = useState<ParkingSpot[]>([]);
   const [activeSessions, setActiveSessions] = useState<ParkingSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState({ open: false, message: '' });
   const { facilityId, setFacilityId } = useFacilityFilter(facilities);
-  const [form, setForm] = useState(EMPTY_ENTRY_FORM);
-  const [plateAccess, setPlateAccess] = useState<PlateAccess | null>(null);
   const [lastTicket, setLastTicket] = useState<ParkingSession | null>(null);
   const [entryModalOpen, setEntryModalOpen] = useState(false);
-  const [isSavingEntry, setIsSavingEntry] = useState(false);
-
-  const lookupPlate = useCallback(
-    async (plate: string) => {
-      if (plate.trim().length < 5 || !facilityId) {
-        setPlateAccess(null);
-        return;
-      }
-      try {
-        const result = await lookupPlateAccess(plate, facilityId);
-        setPlateAccess(result);
-        if (result.accessType !== 'rotativo' && result.customerName && !form.driverName) {
-          setForm((f) => ({ ...f, driverName: result.customerName ?? f.driverName }));
-        }
-      } catch {
-        setPlateAccess(null);
-      }
-    },
-    [facilityId, form.driverName],
-  );
 
   const load = useCallback(async () => {
-    const facs = await fetchParkingFacilities();
+    const facs = await fetchAllParkingFacilities();
     setFacilities(facs);
     const fid = facilityId || facs[0]?.id;
     if (!fid) return;
-    const [spotList, sessions] = await Promise.all([
-      fetchParkingSpots(fid),
-      fetchParkingSessions({ facilityId: fid, status: 'active' }),
-    ]);
-    setSpots(spotList.filter((s) => s.status === 'available'));
-    setActiveSessions(sessions);
+    const result = await fetchParkingSessions({
+      facilityId: fid,
+      status: 'active',
+      page: 1,
+      limit: 100,
+    });
+    setActiveSessions(result.items);
   }, [facilityId]);
 
   useEffect(() => {
@@ -633,46 +869,6 @@ export const ParkingEntryPage: React.FC = () => {
       .catch(() => setAlert({ open: true, message: 'Erro ao carregar operação.' }))
       .finally(() => setLoading(false));
   }, [load]);
-
-  const availableSpots = useMemo(
-    () => spots.filter((s) => s.status === 'available'),
-    [spots],
-  );
-
-  const closeEntryModal = () => {
-    if (isSavingEntry) return;
-    setForm(EMPTY_ENTRY_FORM);
-    setPlateAccess(null);
-    setEntryModalOpen(false);
-  };
-
-  const openEntryModal = () => {
-    setForm(EMPTY_ENTRY_FORM);
-    setPlateAccess(null);
-    setEntryModalOpen(true);
-  };
-
-  const handleEntry = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!facilityId) return;
-    setIsSavingEntry(true);
-    try {
-      const created = await registerParkingEntry({
-        facilityId,
-        plate: form.plate,
-        vehicleType: form.vehicleType,
-        spotId: form.spotId || undefined,
-        driverName: form.driverName || undefined,
-      });
-      setLastTicket(created);
-      closeEntryModal();
-      await load();
-    } catch (err) {
-      setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
-    } finally {
-      setIsSavingEntry(false);
-    }
-  };
 
   return (
     <CatalogPageLayout
@@ -693,88 +889,24 @@ export const ParkingEntryPage: React.FC = () => {
               wrapperClassName="form-group"
               onChange={setFacilityId}
             />
-            <button type="button" className="catalog-action-button" onClick={openEntryModal}>
+            <button type="button" className="catalog-action-button" onClick={() => setEntryModalOpen(true)}>
               Registrar entrada
             </button>
           </>
         ) : undefined
       }
     >
-      <RegistryFormModal
+      <ParkingEntryFormModal
         isOpen={entryModalOpen}
-        title="Registrar entrada"
-        subtitle="Gere ticket de entrada para veículo rotativo ou autorizado."
-        isSaving={isSavingEntry}
-        onClose={closeEntryModal}
-        onSubmit={handleEntry}
-        footer={registryModalFooterButtons({
-          onClose: closeEntryModal,
-          isSaving: isSavingEntry,
-          submitLabel: 'Registrar entrada',
-        })}
-      >
-        <div className="catalog-form-grid">
-          <div className="form-group">
-            <label htmlFor="entry-plate">Placa</label>
-            <input
-              id="entry-plate"
-              className="premium-text-input"
-              value={form.plate}
-              onChange={(e) => {
-                const plate = e.target.value.toUpperCase();
-                setForm((f) => ({ ...f, plate }));
-                if (plate.length < 5) setPlateAccess(null);
-              }}
-              onBlur={() => void lookupPlate(form.plate)}
-              placeholder="ABC1D23"
-              required
-            />
-            {plateAccess && plateAccess.accessType !== 'rotativo' ? (
-              <p className="parking-access-hint">
-                <AccessBadge accessType={plateAccess.accessType} />
-                {' — '}
-                {plateAccess.label}
-                {plateAccess.accessType === 'convenio' && plateAccess.discountPercent != null
-                  ? ` (${plateAccess.discountPercent}% na saída)`
-                  : plateAccess.accessType === 'mensalista'
-                    ? ' — isento na saída'
-                    : ''}
-              </p>
-            ) : null}
-          </div>
-          <PremiumSelect
-            id="entry-type"
-            label="Tipo de veículo"
-            value={form.vehicleType}
-            options={vehicleTypeSelectOptions}
-            wrapperClassName="form-group"
-            onChange={(v) => setForm((f) => ({ ...f, vehicleType: v }))}
-          />
-          <PremiumSelect
-            id="entry-spot"
-            label="Vaga (opcional)"
-            value={form.spotId}
-            options={[
-              { value: '', label: 'Sem vaga definida' },
-              ...availableSpots.map((s) => ({
-                value: s.id,
-                label: `${s.code}${s.zone ? ` — ${s.zone}` : ''}`,
-              })),
-            ]}
-            wrapperClassName="form-group"
-            onChange={(v) => setForm((f) => ({ ...f, spotId: v }))}
-          />
-          <div className="form-group">
-            <label htmlFor="entry-driver">Motorista (opcional)</label>
-            <input
-              id="entry-driver"
-              className="premium-text-input"
-              value={form.driverName}
-              onChange={(e) => setForm((f) => ({ ...f, driverName: e.target.value }))}
-            />
-          </div>
-        </div>
-      </RegistryFormModal>
+        facilityId={facilityId}
+        onClose={() => setEntryModalOpen(false)}
+        onSuccess={(session) => {
+          setEntryModalOpen(false);
+          setLastTicket(session);
+          void load();
+        }}
+        onError={(message) => setAlert({ open: true, message })}
+      />
 
       {lastTicket ? (
         <div className="parking-panel parking-ticket-panel">
@@ -854,6 +986,8 @@ export const ParkingSessionsPage: React.FC = () => {
   const [alert, setAlert] = useState({ open: false, message: '' });
   const { facilityId, setFacilityId } = useFacilityFilter(facilities);
   const [status, setStatus] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const {
     search: plate,
     searchDebounced: plateDebounced,
@@ -865,19 +999,24 @@ export const ParkingSessionsPage: React.FC = () => {
   const handleClearFilters = () => {
     setStatus('');
     clearPlateSearch();
+    setPage(1);
   };
 
+  const [sessionsMeta, setSessionsMeta] = useState<PaginatedMeta | null>(null);
+
   const load = useCallback(async () => {
-    const facs = await fetchParkingFacilities();
+    const facs = await fetchAllParkingFacilities();
     setFacilities(facs);
-    setSessions(
-      await fetchParkingSessions({
-        facilityId: facilityId || facs[0]?.id,
-        status: status || undefined,
-        plate: plateDebounced || undefined,
-      }),
-    );
-  }, [facilityId, status, plateDebounced]);
+    const result = await fetchParkingSessions({
+      facilityId: facilityId || facs[0]?.id,
+      status: status || undefined,
+      plate: plateDebounced || undefined,
+      page,
+      limit,
+    });
+    setSessions(result.items);
+    setSessionsMeta(result.meta);
+  }, [facilityId, status, plateDebounced, page, limit]);
 
   useEffect(() => {
     setLoading(true);
@@ -885,6 +1024,10 @@ export const ParkingSessionsPage: React.FC = () => {
       .catch(() => setAlert({ open: true, message: 'Erro ao carregar sessões.' }))
       .finally(() => setLoading(false));
   }, [load]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [facilityId, status, plateDebounced]);
 
   return (
     <CatalogPageLayout
@@ -934,7 +1077,10 @@ export const ParkingSessionsPage: React.FC = () => {
           <button
             type="button"
             className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action"
-            onClick={applyPlateSearch}
+            onClick={() => {
+              applyPlateSearch();
+              setPage(1);
+            }}
           >
             Buscar
           </button>
@@ -953,7 +1099,7 @@ export const ParkingSessionsPage: React.FC = () => {
           Sessões
           {!loading ? (
             <span className="parking-hint" style={{ fontWeight: 400, marginLeft: 8 }}>
-              {sessions.length} registro(s)
+              {sessionsMeta?.total ?? sessions.length} registro(s)
               {plateDebounced ? ` · placa "${plateDebounced}"` : ''}
               {status ? ` · ${SESSION_STATUS_LABELS[status] ?? status}` : ''}
             </span>
@@ -962,45 +1108,59 @@ export const ParkingSessionsPage: React.FC = () => {
         {sessions.length === 0 ? (
           <p className="parking-empty">Nenhuma sessão encontrada.</p>
         ) : (
-          <div className="parking-table-wrap">
-            <table className="parking-table">
-              <thead>
-                <tr>
-                  <th>Ticket</th>
-                  <th>Placa</th>
-                  <th>Acesso</th>
-                  <th>Entrada</th>
-                  <th>Saída</th>
-                  <th>Permanência</th>
-                  <th>Valor</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sessions.map((s) => (
-                  <tr key={s.id}>
-                    <td>{s.ticketCode}</td>
-                    <td className="parking-plate">{s.plate}</td>
-                    <td>
-                      <AccessBadge accessType={s.accessType} />
-                      {s.customer?.name ? (
-                        <div className="parking-hint">{s.customer.name}</div>
-                      ) : null}
-                    </td>
-                    <td>{formatDateTime(s.entryAt)}</td>
-                    <td>{s.exitAt ? formatDateTime(s.exitAt) : '—'}</td>
-                    <td>{formatDurationMinutes(s.entryAt, s.exitAt)}</td>
-                    <td>
-                      {s.amountCharged != null ? formatMoney(s.amountCharged) : '—'}
-                    </td>
-                    <td>
-                      <SessionBadge status={s.status} />
-                    </td>
+          <>
+            <div className="parking-table-wrap">
+              <table className="parking-table">
+                <thead>
+                  <tr>
+                    <th>Ticket</th>
+                    <th>Placa</th>
+                    <th>Acesso</th>
+                    <th>Entrada</th>
+                    <th>Saída</th>
+                    <th>Permanência</th>
+                    <th>Valor</th>
+                    <th>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {sessions.map((s) => (
+                    <tr key={s.id}>
+                      <td>{s.ticketCode}</td>
+                      <td className="parking-plate">{s.plate}</td>
+                      <td>
+                        <AccessBadge accessType={s.accessType} />
+                        {s.customer?.name ? (
+                          <div className="parking-hint">{s.customer.name}</div>
+                        ) : null}
+                      </td>
+                      <td>{formatDateTime(s.entryAt)}</td>
+                      <td>{s.exitAt ? formatDateTime(s.exitAt) : '—'}</td>
+                      <td>{formatDurationMinutes(s.entryAt, s.exitAt)}</td>
+                      <td>
+                        {s.amountCharged != null ? formatMoney(s.amountCharged) : '—'}
+                      </td>
+                      <td>
+                        <SessionBadge status={s.status} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <CatalogPagination
+              page={sessionsMeta?.page ?? page}
+              totalPages={sessionsMeta?.totalPages ?? 1}
+              total={sessionsMeta?.total ?? 0}
+              limit={limit}
+              disabled={loading}
+              onPageChange={setPage}
+              onLimitChange={(next) => {
+                setLimit(next);
+                setPage(1);
+              }}
+            />
+          </>
         )}
       </div>
 
@@ -1036,15 +1196,24 @@ export const ParkingTariffsPage: React.FC = () => {
   const [quoteExit, setQuoteExit] = useState('');
   const [quoteResult, setQuoteResult] = useState<TariffQuote | null>(null);
 
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [tariffsMeta, setTariffsMeta] = useState<PaginatedMeta | null>(null);
+
   const load = useCallback(async () => {
-    const facs = await fetchParkingFacilities();
+    const facs = await fetchAllParkingFacilities();
     setFacilities(facs);
     const fid = facilityId || facs[0]?.id;
-    const list = await fetchParkingTariffs(fid ? { facilityId: fid } : undefined);
-    setTariffs(list);
-    const tabList = list.filter((t) => t.billingType === tab && t.active);
-    setQuoteTariffId(tabList[0]?.id ?? '');
-  }, [facilityId, tab]);
+    const result = await fetchParkingTariffs({
+      facilityId: fid,
+      billingType: tab,
+      page,
+      limit,
+    });
+    setTariffs(result.items);
+    setTariffsMeta(result.meta);
+    setQuoteTariffId(result.items.find((t) => t.active)?.id ?? '');
+  }, [facilityId, tab, page, limit]);
 
   useEffect(() => {
     setLoading(true);
@@ -1055,9 +1224,12 @@ export const ParkingTariffsPage: React.FC = () => {
 
   useEffect(() => {
     setForm((f) => ({ ...f, billingType: tab }));
+    setPage(1);
   }, [tab]);
 
-  const filtered = tariffs.filter((t) => t.billingType === tab);
+  useEffect(() => {
+    setPage(1);
+  }, [facilityId]);
 
   const closeTariffModal = () => {
     if (isSavingTariff) return;
@@ -1261,7 +1433,7 @@ export const ParkingTariffsPage: React.FC = () => {
 
       <div className="parking-panel">
         <h3>Tabelas cadastradas</h3>
-        {filtered.length === 0 ? (
+        {tariffs.length === 0 ? (
           <p className="parking-empty">Nenhuma tarifa nesta categoria.</p>
         ) : (
           <div className="parking-table-wrap">
@@ -1279,7 +1451,7 @@ export const ParkingTariffsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((t) => (
+                {tariffs.map((t) => (
                   <tr key={t.id}>
                     <td>{t.name}</td>
                     <td>{formatMoney(t.price)}</td>
@@ -1311,9 +1483,23 @@ export const ParkingTariffsPage: React.FC = () => {
             </table>
           </div>
         )}
+        {tariffsMeta && tariffsMeta.total > 0 ? (
+          <CatalogPagination
+            page={tariffsMeta.page}
+            totalPages={tariffsMeta.totalPages}
+            total={tariffsMeta.total}
+            limit={limit}
+            disabled={loading}
+            onPageChange={setPage}
+            onLimitChange={(next) => {
+              setLimit(next);
+              setPage(1);
+            }}
+          />
+        ) : null}
       </div>
 
-      {(tab === 'hourly' || tab === 'daily') && filtered.length > 0 && (
+      {(tab === 'hourly' || tab === 'daily') && tariffs.length > 0 && (
         <div className="parking-panel">
           <h3>Simulador de cobrança</h3>
           <form onSubmit={(e) => void handleQuote(e)}>
@@ -1322,7 +1508,7 @@ export const ParkingTariffsPage: React.FC = () => {
                 id="quote-tariff"
                 label="Tarifa"
                 value={quoteTariffId}
-                options={filtered.filter((t) => t.active).map((t) => ({ value: t.id, label: t.name }))}
+                options={tariffs.filter((t) => t.active).map((t) => ({ value: t.id, label: t.name }))}
                 onChange={setQuoteTariffId}
               />
               <div>

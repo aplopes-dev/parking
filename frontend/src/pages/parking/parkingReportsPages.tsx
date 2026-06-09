@@ -13,7 +13,7 @@ import {
 import CatalogPageLayout from '../../components/CatalogPageLayout';
 import PremiumSelect from '../../components/PremiumSelect';
 import {
-  fetchParkingFacilities,
+  fetchAllParkingFacilities,
   fetchParkingReportDaily,
   fetchParkingReportOverview,
   fetchParkingReportTopPlates,
@@ -27,7 +27,6 @@ import {
   PAYMENT_METHOD_LABELS,
 } from './parkingConstants';
 import {
-  AnalyticsPeriodBar,
   ReportSummaryCards,
   ReportTable,
   firstDayOfMonth,
@@ -59,7 +58,7 @@ export const ParkingReportsPage: React.FC = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchParkingFacilities()
+    fetchAllParkingFacilities()
       .then((f) => {
         setFacilities(f);
         if (f[0]?.id) setFacilityId(f[0].id);
@@ -111,32 +110,55 @@ export const ParkingReportsPage: React.FC = () => {
       title="Relatórios de estacionamento"
       description="Ocupação, receita rotativa, mensalistas e movimentação por período."
     >
-      <AnalyticsPeriodBar
-        from={from}
-        to={to}
-        onFrom={setFrom}
-        onTo={setTo}
-        extra={
-          <>
-            <PremiumSelect
-              id="report-facility"
-              label="Unidade"
-              value={facilityId}
-              options={facilities.map((f) => ({ value: f.id, label: f.name }))}
-              wrapperClassName="form-group catalog-filter-toolbar__field"
-              onChange={setFacilityId}
+      <section className="catalog-surface parking-reports-filters" aria-label="Filtros do relatório">
+        <div className="catalog-toolbar catalog-filter-toolbar">
+          <div className="form-group catalog-filter-toolbar__field catalog-filter-toolbar__field--compact">
+            <label htmlFor="report-from">De</label>
+            <input
+              id="report-from"
+              type="date"
+              className="premium-text-input"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
             />
-            <button type="button" className="btn-primary" onClick={() => void load()} disabled={loading}>
-              {loading ? 'Carregando…' : 'Atualizar'}
+          </div>
+          <div className="form-group catalog-filter-toolbar__field catalog-filter-toolbar__field--compact">
+            <label htmlFor="report-to">Até</label>
+            <input
+              id="report-to"
+              type="date"
+              className="premium-text-input"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+            />
+          </div>
+          <PremiumSelect
+            id="report-facility"
+            label="Unidade"
+            value={facilityId}
+            options={facilities.map((f) => ({ value: f.id, label: f.name }))}
+            wrapperClassName="form-group catalog-filter-toolbar__field"
+            onChange={setFacilityId}
+          />
+          <button
+            type="button"
+            className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action"
+            onClick={() => void load()}
+            disabled={loading}
+          >
+            {loading ? 'Carregando…' : 'Atualizar'}
+          </button>
+          {overview ? (
+            <button
+              type="button"
+              className="catalog-action-button is-secondary catalog-filter-toolbar__action"
+              onClick={() => window.print()}
+            >
+              Imprimir
             </button>
-            {overview ? (
-              <button type="button" className="catalog-action-button is-secondary" onClick={() => window.print()}>
-                Imprimir
-              </button>
-            ) : null}
-          </>
-        }
-      />
+          ) : null}
+        </div>
+      </section>
 
       {error ? <p className="parking-alert">{error}</p> : null}
 

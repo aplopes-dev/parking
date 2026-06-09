@@ -9,9 +9,9 @@ import {
   cancelValetTicket,
   completeValetParking,
   deliverValetVehicle,
-  fetchParkingFacilities,
-  fetchParkingSpots,
-  fetchParkingTariffs,
+  fetchAllParkingFacilities,
+  fetchAllParkingSpots,
+  fetchAllParkingTariffs,
   fetchValetQueueSummary,
   fetchValetTickets,
   fetchValetValets,
@@ -273,7 +273,7 @@ export const ParkingValetPage: React.FC = () => {
   const [form, setForm] = useState(EMPTY_VALET_RECEIVE_FORM);
 
   const load = useCallback(async () => {
-    const facs = await fetchParkingFacilities();
+    const facs = await fetchAllParkingFacilities();
     setFacilities(facs);
     const fid = facilityId || facs[0]?.id;
     if (!fid) return;
@@ -285,8 +285,8 @@ export const ParkingValetPage: React.FC = () => {
         fetchValetTickets({ facilityId: fid, queue: 'parked' }),
         fetchValetTickets({ facilityId: fid, queue: 'delivery' }),
         fetchValetValets(),
-        fetchParkingSpots(fid),
-        fetchParkingTariffs({ facilityId: fid, billingType: 'hourly' }),
+        fetchAllParkingSpots(fid),
+        fetchAllParkingTariffs({ facilityId: fid, billingType: 'hourly' }),
       ]);
 
     setSummary(queueSummary);

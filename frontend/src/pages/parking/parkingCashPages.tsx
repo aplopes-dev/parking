@@ -13,8 +13,8 @@ import {
   fetchParkingCashQuote,
   fetchParkingCashQuoteByTicket,
   fetchParkingCashSummary,
-  fetchParkingFacilities,
-  fetchParkingTariffs,
+  fetchAllParkingFacilities,
+  fetchAllParkingTariffs,
   openMyParkingCashSession,
   type OperatorCashSession,
   type ParkingCashQuote,
@@ -80,7 +80,7 @@ export const ParkingCashPage: React.FC = () => {
   }, [cashAccounts, accountId]);
 
   const load = useCallback(async () => {
-    const facs = await fetchParkingFacilities();
+    const facs = await fetchAllParkingFacilities();
     setFacilities(facs);
     const fid = facilityId || facs[0]?.id;
     if (!fid) return;
@@ -88,7 +88,7 @@ export const ParkingCashPage: React.FC = () => {
     const [queueList, sum, tariffList, mySession] = await Promise.all([
       fetchParkingCashQueue(fid),
       fetchParkingCashSummary(fid),
-      fetchParkingTariffs({ facilityId: fid }),
+      fetchAllParkingTariffs({ facilityId: fid }),
       fetchMyParkingCashSession(),
     ]);
     setQueue(queueList);

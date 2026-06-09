@@ -1,5 +1,30 @@
-import type { PaginatedResponse } from '../types/pagination';
+import type { PaginatedMeta, PaginatedResponse } from '../types/pagination';
+import { DEFAULT_PAGE_SIZE } from '../types/pagination';
+import { normalizePaginatedResponse } from '../utils/paginatedResponse';
 import api from './api';
+
+export type ParkingListParams = {
+  page?: number;
+  limit?: number;
+};
+
+export type ParkingListResult<T> = {
+  items: T[];
+  meta: PaginatedMeta;
+};
+
+const ALL_OPTIONS_LIMIT = 100;
+
+async function fetchParkingList<T>(
+  url: string,
+  params?: Record<string, unknown>,
+): Promise<ParkingListResult<T>> {
+  const page = Number(params?.page ?? 1);
+  const limit = Number(params?.limit ?? DEFAULT_PAGE_SIZE);
+  const { data } = await api.get<PaginatedResponse<T> | T[]>(url, { params });
+  const normalized = normalizePaginatedResponse(data, { page, limit });
+  return { items: normalized.items, meta: normalized.meta };
+}
 
 export type ParkingFacility = {
   id: string;
@@ -114,9 +139,15 @@ export async function fetchParkingDashboard(facilityId?: string): Promise<Parkin
   return data;
 }
 
-export async function fetchParkingFacilities(): Promise<ParkingFacility[]> {
-  const { data } = await api.get<ParkingFacility[]>('/parking/facilities');
-  return data;
+export async function fetchParkingFacilities(
+  params?: ParkingListParams,
+): Promise<ParkingListResult<ParkingFacility>> {
+  return fetchParkingList<ParkingFacility>('/parking/facilities', params);
+}
+
+export async function fetchAllParkingFacilities(): Promise<ParkingFacility[]> {
+  const { items } = await fetchParkingFacilities({ page: 1, limit: ALL_OPTIONS_LIMIT });
+  return items;
 }
 
 export async function createParkingFacility(body: {
@@ -146,11 +177,19 @@ export async function updateParkingFacility(
   return data;
 }
 
-export async function fetchParkingSpots(facilityId?: string): Promise<ParkingSpot[]> {
-  const { data } = await api.get<ParkingSpot[]>('/parking/spots', {
-    params: facilityId ? { facilityId } : undefined,
+export async function fetchParkingSpots(
+  params?: ParkingListParams & { facilityId?: string },
+): Promise<ParkingListResult<ParkingSpot>> {
+  return fetchParkingList<ParkingSpot>('/parking/spots', params);
+}
+
+export async function fetchAllParkingSpots(facilityId?: string): Promise<ParkingSpot[]> {
+  const { items } = await fetchParkingSpots({
+    facilityId,
+    page: 1,
+    limit: ALL_OPTIONS_LIMIT,
   });
-  return data;
+  return items;
 }
 
 export async function bulkCreateParkingSpots(body: {
@@ -172,13 +211,14 @@ export async function updateParkingSpotStatus(spotId: string, status: string) {
   return data;
 }
 
-export async function fetchParkingSessions(params?: {
-  facilityId?: string;
-  status?: string;
-  plate?: string;
-}): Promise<ParkingSession[]> {
-  const { data } = await api.get<ParkingSession[]>('/parking/sessions', { params });
-  return data;
+export async function fetchParkingSessions(
+  params?: ParkingListParams & {
+    facilityId?: string;
+    status?: string;
+    plate?: string;
+  },
+): Promise<ParkingListResult<ParkingSession>> {
+  return fetchParkingList<ParkingSession>('/parking/sessions', params);
 }
 
 export async function registerParkingEntry(body: {
@@ -201,12 +241,25 @@ export async function registerParkingExit(
   return data;
 }
 
-export async function fetchParkingTariffs(params?: {
+export async function fetchParkingTariffs(
+  params?: ParkingListParams & {
+    facilityId?: string;
+    billingType?: string;
+  },
+): Promise<ParkingListResult<ParkingTariff>> {
+  return fetchParkingList<ParkingTariff>('/parking/tariffs', params);
+}
+
+export async function fetchAllParkingTariffs(params?: {
   facilityId?: string;
   billingType?: string;
 }): Promise<ParkingTariff[]> {
-  const { data } = await api.get<ParkingTariff[]>('/parking/tariffs', { params });
-  return data;
+  const { items } = await fetchParkingTariffs({
+    ...params,
+    page: 1,
+    limit: ALL_OPTIONS_LIMIT,
+  });
+  return items;
 }
 
 export async function createParkingTariff(body: {
@@ -326,13 +379,14 @@ export async function lookupPlateAccess(plate: string, facilityId?: string): Pro
   return data;
 }
 
-export async function fetchParkingSubscriptions(params?: {
-  facilityId?: string;
-  status?: string;
-  search?: string;
-}): Promise<ParkingSubscription[]> {
-  const { data } = await api.get<ParkingSubscription[]>('/parking/subscriptions', { params });
-  return data;
+export async function fetchParkingSubscriptions(
+  params?: ParkingListParams & {
+    facilityId?: string;
+    status?: string;
+    search?: string;
+  },
+): Promise<ParkingListResult<ParkingSubscription>> {
+  return fetchParkingList<ParkingSubscription>('/parking/subscriptions', params);
 }
 
 export async function createParkingSubscription(body: {
@@ -370,13 +424,14 @@ export async function addSubscriptionVehicle(
   return data;
 }
 
-export async function fetchParkingAgreements(params?: {
-  facilityId?: string;
-  status?: string;
-  search?: string;
-}): Promise<ParkingAgreement[]> {
-  const { data } = await api.get<ParkingAgreement[]>('/parking/agreements', { params });
-  return data;
+export async function fetchParkingAgreements(
+  params?: ParkingListParams & {
+    facilityId?: string;
+    status?: string;
+    search?: string;
+  },
+): Promise<ParkingListResult<ParkingAgreement>> {
+  return fetchParkingList<ParkingAgreement>('/parking/agreements', params);
 }
 
 export async function createParkingAgreement(body: {
@@ -730,11 +785,10 @@ export type HardwareLprResult = {
   gateCommandId: string | null;
 };
 
-export async function fetchParkingDevices(facilityId?: string): Promise<ParkingAccessDevice[]> {
-  const { data } = await api.get<ParkingAccessDevice[]>('/parking/hardware/devices', {
-    params: { facilityId },
-  });
-  return data;
+export async function fetchParkingDevices(
+  params?: ParkingListParams & { facilityId?: string },
+): Promise<ParkingListResult<ParkingAccessDevice>> {
+  return fetchParkingList<ParkingAccessDevice>('/parking/hardware/devices', params);
 }
 
 export async function createParkingDevice(body: {
@@ -782,13 +836,14 @@ export async function openGateManually(id: string, body?: { reason?: string; dur
   return data;
 }
 
-export async function fetchParkingAccessEvents(params?: {
-  facilityId?: string;
-  deviceId?: string;
-  plate?: string;
-}): Promise<ParkingAccessEvent[]> {
-  const { data } = await api.get<ParkingAccessEvent[]>('/parking/hardware/events', { params });
-  return data;
+export async function fetchParkingAccessEvents(
+  params?: ParkingListParams & {
+    facilityId?: string;
+    deviceId?: string;
+    plate?: string;
+  },
+): Promise<ParkingListResult<ParkingAccessEvent>> {
+  return fetchParkingList<ParkingAccessEvent>('/parking/hardware/events', params);
 }
 
 export async function simulateHardwareLpr(body: {
@@ -887,13 +942,14 @@ export type ParkingVehicleRecord = {
   recentSessions?: ParkingSession[];
 };
 
-export async function fetchParkingVehicles(params?: {
-  search?: string;
-  active?: boolean;
-  customerId?: string;
-}): Promise<ParkingVehicleRecord[]> {
-  const { data } = await api.get<ParkingVehicleRecord[]>('/parking/vehicles', { params });
-  return data;
+export async function fetchParkingVehicles(
+  params?: ParkingListParams & {
+    search?: string;
+    active?: boolean;
+    customerId?: string;
+  },
+): Promise<ParkingListResult<ParkingVehicleRecord>> {
+  return fetchParkingList<ParkingVehicleRecord>('/parking/vehicles', params);
 }
 
 export async function fetchParkingVehicleByPlate(plate: string): Promise<ParkingVehicleRecord> {
@@ -1017,14 +1073,15 @@ export async function chargeSubscriptionBill(
   return data;
 }
 
-export async function fetchSubscriptionBills(params?: {
-  referenceMonth?: string;
-  subscriptionId?: string;
-  facilityId?: string;
-  status?: string;
-}): Promise<SubscriptionBill[]> {
-  const { data } = await api.get<SubscriptionBill[]>('/parking/subscriptions/billing', { params });
-  return data;
+export async function fetchSubscriptionBills(
+  params?: ParkingListParams & {
+    referenceMonth?: string;
+    subscriptionId?: string;
+    facilityId?: string;
+    status?: string;
+  },
+): Promise<ParkingListResult<SubscriptionBill>> {
+  return fetchParkingList<SubscriptionBill>('/parking/subscriptions/billing', params);
 }
 
 export async function settleSubscriptionBills(body: {

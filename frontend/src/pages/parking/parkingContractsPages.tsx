@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import CatalogPagination from '../../components/catalog/CatalogPagination';
 import RegistryFormModal, { registryModalFooterButtons } from '../../components/RegistryFormModal';
 import { useDebouncedRegistrySearch } from '../../hooks/useDebouncedRegistrySearch';
 import { getApiErrorMessage } from '../../utils/apiError';
@@ -12,10 +13,10 @@ import {
   addSubscriptionVehicle,
   createParkingAgreement,
   createParkingSubscription,
+  fetchAllParkingFacilities,
+  fetchAllParkingTariffs,
   fetchParkingAgreements,
-  fetchParkingFacilities,
   fetchParkingSubscriptions,
-  fetchParkingTariffs,
   searchCustomers,
   updateParkingAgreement,
   updateParkingSubscription,
@@ -32,6 +33,7 @@ import {
   vehicleTypeSelectOptions,
 } from './parkingConstants';
 import './ParkingPages.css';
+import type { PaginatedMeta } from '../../types/pagination';
 
 function useFacilityFilter(facilities: ParkingFacility[]) {
   const [facilityId, setFacilityId] = useState('');
@@ -190,19 +192,43 @@ export const ParkingContractsPage: React.FC = () => {
     department: '',
   });
 
+  const [subPage, setSubPage] = useState(1);
+  const [subLimit, setSubLimit] = useState(10);
+  const [subMeta, setSubMeta] = useState<PaginatedMeta | null>(null);
+  const [agrPage, setAgrPage] = useState(1);
+  const [agrLimit, setAgrLimit] = useState(10);
+  const [agrMeta, setAgrMeta] = useState<PaginatedMeta | null>(null);
+
   const load = useCallback(async () => {
-    const facs = await fetchParkingFacilities();
+    const facs = await fetchAllParkingFacilities();
     setFacilities(facs);
     const fid = facilityId || facs[0]?.id;
     const [subs, agrs, tariffs] = await Promise.all([
-      fetchParkingSubscriptions({ facilityId: fid, search: searchDebounced || undefined }),
-      fetchParkingAgreements({ facilityId: fid, search: searchDebounced || undefined }),
-      fetchParkingTariffs({ facilityId: fid, billingType: 'monthly' }),
+      fetchParkingSubscriptions({
+        facilityId: fid,
+        search: searchDebounced || undefined,
+        page: subPage,
+        limit: subLimit,
+      }),
+      fetchParkingAgreements({
+        facilityId: fid,
+        search: searchDebounced || undefined,
+        page: agrPage,
+        limit: agrLimit,
+      }),
+      fetchAllParkingTariffs({ facilityId: fid, billingType: 'monthly' }),
     ]);
-    setSubscriptions(subs);
-    setAgreements(agrs);
+    setSubscriptions(subs.items);
+    setSubMeta(subs.meta);
+    setAgreements(agrs.items);
+    setAgrMeta(agrs.meta);
     setMonthlyTariffs(tariffs.filter((t) => t.active));
-  }, [facilityId, searchDebounced]);
+  }, [facilityId, searchDebounced, subPage, subLimit, agrPage, agrLimit]);
+
+  useEffect(() => {
+    setSubPage(1);
+    setAgrPage(1);
+  }, [facilityId, searchDebounced, tab]);
 
   useEffect(() => {
     setLoading(true);
@@ -606,7 +632,7 @@ export const ParkingContractsPage: React.FC = () => {
         <>
           <div className="parking-panel">
             <div className="parking-actions-row" style={{ justifyContent: 'space-between', marginBottom: 14 }}>
-              <h3 style={{ margin: 0 }}>Contratos ativos ({subscriptions.length})</h3>
+              <h3 style={{ margin: 0 }}>Contratos ativos ({subMeta?.total ?? subscriptions.length})</h3>
               <button type="button" className="catalog-action-button" onClick={openSubModal}>
                 Novo mensalista
               </button>
@@ -688,13 +714,27 @@ export const ParkingContractsPage: React.FC = () => {
                 </table>
               </div>
             )}
+            {subMeta && subMeta.total > 0 ? (
+              <CatalogPagination
+                page={subMeta.page}
+                totalPages={subMeta.totalPages}
+                total={subMeta.total}
+                limit={subLimit}
+                disabled={loading}
+                onPageChange={setSubPage}
+                onLimitChange={(next) => {
+                  setSubLimit(next);
+                  setSubPage(1);
+                }}
+              />
+            ) : null}
           </div>
         </>
       ) : (
         <>
           <div className="parking-panel">
             <div className="parking-actions-row" style={{ justifyContent: 'space-between', marginBottom: 14 }}>
-              <h3 style={{ margin: 0 }}>Convênios ({agreements.length})</h3>
+              <h3 style={{ margin: 0 }}>Convênios ({agrMeta?.total ?? agreements.length})</h3>
               <button type="button" className="catalog-action-button" onClick={openAgrModal}>
                 Novo convênio
               </button>
@@ -770,6 +810,20 @@ export const ParkingContractsPage: React.FC = () => {
                 </table>
               </div>
             )}
+            {agrMeta && agrMeta.total > 0 ? (
+              <CatalogPagination
+                page={agrMeta.page}
+                totalPages={agrMeta.totalPages}
+                total={agrMeta.total}
+                limit={agrLimit}
+                disabled={loading}
+                onPageChange={setAgrPage}
+                onLimitChange={(next) => {
+                  setAgrLimit(next);
+                  setAgrPage(1);
+                }}
+              />
+            ) : null}
           </div>
         </>
       )}

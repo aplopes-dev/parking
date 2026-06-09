@@ -4,11 +4,12 @@ import RegistryFormModal, { registryModalFooterButtons } from '../../components/
 import SectionTabBar from '../../components/SectionTabBar';
 import AlertModal from '../../components/AlertModal';
 import PremiumSelect from '../../components/PremiumSelect';
+import CatalogPagination from '../../components/catalog/CatalogPagination';
 import {
   createParkingDevice,
+  fetchAllParkingFacilities,
   fetchParkingAccessEvents,
   fetchParkingDevices,
-  fetchParkingFacilities,
   openGateManually,
   regenerateDeviceApiKey,
   simulateHardwareLpr,
@@ -28,6 +29,7 @@ import {
 } from './parkingConstants';
 import './ParkingPages.css';
 import { getApiErrorMessage } from '../../utils/apiError';
+import type { PaginatedMeta } from '../../types/pagination';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3085';
 
@@ -88,19 +90,32 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
   const [simDeviceId, setSimDeviceId] = useState('');
   const [simPlate, setSimPlate] = useState('');
   const [simResult, setSimResult] = useState<HardwareLprResult | null>(null);
+  const [devicesPage, setDevicesPage] = useState(1);
+  const [devicesLimit, setDevicesLimit] = useState(10);
+  const [devicesMeta, setDevicesMeta] = useState<PaginatedMeta | null>(null);
+  const [eventsPage, setEventsPage] = useState(1);
+  const [eventsLimit, setEventsLimit] = useState(10);
+  const [eventsMeta, setEventsMeta] = useState<PaginatedMeta | null>(null);
 
   const load = useCallback(async () => {
-    const facs = await fetchParkingFacilities();
+    const facs = await fetchAllParkingFacilities();
     setFacilities(facs);
     const fid = facilityId || facs[0]?.id;
     if (!fid) return;
-    const [devs, evs] = await Promise.all([
-      fetchParkingDevices(fid),
-      fetchParkingAccessEvents({ facilityId: fid }),
+    const [devsResult, evsResult] = await Promise.all([
+      fetchParkingDevices({ facilityId: fid, page: devicesPage, limit: devicesLimit }),
+      fetchParkingAccessEvents({ facilityId: fid, page: eventsPage, limit: eventsLimit }),
     ]);
-    setDevices(devs);
-    setEvents(evs);
-    setSimDeviceId((prev) => prev || devs[0]?.id || '');
+    setDevices(devsResult.items);
+    setDevicesMeta(devsResult.meta);
+    setEvents(evsResult.items);
+    setEventsMeta(evsResult.meta);
+    setSimDeviceId((prev) => prev || devsResult.items[0]?.id || '');
+  }, [facilityId, devicesPage, devicesLimit, eventsPage, eventsLimit]);
+
+  useEffect(() => {
+    setDevicesPage(1);
+    setEventsPage(1);
   }, [facilityId]);
 
   useEffect(() => {
@@ -279,7 +294,7 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
         <>
           <div className="parking-panel">
             <div className="parking-actions-row" style={{ justifyContent: 'space-between', marginBottom: 14 }}>
-              <h3 style={{ margin: 0 }}>Dispositivos ({devices.length})</h3>
+              <h3 style={{ margin: 0 }}>Dispositivos ({devicesMeta?.total ?? devices.length})</h3>
               <button
                 type="button"
                 className="catalog-action-button"
@@ -370,13 +385,27 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
                 </table>
               </div>
             )}
+            {devicesMeta && devicesMeta.total > 0 ? (
+              <CatalogPagination
+                page={devicesMeta.page}
+                totalPages={devicesMeta.totalPages}
+                total={devicesMeta.total}
+                limit={devicesLimit}
+                disabled={loading}
+                onPageChange={setDevicesPage}
+                onLimitChange={(next) => {
+                  setDevicesLimit(next);
+                  setDevicesPage(1);
+                }}
+              />
+            ) : null}
           </div>
         </>
       )}
 
       {tab === 'events' && (
         <div className="parking-panel">
-          <h3>Log de eventos ({events.length})</h3>
+          <h3>Log de eventos ({eventsMeta?.total ?? events.length})</h3>
           {events.length === 0 ? (
             <p className="parking-empty">Nenhum evento registrado.</p>
           ) : (
@@ -412,6 +441,20 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
               </table>
             </div>
           )}
+          {eventsMeta && eventsMeta.total > 0 ? (
+            <CatalogPagination
+              page={eventsMeta.page}
+              totalPages={eventsMeta.totalPages}
+              total={eventsMeta.total}
+              limit={eventsLimit}
+              disabled={loading}
+              onPageChange={setEventsPage}
+              onLimitChange={(next) => {
+                setEventsLimit(next);
+                setEventsPage(1);
+              }}
+            />
+          ) : null}
         </div>
       )}
 

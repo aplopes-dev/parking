@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import CatalogPagination from '../../components/catalog/CatalogPagination';
 import RegistryFormModal, { registryModalFooterButtons } from '../../components/RegistryFormModal';
 import AlertModal from '../../components/AlertModal';
 import PremiumSelect from '../../components/PremiumSelect';
@@ -21,6 +22,7 @@ import {
   vehicleTypeSelectOptions,
 } from './parkingConstants';
 import './ParkingPages.css';
+import type { PaginatedMeta } from '../../types/pagination';
 
 function normalizePlateInput(value: string): string {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -42,6 +44,9 @@ export const ParkingVehiclesPage: React.FC = () => {
   const [selected, setSelected] = useState<ParkingVehicleRecord | null>(null);
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerOptions, setCustomerOptions] = useState<CustomerOption[]>([]);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [listMeta, setListMeta] = useState<PaginatedMeta | null>(null);
   const [form, setForm] = useState({
     plate: '',
     vehicleType: 'car',
@@ -56,8 +61,17 @@ export const ParkingVehiclesPage: React.FC = () => {
   });
 
   const load = useCallback(async () => {
-    const data = await fetchParkingVehicles({ search: searchDebounced || undefined });
-    setVehicles(data);
+    const result = await fetchParkingVehicles({
+      search: searchDebounced || undefined,
+      page,
+      limit,
+    });
+    setVehicles(result.items);
+    setListMeta(result.meta);
+  }, [searchDebounced, page, limit]);
+
+  useEffect(() => {
+    setPage(1);
   }, [searchDebounced]);
 
   useEffect(() => {
@@ -341,7 +355,7 @@ export const ParkingVehiclesPage: React.FC = () => {
       </RegistryFormModal>
 
       <section className="parking-panel">
-        <h3>Veículos cadastrados ({vehicles.length})</h3>
+        <h3>Veículos cadastrados ({listMeta?.total ?? vehicles.length})</h3>
         {loading ? (
           <p className="parking-empty">Carregando…</p>
         ) : vehicles.length === 0 ? (
@@ -425,6 +439,20 @@ export const ParkingVehiclesPage: React.FC = () => {
             </table>
           </div>
         )}
+        {listMeta && listMeta.total > 0 ? (
+          <CatalogPagination
+            page={listMeta.page}
+            totalPages={listMeta.totalPages}
+            total={listMeta.total}
+            limit={limit}
+            disabled={loading}
+            onPageChange={setPage}
+            onLimitChange={(next) => {
+              setLimit(next);
+              setPage(1);
+            }}
+          />
+        ) : null}
       </section>
 
       <AlertModal isOpen={alert.open} message={alert.message} onClose={() => setAlert({ open: false, message: '' })} />

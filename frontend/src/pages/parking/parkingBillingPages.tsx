@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import CatalogPagination from '../../components/catalog/CatalogPagination';
 import AlertModal from '../../components/AlertModal';
 import PremiumSelect from '../../components/PremiumSelect';
 import {
+  fetchAllParkingFacilities,
   fetchBillingPreview,
-  fetchParkingFacilities,
   fetchSubscriptionBills,
   generateSubscriptionBilling,
   chargeSubscriptionBill,
@@ -16,6 +17,7 @@ import {
 } from '../../services/parkingApi';
 import { formatMoney, useFinanceMasterData } from '../finance/financeShared';
 import './ParkingPages.css';
+import type { PaginatedMeta } from '../../types/pagination';
 
 function errMsg(e: unknown): string {
   const ax = e as { response?: { data?: { message?: string | string[] } } };
@@ -55,19 +57,32 @@ export const ParkingBillingPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'pix' | 'boleto'>('pix');
   const [chargingBillId, setChargingBillId] = useState<string | null>(null);
   const [alert, setAlert] = useState({ open: false, message: '' });
+  const [billsPage, setBillsPage] = useState(1);
+  const [billsLimit, setBillsLimit] = useState(10);
+  const [billsMeta, setBillsMeta] = useState<PaginatedMeta | null>(null);
 
   const load = useCallback(async () => {
-    const facs = await fetchParkingFacilities();
+    const facs = await fetchAllParkingFacilities();
     setFacilities(facs);
     const fid = facilityId || facs[0]?.id || '';
     if (!facilityId && fid) setFacilityId(fid);
 
     const [prev, billList] = await Promise.all([
       fetchBillingPreview({ referenceMonth, facilityId: fid || undefined }),
-      fetchSubscriptionBills({ referenceMonth, facilityId: fid || undefined }),
+      fetchSubscriptionBills({
+        referenceMonth,
+        facilityId: fid || undefined,
+        page: billsPage,
+        limit: billsLimit,
+      }),
     ]);
     setPreview(prev);
-    setBills(billList);
+    setBills(billList.items);
+    setBillsMeta(billList.meta);
+  }, [referenceMonth, facilityId, billsPage, billsLimit]);
+
+  useEffect(() => {
+    setBillsPage(1);
   }, [referenceMonth, facilityId]);
 
   useEffect(() => {
@@ -408,6 +423,21 @@ export const ParkingBillingPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {billsMeta && billsMeta.total > 0 ? (
+              <CatalogPagination
+                page={billsMeta.page}
+                totalPages={billsMeta.totalPages}
+                total={billsMeta.total}
+                limit={billsLimit}
+                disabled={loading}
+                onPageChange={setBillsPage}
+                onLimitChange={(next) => {
+                  setBillsLimit(next);
+                  setBillsPage(1);
+                }}
+              />
+            ) : null}
 
             {openBills.length > 0 ? (
               <div className="catalog-toolbar catalog-filter-toolbar catalog-operation-panel__footer">
