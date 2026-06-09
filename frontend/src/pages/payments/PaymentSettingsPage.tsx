@@ -22,6 +22,7 @@ import {
 } from '../../services/pagbankApi';
 import { getApiErrorMessage } from '../../utils/apiError';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import SectionTabBar from '../../components/SectionTabBar';
 import './PaymentSettings.css';
 
 function pagbankEnvMeta(env: 'sandbox' | 'production') {
@@ -229,36 +230,15 @@ const PaymentSettingsPage: React.FC = () => {
       loading={loading && !data}
       loadingDescription="Carregando configurações de pagamento."
     >
-      <p className="payment-settings-intro">
-        Documentação:{' '}
-        <a
-          href="https://developer.pagbank.com.br/reference/introducao"
-          target="_blank"
-          rel="noreferrer"
-        >
-          API Platform PagBank
-        </a>
-        {data ? (
-          <>
-            {' '}
-            · {data.summary.enabledFlows} de {data.summary.totalFlows} fluxos ativos ·{' '}
-            {data.summary.implementedFlows} já com código no Aplopes Food
-          </>
-        ) : null}
-      </p>
-
-      <div className="payment-settings-tabs">
-        {(Object.keys(TAB_LABELS) as TabId[]).map((id) => (
-          <button
-            key={id}
-            type="button"
-            className={`payment-settings-tab${tab === id ? ' is-active' : ''}`}
-            onClick={() => setTab(id)}
-          >
-            {TAB_LABELS[id]}
-          </button>
-        ))}
-      </div>
+      <SectionTabBar
+        tabs={(Object.keys(TAB_LABELS) as TabId[]).map((id) => ({
+          id,
+          label: TAB_LABELS[id],
+        }))}
+        activeTab={tab}
+        onTabChange={(id) => setTab(id as TabId)}
+        ariaLabel="Configurações PagBank"
+      />
 
       <section className="catalog-surface catalog-form-surface--premium">
         {loading || !data ? (
@@ -267,13 +247,9 @@ const PaymentSettingsPage: React.FC = () => {
           <>
             {tab === 'geral' && (
               <div className="catalog-form">
-                <p className="payment-settings-doc">
-                  Credenciais globais usadas nas chamadas REST PagBank (Bearer token, chaves e
-                  Connect).
-                </p>
                 {(data.flows.split_payment?.enabled ?? data.pagbankSplit.pagbankSplitEnabled) &&
                   !data.pagbankSplit.pagbankMasterAccountId?.trim() && (
-                    <p className="payment-settings-doc payment-settings-warn">
+                    <p className="payment-settings-alert">
                       O fluxo <strong>split_payment</strong> está ativo, mas a conta adquirente{' '}
                       <code>ACCO_…</code> não foi preenchida na aba <strong>Divisão (split)</strong>.
                       Você pode salvar token e demais dados da aba Geral; para cobranças com split,
@@ -548,10 +524,6 @@ const PaymentSettingsPage: React.FC = () => {
 
             {tab === 'fluxos' && (
               <div>
-                <p className="payment-settings-doc">
-                  Marque os fluxos que deseja habilitar no roadmap. Cada item aponta para a
-                  documentação oficial para implementação.
-                </p>
                 <div style={{ marginBottom: 16 }}>
                   <PremiumSelect
                     label="Filtrar categoria"

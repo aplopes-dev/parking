@@ -54,18 +54,6 @@ const PaymentPagbankTransferSection: React.FC<Props> = ({ canManage }) => {
 
   return (
     <div className="payment-tools-block">
-      <p className="payment-settings-doc">
-        Transferências P2P ou PIX via{' '}
-        <a
-          href="https://developer.pagbank.com.br/reference/criar-transferencia"
-          target="_blank"
-          rel="noreferrer"
-        >
-          API Transferências
-        </a>
-        . Requer homologação PagBank e fluxo <code>transfer_balance</code> ativo. URL de notificação
-        em Geral.
-      </p>
       {error && <p className="pagbank-pix-error">{error}</p>}
 
       <div className="catalog-form-grid">

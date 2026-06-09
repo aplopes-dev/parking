@@ -81,17 +81,6 @@ const PaymentPagbankRegistrationSection: React.FC<Props> = ({ canManage }) => {
 
   return (
     <div className="payment-tools-block">
-      <p className="payment-settings-doc">
-        API de Cadastro —{' '}
-        <a
-          href="https://developer.pagbank.com.br/reference/criar-conta"
-          target="_blank"
-          rel="noreferrer"
-        >
-          criar conta
-        </a>
-        . Usa Connect Client ID/Secret de Geral. Fluxo <code>account_register</code>.
-      </p>
       {error && <p className="pagbank-pix-error">{error}</p>}
 
       <div className="catalog-form-grid">

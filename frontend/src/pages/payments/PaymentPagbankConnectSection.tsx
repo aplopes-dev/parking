@@ -74,19 +74,6 @@ const PaymentPagbankConnectSection: React.FC<Props> = ({
 
   return (
     <div className="payment-connect-block">
-      <p className="payment-settings-doc">
-        Marketplace PagBank Connect — vincule contas de vendedores para split e cobrança em nome
-        deles.{' '}
-        <a
-          href="https://developer.pagbank.com.br/docs/connect"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Documentação Connect
-        </a>
-        .
-      </p>
-
       <div className="form-group">
         <label htmlFor="connect-redirect">Redirect URI (OAuth)</label>
         <input

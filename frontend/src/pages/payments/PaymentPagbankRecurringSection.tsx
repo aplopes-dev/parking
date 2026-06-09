@@ -79,17 +79,6 @@ const PaymentPagbankRecurringSection: React.FC<Props> = ({ canManage }) => {
 
   return (
     <div className="payment-tools-block">
-      <p className="payment-settings-doc">
-        Planos e assinaturas via{' '}
-        <a
-          href="https://developer.pagbank.com.br/reference/introducao-assinaturas"
-          target="_blank"
-          rel="noreferrer"
-        >
-          API Assinaturas PagBank
-        </a>
-        . Ative os fluxos <code>recurring_plans</code> e <code>recurring_subscriptions</code>.
-      </p>
       {error && <p className="pagbank-pix-error">{error}</p>}
 
       <h3 className="payment-tools-subtitle">Novo plano</h3>

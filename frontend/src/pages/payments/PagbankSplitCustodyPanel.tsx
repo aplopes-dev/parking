@@ -109,10 +109,6 @@ const PagbankSplitCustodyPanel: React.FC<Props> = ({
   return (
     <div className="payment-custody-panel">
       <h4>Custódia PagBank</h4>
-      <p className="payment-settings-doc">
-        Data padrão usada em novos checkouts com fluxo <code>split_custody</code>. Formato ISO com
-        fuso (ex.: 2025-12-01T18:00:00-03:00).
-      </p>
 
       <div className="form-group">
         <label htmlFor="custody-scheduled">Liberação agendada (padrão)</label>

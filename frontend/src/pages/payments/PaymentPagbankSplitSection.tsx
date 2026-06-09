@@ -96,18 +96,6 @@ const PaymentPagbankSplitSection: React.FC<Props> = ({
 
   return (
     <>
-      <p className="payment-settings-doc">
-        Divisão automática entre recebedores via <code>charges.splits</code>.{' '}
-        <a
-          href="https://developer.pagbank.com.br/reference/divisao-de-pagamento"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Documentação PagBank
-        </a>
-        .
-      </p>
-
       <div className="catalog-form-grid">
         <PremiumSelect
           label="Método de divisão"

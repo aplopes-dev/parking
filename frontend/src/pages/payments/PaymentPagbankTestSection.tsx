@@ -424,49 +424,6 @@ const PaymentPagbankTestSection: React.FC<Props> = ({ canManage }) => {
 
   return (
     <div className="payment-tools-block payment-test-panel">
-      <p className="payment-settings-doc">
-        Testes no <strong>Sandbox</strong> conforme{' '}
-        <a href={panel?.docUrl} target="_blank" rel="noreferrer">
-          Testar integração — Pagamentos Recorrentes
-        </a>
-        . Use token de <strong>teste</strong>; não use cartões reais. Criptografia conforme{' '}
-        <a
-          href="https://developer.pagbank.com.br/reference/criar-pagar-pedido-com-cartao"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Criar e pagar pedido com cartão
-        </a>{' '}
-        (chave POST /public-keys na API Orders + SDK). <strong>Pedidos — cartões de teste</strong>:{' '}
-        <a
-          href={panel?.ordersTestCardsDocUrl ?? 'https://developer.pagbank.com.br/docs/cartoes-de-teste'}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Visa, Mastercard, Amex, Elo e Hiper
-        </a>{' '}
-        (aprovados e negados, exp. 12/2030). <strong>Débito 3DS</strong>: cartões e valores da{' '}
-        <a
-          href={
-            panel?.orders3dsDocUrl ??
-            'https://developer.pagbank.com.br/reference/criar-pagar-pedido-com-3ds-validacao-pagbank'
-          }
-          target="_blank"
-          rel="noreferrer"
-        >
-          doc 3DS PagBank
-        </a>{' '}
-        (SDK no browser + <code>authentication_method.id</code>). Fluxos:{' '}
-        <code>orders_debit_card</code>, <code>orders_3ds_pagbank</code>.{' '}
-        <strong>Assinaturas</strong> usam token{' '}
-        <code>CARD_*</code> da{' '}
-        <a href={panel?.docUrl} target="_blank" rel="noreferrer">
-          doc de recorrência
-        </a>
-        . Recorrência:{' '}
-        <code>{panel?.apiBases.subscriptions}</code> · Pedidos:{' '}
-        <code>{panel?.apiBases.orders}</code>
-      </p>
 
       {!panel?.isSandbox && (
         <p className="pagbank-pix-error">
