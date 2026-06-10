@@ -157,8 +157,10 @@
 .payment-custody-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 12px;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
 }
 
 .payment-connect-list {
@@ -240,9 +242,13 @@
 .payment-test-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
+  gap: var(--ui-toolbar-gap, 16px);
+  align-items: flex-end;
   margin: 16px 0;
+}
+
+.payment-test-toolbar:not(.catalog-filter-toolbar) {
+  justify-content: flex-end;
 }
 
 .payment-test-toolbar--inner {
