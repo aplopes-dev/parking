@@ -1,6 +1,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import CatalogRegistryIconActions from '../../components/catalog/CatalogRegistryIconActions';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import AlertModal from '../../components/AlertModal';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -25,8 +26,11 @@ import {
 } from '../../services/financeApi';
 import type {
   FinanceAccount,
+  FinanceAccountType,
   FinanceCategory,
   FinanceOverview,
+  FinanceSource,
+  FinanceTag,
   FinanceTransaction,
   FinanceTransactionType,
 } from '../../types/finance';
@@ -51,6 +55,65 @@ import {
   type FinanceMasterTab,
 } from './financeTabRoutes';
 import './Finance.css';
+
+const ACCOUNT_TYPE_LABELS: Record<FinanceAccountType, string> = {
+  bank: 'Banco',
+  cash: 'Caixa',
+  card: 'Cartão',
+  digital: 'Digital',
+  other: 'Outro',
+};
+
+const MASTER_ENTITY_LABEL: Record<Exclude<FinanceMasterTab, 'transactions'>, string> = {
+  accounts: 'conta',
+  sources: 'fonte',
+  categories: 'categoria',
+  tags: 'tag',
+};
+
+function masterValuesFromAccount(row: FinanceAccount): FinanceMasterFormValues {
+  return {
+    name: row.name,
+    type: row.type,
+    level: 'macro',
+    description: row.description ?? '',
+    color: '#2c4778',
+    active: row.active,
+  };
+}
+
+function masterValuesFromSource(row: FinanceSource): FinanceMasterFormValues {
+  return {
+    name: row.name,
+    type: row.type,
+    level: 'macro',
+    description: '',
+    color: '#2c4778',
+    active: row.active,
+  };
+}
+
+function masterValuesFromCategory(row: FinanceCategory): FinanceMasterFormValues {
+  return {
+    name: row.name,
+    type: row.type,
+    level: row.level,
+    description: '',
+    color: '#2c4778',
+    active: row.active,
+  };
+}
+
+function masterValuesFromTag(row: FinanceTag): FinanceMasterFormValues {
+  return {
+    name: row.name,
+    type: 'expense',
+    level: 'macro',
+    description: '',
+    color: row.color,
+    active: row.active,
+  };
+}
 
 const FinancePage: React.FC = () => {
   const { user } = useContext(AuthContext) || {};
@@ -236,15 +299,70 @@ const FinancePage: React.FC = () => {
 
   const [masterModal, setMasterModal] = useState(false);
   const [masterSaving, setMasterSaving] = useState(false);
+  const [editingMasterId, setEditingMasterId] = useState<string | null>(null);
+  const [masterInitialValues, setMasterInitialValues] = useState<FinanceMasterFormValues | null>(null);
 
-  const openMasterModal = () => setMasterModal(true);
-  const closeMasterModal = () => { if (!masterSaving) setMasterModal(false); };
+  const openMasterModal = () => {
+    setEditingMasterId(null);
+    setMasterInitialValues(null);
+    setMasterModal(true);
+  };
+
+  const openEditMaster = (row: FinanceAccount | FinanceSource | FinanceCategory | FinanceTag) => {
+    if (tab === 'transactions') return;
+    setEditingMasterId(row.id);
+    if (tab === 'accounts') {
+      setMasterInitialValues(masterValuesFromAccount(row as FinanceAccount));
+    } else if (tab === 'sources') {
+      setMasterInitialValues(masterValuesFromSource(row as FinanceSource));
+    } else if (tab === 'categories') {
+      setMasterInitialValues(masterValuesFromCategory(row as FinanceCategory));
+    } else {
+      setMasterInitialValues(masterValuesFromTag(row as FinanceTag));
+    }
+    setMasterModal(true);
+  };
+
+  const closeMasterModal = () => {
+    if (masterSaving) return;
+    setMasterModal(false);
+    setEditingMasterId(null);
+    setMasterInitialValues(null);
+  };
 
   const saveMaster = async (values: FinanceMasterFormValues) => {
     if (!values.name.trim()) return;
     setMasterSaving(true);
     try {
-      if (tab === 'accounts') {
+      if (editingMasterId) {
+        if (tab === 'accounts') {
+          await updateFinanceAccount(editingMasterId, {
+            name: values.name.trim(),
+            type: (values.type as FinanceAccount['type']) || 'bank',
+            description: values.description.trim() || undefined,
+            active: values.active,
+          });
+        } else if (tab === 'sources') {
+          await updateFinanceSource(editingMasterId, {
+            name: values.name.trim(),
+            type: (values.type as FinanceTransactionType) || 'expense',
+            active: values.active,
+          });
+        } else if (tab === 'categories') {
+          await updateFinanceCategory(editingMasterId, {
+            name: values.name.trim(),
+            type: (values.type as FinanceTransactionType) || 'expense',
+            level: (values.level as FinanceCategory['level']) || 'macro',
+            active: values.active,
+          });
+        } else if (tab === 'tags') {
+          await updateFinanceTag(editingMasterId, {
+            name: values.name.trim(),
+            color: values.color,
+            active: values.active,
+          });
+        }
+      } else if (tab === 'accounts') {
         await createFinanceAccount({
           name: values.name.trim(),
           type: (values.type as FinanceAccount['type']) || 'bank',
@@ -268,6 +386,8 @@ const FinancePage: React.FC = () => {
         await createFinanceTag({ name: values.name.trim(), color: values.color, active: true });
       }
       setMasterModal(false);
+      setEditingMasterId(null);
+      setMasterInitialValues(null);
       await load();
     } catch (err: unknown) {
       const msg =
@@ -276,26 +396,6 @@ const FinancePage: React.FC = () => {
       setAlert({ open: true, message: msg });
     } finally {
       setMasterSaving(false);
-    }
-  };
-
-  const toggleActive = async (
-    row: FinanceAccount | { id: string; name: string; active: boolean } | FinanceCategory,
-    kind: FinanceMasterTab,
-  ) => {
-    try {
-      if (kind === 'accounts') {
-        await updateFinanceAccount(row.id, { active: !row.active });
-      } else if (kind === 'sources') {
-        await updateFinanceSource(row.id, { active: !row.active });
-      } else if (kind === 'categories') {
-        await updateFinanceCategory(row.id, { active: !row.active });
-      } else {
-        await updateFinanceTag(row.id, { active: !row.active });
-      }
-      await load();
-    } catch {
-      setAlert({ open: true, message: 'Erro ao atualizar registro.' });
     }
   };
 
@@ -386,8 +486,16 @@ const FinancePage: React.FC = () => {
             {overview.transactions.length === 0 ? (
               <p className="catalog-empty">Nenhum lançamento no período.</p>
             ) : (
-              <div className="finance-table-wrap">
-                <table className="finance-table">
+              <div className="catalog-data-table-wrap finance-table-wrap">
+                <table className="finance-table catalog-data-table">
+                  <colgroup>
+                    <col />
+                    <col />
+                    <col />
+                    <col />
+                    <col />
+                    <col className="catalog-data-table__col--actions" />
+                  </colgroup>
                   <thead>
                     <tr>
                       <th>Data</th>
@@ -395,7 +503,7 @@ const FinancePage: React.FC = () => {
                       <th>Tipo</th>
                       <th>Valor</th>
                       <th>Conta</th>
-                      <th />
+                      <th className="catalog-data-table__actions">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -414,21 +522,15 @@ const FinancePage: React.FC = () => {
                           {formatMoney(tx.amount)}
                         </td>
                         <td>{tx.account?.name ?? '—'}</td>
-                        <td className="finance-table-actions">
-                          <button
-                            type="button"
-                            className="catalog-form-footer-btn catalog-form-footer-btn--ghost"
-                            onClick={() => openEditTx(tx)}
-                          >
-                            Editar
-                          </button>
-                          <button
-                            type="button"
-                            className="catalog-form-footer-btn catalog-form-footer-btn--ghost"
-                            onClick={() => removeTx(tx)}
-                          >
-                            Excluir
-                          </button>
+                        <td className="catalog-data-table__actions finance-table-actions">
+                          <div className="catalog-data-table__actions-group">
+                            <CatalogRegistryIconActions
+                              editLabel={`Editar lançamento ${tx.description}`}
+                              deleteLabel={`Excluir lançamento ${tx.description}`}
+                              onEdit={() => openEditTx(tx)}
+                              onDelete={() => removeTx(tx)}
+                            />
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -438,46 +540,21 @@ const FinancePage: React.FC = () => {
             )}
           </section>
         </>
-      ) : overview ? (
-        <section className="catalog-surface catalog-form-surface--premium">
-          {tab === 'accounts' && overview && (
-            <MasterTable
-              rows={overview.accounts}
-              label="Conta"
-              onToggle={(r) => toggleActive(r, 'accounts')}
-              onDelete={(r) => deleteMaster(r.id, 'accounts', r.name)}
-            />
-          )}
-          {tab === 'sources' && overview && (
-            <MasterTable
-              rows={overview.sources}
-              label="Fonte"
-              extra={(r) => (r.type === 'income' ? 'Receita' : 'Despesa')}
-              onToggle={(r) => toggleActive(r, 'sources')}
-              onDelete={(r) => deleteMaster(r.id, 'sources', r.name)}
-            />
-          )}
-          {tab === 'categories' && overview && (
-            <MasterTable
-              rows={overview.categories}
-              label="Categoria"
-              extra={(r) => `${r.level} · ${r.type === 'income' ? 'Receita' : 'Despesa'}`}
-              onToggle={(r) => toggleActive(r, 'categories')}
-              onDelete={(r) => deleteMaster(r.id, 'categories', r.name)}
-            />
-          )}
-          {tab === 'tags' && overview && (
-            <MasterTable
-              rows={overview.tags}
-              label="Tag"
-              extra={(r) => (
-                <span className="finance-tag-swatch" style={{ background: r.color }} />
-              )}
-              onToggle={(r) => toggleActive(r, 'tags')}
-              onDelete={(r) => deleteMaster(r.id, 'tags', r.name)}
-            />
-          )}
-        </section>
+      ) : overview && tab !== 'transactions' ? (
+        <MasterRegistryPanel
+          tab={tab}
+          rows={
+            tab === 'accounts'
+              ? overview.accounts
+              : tab === 'sources'
+                ? overview.sources
+                : tab === 'categories'
+                  ? overview.categories
+                  : overview.tags
+          }
+          onEdit={openEditMaster}
+          onDelete={(row) => deleteMaster(row.id, tab, row.name)}
+        />
       ) : null}
 
       <FinanceTransactionModal
@@ -506,6 +583,8 @@ const FinancePage: React.FC = () => {
         <FinanceMasterModal
           isOpen={masterModal}
           kind={tab as Exclude<FinanceMasterTab, 'transactions'>}
+          editingId={editingMasterId}
+          initialValues={masterInitialValues}
           isSaving={masterSaving}
           onClose={closeMasterModal}
           onSubmit={saveMaster}
@@ -534,58 +613,84 @@ const FinancePage: React.FC = () => {
 
 type MasterRow = { id: string; name: string; active: boolean };
 
-function MasterTable<T extends MasterRow>(props: {
-  rows: T[];
-  label: string;
-  extra?: (row: T) => React.ReactNode;
-  onToggle: (row: T) => void;
-  onDelete: (row: T) => void;
-}) {
-  if (!props.rows.length) {
-    return <p className="catalog-empty">Nenhum registro cadastrado.</p>;
+function masterDetail(
+  tab: Exclude<FinanceMasterTab, 'transactions'>,
+  row: FinanceAccount | FinanceSource | FinanceCategory | FinanceTag,
+): React.ReactNode {
+  if (tab === 'accounts') {
+    const account = row as FinanceAccount;
+    return ACCOUNT_TYPE_LABELS[account.type] ?? account.type;
   }
+  if (tab === 'sources') {
+    return (row as FinanceSource).type === 'income' ? 'Receita' : 'Despesa';
+  }
+  if (tab === 'categories') {
+    const category = row as FinanceCategory;
+    return `${category.level} · ${category.type === 'income' ? 'Receita' : 'Despesa'}`;
+  }
+  return <span className="finance-tag-swatch" style={{ background: (row as FinanceTag).color }} aria-hidden />;
+}
+
+function MasterRegistryPanel(props: {
+  tab: Exclude<FinanceMasterTab, 'transactions'>;
+  rows: (FinanceAccount | FinanceSource | FinanceCategory | FinanceTag)[];
+  onEdit: (row: FinanceAccount | FinanceSource | FinanceCategory | FinanceTag) => void;
+  onDelete: (row: MasterRow) => void;
+}) {
+  const entity = MASTER_ENTITY_LABEL[props.tab];
+  const nameLabel =
+    props.tab === 'accounts'
+      ? 'Conta'
+      : props.tab === 'sources'
+        ? 'Fonte'
+        : props.tab === 'categories'
+          ? 'Categoria'
+          : 'Tag';
+
   return (
-    <table className="finance-table">
-      <thead>
-        <tr>
-          <th>{props.label}</th>
-          <th>Detalhe</th>
-          <th>Ativo</th>
-          <th />
-        </tr>
-      </thead>
-      <tbody>
-        {props.rows.map((row) => (
-          <tr key={row.id}>
-            <td>{row.name}</td>
-            <td>{props.extra ? props.extra(row) : '—'}</td>
-            <td>
-              <span className="catalog-pill catalog-pill--sm is-muted">
-                {row.active ? 'Sim' : 'Não'}
-              </span>
-            </td>
-            <td>
-              <div className="finance-table-actions">
-                <button
-                  type="button"
-                  className="catalog-form-footer-btn catalog-form-footer-btn--ghost"
-                  onClick={() => props.onToggle(row)}
-                >
-                  {row.active ? 'Desativar' : 'Ativar'}
-                </button>
-                <button
-                  type="button"
-                  className="catalog-form-footer-btn catalog-form-footer-btn--ghost"
-                  onClick={() => props.onDelete(row)}
-                >
-                  Excluir
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <section className="catalog-registry-panel" aria-labelledby="finance-master-panel-title">
+      <header className="catalog-registry-panel__header">
+        <div>
+          <h2 id="finance-master-panel-title">{FINANCE_TAB_LABELS[props.tab]} cadastradas</h2>
+          <p className="catalog-registry-panel__meta">{props.rows.length} registro(s)</p>
+        </div>
+      </header>
+
+      {props.rows.length === 0 ? (
+        <div className="catalog-empty">Nenhum registro cadastrado.</div>
+      ) : (
+        <div className="catalog-registry-table catalog-registry-table--finance-master">
+          <div className="catalog-registry-table__head" role="row">
+            <span>{nameLabel}</span>
+            <span>Detalhe</span>
+            <span>Status</span>
+            <span>Ações</span>
+          </div>
+          <ul className="catalog-registry-list" aria-label={`Lista de ${FINANCE_TAB_LABELS[props.tab].toLowerCase()}`}>
+            {props.rows.map((row) => (
+              <li key={row.id} className="catalog-registry-row">
+                <div className="catalog-registry-main">
+                  <span className="catalog-registry-name">{row.name}</span>
+                </div>
+
+                <span className="catalog-registry-desc">{masterDetail(props.tab, row)}</span>
+
+                <div className="catalog-registry-status">
+                  <span className="catalog-pill is-muted">{row.active ? 'Ativo' : 'Inativo'}</span>
+                </div>
+
+                <CatalogRegistryIconActions
+                  editLabel={`Editar ${entity} ${row.name}`}
+                  deleteLabel={`Excluir ${entity} ${row.name}`}
+                  onEdit={() => props.onEdit(row)}
+                  onDelete={() => props.onDelete(row)}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
   );
 }
 

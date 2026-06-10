@@ -13,11 +13,14 @@ export type FinanceMasterFormValues = {
   level: string;
   description: string;
   color: string;
+  active: boolean;
 };
 
 interface FinanceMasterModalProps {
   isOpen: boolean;
   kind: MasterKind;
+  editingId?: string | null;
+  initialValues?: FinanceMasterFormValues | null;
   isSaving: boolean;
   onClose: () => void;
   onSubmit: (values: FinanceMasterFormValues) => void | Promise<void>;
@@ -41,11 +44,18 @@ const CATEGORY_LEVEL_OPTIONS = [
   { value: 'sub', label: 'Sub-categoria' },
 ];
 
-const TITLE: Record<MasterKind, string> = {
+const CREATE_TITLE: Record<MasterKind, string> = {
   accounts: 'Nova conta financeira',
   sources: 'Nova fonte',
   categories: 'Nova categoria',
   tags: 'Nova tag',
+};
+
+const EDIT_TITLE: Record<MasterKind, string> = {
+  accounts: 'Editar conta financeira',
+  sources: 'Editar fonte',
+  categories: 'Editar categoria',
+  tags: 'Editar tag',
 };
 
 const SUBTITLE: Record<MasterKind, string> = {
@@ -60,32 +70,47 @@ const emptyValues = (): FinanceMasterFormValues => ({
   type: 'bank',
   level: 'macro',
   description: '',
-  color: '#ea1d2c',
+  color: '#2c4778',
+  active: true,
 });
+
+const ACTIVE_OPTIONS = [
+  { value: 'true', label: 'Ativo' },
+  { value: 'false', label: 'Inativo' },
+];
 
 const FinanceMasterModal: React.FC<FinanceMasterModalProps> = ({
   isOpen,
   kind,
+  editingId = null,
+  initialValues = null,
   isSaving,
   onClose,
   onSubmit,
 }) => {
   const [values, setValues] = useState<FinanceMasterFormValues>(emptyValues);
+  const isEditing = Boolean(editingId);
 
   useEffect(() => {
-    if (isOpen) {
-      const v = emptyValues();
-      if (kind === 'sources' || kind === 'categories') v.type = 'expense';
-      setValues(v);
+    if (!isOpen) return;
+    if (initialValues) {
+      setValues(initialValues);
+      return;
     }
-  }, [isOpen, kind]);
+    const v = emptyValues();
+    if (kind === 'sources' || kind === 'categories') v.type = 'expense';
+    setValues(v);
+  }, [isOpen, kind, initialValues]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     void onSubmit(values);
   };
 
+  const modalTitle = isEditing ? EDIT_TITLE[kind] : CREATE_TITLE[kind];
+
   const submitLabel = useMemo(() => {
+    if (isEditing) return 'Salvar alterações';
     const labels: Record<MasterKind, string> = {
       accounts: 'Criar conta',
       sources: 'Criar fonte',
@@ -93,7 +118,7 @@ const FinanceMasterModal: React.FC<FinanceMasterModalProps> = ({
       tags: 'Criar tag',
     };
     return labels[kind];
-  }, [kind]);
+  }, [isEditing, kind]);
 
   return (
     <ModalPortal isOpen={isOpen}>
@@ -111,7 +136,7 @@ const FinanceMasterModal: React.FC<FinanceMasterModalProps> = ({
         >
           <div className="app-modal-header">
             <div>
-              <h3 id="finance-master-modal-title">{TITLE[kind]}</h3>
+              <h3 id="finance-master-modal-title">{modalTitle}</h3>
               <p className="app-modal-subtitle">{SUBTITLE[kind]}</p>
             </div>
             <button
@@ -200,6 +225,15 @@ const FinanceMasterModal: React.FC<FinanceMasterModalProps> = ({
                 />
               </div>
             )}
+
+            {isEditing ? (
+              <PremiumSelect
+                label="Status"
+                value={values.active ? 'true' : 'false'}
+                options={ACTIVE_OPTIONS}
+                onChange={(v) => setValues({ ...values, active: v === 'true' })}
+              />
+            ) : null}
 
             <div className="app-modal-footer pg-form-modal-footer">
               <button

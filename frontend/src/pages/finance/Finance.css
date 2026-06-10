@@ -25,8 +25,9 @@
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 14px;
-  padding: 20px 24px;
+  gap: var(--ui-toolbar-gap, 16px);
+  row-gap: var(--ui-toolbar-gap, 16px);
+  padding: 20px var(--ui-panel-padding, 24px);
   border: 1px solid var(--border-default, #e5e5e5);
   border-radius: 8px;
   background: var(--surface-card, #ffffff);
@@ -62,11 +63,7 @@
 }
 
 .finance-toolbar__actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 10px;
-  margin-left: auto;
+  gap: 12px;
 }
 
 .finance-toolbar__actions .form-group {
@@ -87,7 +84,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 14px;
+  gap: var(--ui-toolbar-gap, 16px);
+  row-gap: var(--ui-toolbar-gap, 16px);
 }
 
 .finance-filters .form-group,
@@ -264,11 +262,17 @@
   border-bottom: none;
 }
 
-.finance-table-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+.finance-table.catalog-data-table th:not(.catalog-data-table__status):not(.catalog-data-table__actions),
+.finance-table.catalog-data-table td:not(.catalog-data-table__status):not(.catalog-data-table__actions) {
+  padding: 12px 16px;
+}
+
+.finance-table th[aria-label='Ações'],
+.finance-table th.catalog-data-table__actions,
+.finance-table td.finance-table-actions,
+.finance-table td.catalog-data-table__actions {
+  text-align: right;
+  white-space: nowrap;
 }
 
 .finance-table .is-income,
@@ -291,6 +295,11 @@
 .finance-master-form .premium-text-input {
   flex: 1 1 220px;
   min-width: 12rem;
+}
+
+.catalog-registry-table--finance-master .catalog-registry-table__head,
+.catalog-registry-table--finance-master .catalog-registry-row {
+  grid-template-columns: minmax(180px, 1.2fr) minmax(140px, 1fr) 100px 88px;
 }
 
 .finance-tag-swatch {

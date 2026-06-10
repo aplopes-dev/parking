@@ -172,13 +172,11 @@ export const FinanceField: React.FC<{
 
 export const FinanceSection: React.FC<{
   title: string;
-  kicker?: string;
   children: React.ReactNode;
-}> = ({ title, kicker, children }) => (
+}> = ({ title, children }) => (
   <section className="catalog-surface catalog-form-surface--premium finance-section">
     <div className="catalog-section-header">
       <div>
-        {kicker ? <span className="catalog-section-kicker">{kicker}</span> : null}
         <h2>{title}</h2>
       </div>
     </div>
