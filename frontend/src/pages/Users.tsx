@@ -10,6 +10,7 @@ import { getUserPhotoUrl } from '../utils/userPhoto';
 import PremiumSelect from '../components/PremiumSelect';
 import CatalogPageLayout from '../components/CatalogPageLayout';
 import CatalogPagination from '../components/catalog/CatalogPagination';
+import CatalogRegistryIconActions from '../components/catalog/CatalogRegistryIconActions';
 import { DEFAULT_PAGE_SIZE, PaginatedMeta, PaginatedResponse } from '../types/pagination';
 import './Users.css';
 
@@ -565,22 +566,13 @@ const Users: React.FC = () => {
               </dl>
 
               <div className="catalog-card-actions">
-                <button
-                  type="button"
-                  className="catalog-card-button"
-                  onClick={() => openEditForm(u)}
-                >
-                  Editar
-                </button>
-                {user.role === 'admin' && (
-                  <button
-                    type="button"
-                    className="catalog-card-button is-danger"
-                    onClick={() => handleDelete(u)}
-                  >
-                    Excluir
-                  </button>
-                )}
+                <CatalogRegistryIconActions
+                  editLabel={`Editar usuário ${u.name}`}
+                  deleteLabel={`Excluir usuário ${u.name}`}
+                  showDelete={user.role === 'admin'}
+                  onEdit={() => openEditForm(u)}
+                  onDelete={() => void handleDelete(u)}
+                />
               </div>
             </article>
           ))}

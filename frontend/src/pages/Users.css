@@ -245,7 +245,8 @@
 .form-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: var(--ui-form-gap, 16px);
+  align-items: end;
 }
 
 .users-form .form-group {
@@ -268,8 +269,11 @@
 
 .users-form-footer {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 20px;
 }
 
 .users-photo-file-input {
