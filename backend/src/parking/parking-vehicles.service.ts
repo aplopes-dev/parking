@@ -136,6 +136,12 @@ export class ParkingVehiclesService {
     return this.enrichVehicle(tenantId, saved);
   }
 
+  async remove(tenantId: string, id: string): Promise<void> {
+    const vehicle = await this.vehiclesRepo.findOne({ where: { id, tenantId } });
+    if (!vehicle) throw new NotFoundException('Veículo não encontrado');
+    await this.vehiclesRepo.remove(vehicle);
+  }
+
   /** Sincroniza cadastro master a partir de contrato (mensalista/convênio). */
   async upsertFromContract(
     tenantId: string,

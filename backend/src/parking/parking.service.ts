@@ -175,6 +175,17 @@ export class ParkingService {
     return this.facilitiesRepo.save(facility);
   }
 
+  async removeFacility(tenantId: string, id: string): Promise<void> {
+    await this.getFacilityOrThrow(tenantId, id);
+    const activeSessions = await this.sessionsRepo.count({
+      where: { tenantId, facilityId: id, status: ParkingSessionStatus.ACTIVE },
+    });
+    if (activeSessions > 0) {
+      throw new ConflictException('Não é possível excluir unidade com sessões ativas.');
+    }
+    await this.facilitiesRepo.delete({ id, tenantId });
+  }
+
   async listSpots(tenantId: string, query: ListParkingSpotsQueryDto) {
     const { page, limit, skip, sortOrder } = resolvePagination(query);
     const sortBy = 'code';
@@ -574,6 +585,11 @@ export class ParkingService {
     if (dto.sortOrder !== undefined) tariff.sortOrder = dto.sortOrder;
 
     return this.tariffsRepo.save(tariff);
+  }
+
+  async removeTariff(tenantId: string, id: string): Promise<void> {
+    await this.getTariffOrThrow(tenantId, id);
+    await this.tariffsRepo.delete({ id, tenantId });
   }
 
   async quoteTariff(tenantId: string, query: TariffQuoteQueryDto) {

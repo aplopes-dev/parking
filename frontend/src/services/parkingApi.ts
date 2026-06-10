@@ -177,6 +177,10 @@ export async function updateParkingFacility(
   return data;
 }
 
+export async function deleteParkingFacility(id: string) {
+  await api.delete(`/parking/facilities/${id}`);
+}
+
 export async function fetchParkingSpots(
   params?: ParkingListParams & { facilityId?: string },
 ): Promise<ParkingListResult<ParkingSpot>> {
@@ -295,6 +299,10 @@ export async function updateParkingTariff(
 ) {
   const { data } = await api.patch<ParkingTariff>(`/parking/tariffs/${id}`, body);
   return data;
+}
+
+export async function deleteParkingTariff(id: string) {
+  await api.delete(`/parking/tariffs/${id}`);
 }
 
 export async function quoteParkingTariff(params: {
@@ -988,6 +996,10 @@ export async function updateParkingVehicle(
 ) {
   const { data } = await api.patch<ParkingVehicleRecord>(`/parking/vehicles/${id}`, body);
   return data;
+}
+
+export async function deleteParkingVehicle(id: string) {
+  await api.delete(`/parking/vehicles/${id}`);
 }
 
 // —— Cobrança mensal ——

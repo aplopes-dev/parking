@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -71,6 +72,11 @@ export class ParkingController {
     return this.service.updateFacility(user.tenantId, id, dto);
   }
 
+  @Delete('facilities/:id')
+  removeFacility(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.service.removeFacility(user.tenantId, id);
+  }
+
   @Get('spots')
   listSpots(@CurrentUser() user: User, @Query() query: ListParkingSpotsQueryDto) {
     return this.service.listSpots(user.tenantId, query);
@@ -131,6 +137,11 @@ export class ParkingController {
     @Body() dto: UpdateParkingTariffDto,
   ) {
     return this.service.updateTariff(user.tenantId, id, dto);
+  }
+
+  @Delete('tariffs/:id')
+  removeTariff(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.service.removeTariff(user.tenantId, id);
   }
 
   @Get('tariffs/quote')
