@@ -3,7 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Customer } from './entities/customer.entity';
 import { CreateCustomerDto, UpdateCustomerDto } from './dto/customer.dto';
-import { IsOptional, IsString } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 import {
   PaginationQueryDto,
   buildPaginatedMeta,
@@ -14,6 +15,15 @@ export class CustomerListQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return undefined;
+  })
+  @IsBoolean()
+  active?: boolean;
 }
 
 @Injectable()
@@ -66,6 +76,10 @@ export class CustomersService {
         `(LOWER(customer.name) LIKE :term OR LOWER(customer.email) LIKE :term OR customer.phone LIKE :phone OR customer.document LIKE :phone)`,
         { term, phone: `%${query.search.trim()}%` },
       );
+    }
+
+    if (query.active !== undefined) {
+      qb.andWhere('customer.active = :active', { active: query.active });
     }
 
     const total = await qb.getCount();
