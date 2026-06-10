@@ -1,11 +1,13 @@
-import React, { useCallback, useContext, useEffect, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import api from '../../services/api';
 import { AuthContext } from '../../contexts/AuthContext';
 import AlertModal from '../../components/AlertModal';
 import ConfirmModal from '../../components/ConfirmModal';
+import PremiumSelect from '../../components/PremiumSelect';
 import CustomerFormModal, { CustomerFormValues } from './CustomerFormModal';
 import { AlertState, Customer } from '../../types';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import CatalogFilterSearch from '../../components/catalog/CatalogFilterSearch';
 import CatalogRegistryIconActions from '../../components/catalog/CatalogRegistryIconActions';
 import CatalogPagination from '../../components/catalog/CatalogPagination';
 import CatalogSortableTh from '../../components/catalog/CatalogSortableTh';
@@ -16,11 +18,21 @@ import {
   SortDirection,
 } from '../../types/pagination';
 
+const DEBOUNCE_MS = 350;
+
+const STATUS_FILTER_OPTIONS = [
+  { value: '', label: 'Todos' },
+  { value: 'true', label: 'Ativos' },
+  { value: 'false', label: 'Inativos' },
+] as const;
+
 const CustomersPage: React.FC = () => {
   const { user } = useContext(AuthContext) || {};
   const [items, setItems] = useState<Customer[]>([]);
   const [search, setSearch] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [loading, setLoading] = useState(true);
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Customer | null>(null);
@@ -37,18 +49,44 @@ const CustomersPage: React.FC = () => {
 
   const canManage = Boolean(user);
 
-  useEffect(() => {
-    const t = window.setTimeout(() => {
-      setSearchDebounced(search.trim());
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    clearTimeout(debounceRef.current);
+    if (!value.trim()) {
+      setSearchDebounced('');
       setPage(1);
-    }, 350);
-    return () => window.clearTimeout(t);
-  }, [search]);
+      return;
+    }
+    debounceRef.current = setTimeout(() => {
+      setSearchDebounced(value.trim());
+      setPage(1);
+    }, DEBOUNCE_MS);
+  };
+
+  useEffect(() => () => clearTimeout(debounceRef.current), []);
+
+  const applySearchNow = () => {
+    clearTimeout(debounceRef.current);
+    setSearchDebounced(search.trim());
+    setPage(1);
+  };
+
+  const clearFilters = () => {
+    clearTimeout(debounceRef.current);
+    setSearch('');
+    setSearchDebounced('');
+    setStatusFilter('');
+    setPage(1);
+  };
+
+  const hasActiveFilters = Boolean(searchDebounced || statusFilter);
 
   const loadItems = useCallback(async () => {
     try {
       const params: Record<string, any> = { page, limit, sortBy, sortOrder };
       if (searchDebounced) params.search = searchDebounced;
+      if (statusFilter === 'true') params.active = true;
+      if (statusFilter === 'false') params.active = false;
       const { data } = await api.get<PaginatedResponse<Customer> | Customer[]>('/customers', { params });
       if (Array.isArray(data)) {
         setItems(data);
@@ -63,7 +101,7 @@ const CustomersPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, sortBy, sortOrder, searchDebounced]);
+  }, [page, limit, sortBy, sortOrder, searchDebounced, statusFilter]);
 
   useEffect(() => {
     if (canManage) {
@@ -172,7 +210,7 @@ const CustomersPage: React.FC = () => {
     return <div className="container">Acesso negado</div>;
   }
 
-  const initialLoading = loading && items.length === 0 && !searchDebounced;
+  const initialLoading = loading && items.length === 0 && !hasActiveFilters;
 
   const statsGrid = (
     <section className="catalog-stats-grid" aria-label="Resumo dos clientes">
@@ -222,45 +260,88 @@ const CustomersPage: React.FC = () => {
       stats={!initialLoading ? statsGrid : undefined}
     >
       <section className="catalog-surface">
-        <div className="catalog-toolbar catalog-filter-toolbar">
-          <div className="form-group catalog-search catalog-filter-toolbar__search catalog-filter-toolbar__search--wide">
-            <label htmlFor="customer-search">Buscar</label>
-            <input
+        <div className="catalog-filter-toolbar-stack">
+          <div className="catalog-toolbar catalog-filter-toolbar">
+            <CatalogFilterSearch
               id="customer-search"
-              className="premium-text-input"
-              type="search"
-              placeholder="Nome, telefone, e-mail ou documento"
+              className="catalog-filter-toolbar__search catalog-filter-toolbar__search--wide"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  setSearchDebounced(search.trim());
-                  setPage(1);
-                }
+              placeholder="Nome, telefone, e-mail ou documento"
+              onChange={handleSearchChange}
+              onSubmit={applySearchNow}
+            />
+            <PremiumSelect
+              label="Status"
+              value={statusFilter}
+              options={[...STATUS_FILTER_OPTIONS]}
+              wrapperClassName="form-group catalog-filter-toolbar__field catalog-filter-toolbar__field--compact"
+              onChange={(value) => {
+                setStatusFilter(value);
+                setPage(1);
               }}
             />
+            <div className="catalog-filter-toolbar__actions">
+              <button
+                type="button"
+                className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action"
+                onClick={applySearchNow}
+              >
+                Buscar
+              </button>
+              <button
+                type="button"
+                className="catalog-form-footer-btn catalog-form-footer-btn--ghost catalog-filter-toolbar__action"
+                onClick={clearFilters}
+                disabled={!hasActiveFilters && !search.trim()}
+              >
+                Limpar
+              </button>
+            </div>
           </div>
-          <button
-            type="button"
-            className="catalog-form-footer-btn catalog-form-footer-btn--primary catalog-filter-toolbar__action"
-            onClick={() => {
-              setSearchDebounced(search.trim());
-              setPage(1);
-            }}
-          >
-            Buscar
-          </button>
-          <button
-            type="button"
-            className="catalog-form-footer-btn catalog-form-footer-btn--ghost catalog-filter-toolbar__action"
-            onClick={() => {
-              setSearch('');
-              setSearchDebounced('');
-              setPage(1);
-            }}
-          >
-            Limpar
-          </button>
+
+          {hasActiveFilters ? (
+            <div className="catalog-filter-chips" aria-label="Filtros ativos">
+              <span className="catalog-filter-chips__label">Filtros:</span>
+              {searchDebounced ? (
+                <span className="catalog-filter-chip">
+                  Busca: {searchDebounced}
+                  <button
+                    type="button"
+                    className="catalog-filter-chip__remove"
+                    aria-label="Remover filtro de busca"
+                    onClick={() => {
+                      clearTimeout(debounceRef.current);
+                      setSearch('');
+                      setSearchDebounced('');
+                      setPage(1);
+                    }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                </span>
+              ) : null}
+              {statusFilter ? (
+                <span className="catalog-filter-chip">
+                  Status: {STATUS_FILTER_OPTIONS.find((o) => o.value === statusFilter)?.label}
+                  <button
+                    type="button"
+                    className="catalog-filter-chip__remove"
+                    aria-label="Remover filtro de status"
+                    onClick={() => {
+                      setStatusFilter('');
+                      setPage(1);
+                    }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -270,15 +351,15 @@ const CustomersPage: React.FC = () => {
             <h2 id="customers-panel-title">Clientes cadastrados</h2>
             <p className="catalog-registry-panel__meta">
               {meta?.total ?? 0} cliente(s)
-              {searchDebounced ? ` · busca: "${searchDebounced}"` : ''}
+              {hasActiveFilters ? ' · resultado filtrado' : ''}
             </p>
           </div>
         </header>
 
         {items.length === 0 && !loading ? (
           <div className="catalog-empty">
-            {searchDebounced
-              ? 'Nenhum cliente encontrado para esta busca.'
+            {hasActiveFilters
+              ? 'Nenhum cliente encontrado com os filtros aplicados.'
               : 'Nenhum cliente cadastrado. Clique em "Novo cliente" para começar.'}
           </div>
         ) : (
