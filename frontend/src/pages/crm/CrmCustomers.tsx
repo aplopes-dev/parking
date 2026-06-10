@@ -2,7 +2,9 @@ import React, { useCallback, useContext, useEffect, useRef, useState } from 'rea
 import api from '../../services/api';
 import { AuthContext } from '../../contexts/AuthContext';
 import AlertModal from '../../components/AlertModal';
+import ConfirmModal from '../../components/ConfirmModal';
 import PremiumSelect from '../../components/PremiumSelect';
+import CatalogRegistryIconActions from '../../components/catalog/CatalogRegistryIconActions';
 import {
   AlertState,
   CrmCustomerListItem,
@@ -15,6 +17,7 @@ import CatalogPageLayout from '../../components/CatalogPageLayout';
 import RegistryFormModal from '../../components/RegistryFormModal';
 import CatalogPagination from '../../components/catalog/CatalogPagination';
 import CatalogSortableTh from '../../components/catalog/CatalogSortableTh';
+import CustomerFormModal, { CustomerFormValues } from '../catalog/CustomerFormModal';
 import {
   DEFAULT_PAGE_SIZE,
   PaginatedMeta,
@@ -55,6 +58,12 @@ const CrmCustomersPage: React.FC = () => {
   });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingInteraction, setIsSavingInteraction] = useState(false);
+  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<CrmCustomerListItem | null>(null);
+  const [isSavingCustomer, setIsSavingCustomer] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState<CrmCustomerListItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [alert, setAlert] = useState<AlertState>({ isOpen: false, message: '', type: 'error' });
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -173,6 +182,70 @@ const CrmCustomersPage: React.FC = () => {
     }
   };
 
+  const openEditModal = (item: CrmCustomerListItem) => {
+    setEditingItem(item);
+    setFormModalOpen(true);
+  };
+
+  const closeFormModal = () => {
+    if (isSavingCustomer) return;
+    setFormModalOpen(false);
+    setEditingItem(null);
+  };
+
+  const buildCustomerPayload = (values: CustomerFormValues) => ({
+    name: values.name.trim(),
+    email: values.email.trim() || null,
+    phone: values.phone.trim() || null,
+    document: values.document.trim() || null,
+    birthDate: values.birthDate || null,
+    address: values.address.trim() || null,
+    city: values.city.trim() || null,
+    state: values.state.trim().toUpperCase().slice(0, 2) || null,
+    zipCode: values.zipCode.trim() || null,
+    allergyNotes: values.allergyNotes.trim() || null,
+    notes: values.notes.trim() || null,
+    active: values.active,
+  });
+
+  const handleFormSubmit = async (values: CustomerFormValues) => {
+    if (!editingItem) return;
+    setIsSavingCustomer(true);
+    try {
+      await api.patch(`/customers/${editingItem.id}`, buildCustomerPayload(values));
+      setFormModalOpen(false);
+      setEditingItem(null);
+      if (selectedId === editingItem.id) {
+        await openDetail(editingItem.id);
+      }
+      await load();
+      setAlert({ isOpen: true, message: 'Cliente atualizado com sucesso!', type: 'success' });
+    } catch (err: unknown) {
+      setAlert({ isOpen: true, message: getApiErrorMessage(err, 'Erro ao salvar cliente.'), type: 'error' });
+    } finally {
+      setIsSavingCustomer(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirmTarget) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/customers/${confirmTarget.id}`);
+      if (selectedId === confirmTarget.id) {
+        closeDetail();
+      }
+      await load();
+      setAlert({ isOpen: true, message: 'Cliente excluído com sucesso!', type: 'success' });
+      setConfirmOpen(false);
+      setConfirmTarget(null);
+    } catch (err: unknown) {
+      setAlert({ isOpen: true, message: getApiErrorMessage(err, 'Erro ao excluir cliente.'), type: 'error' });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (!canManage) return <div className="container">Acesso negado</div>;
 
   const selected = items.find((i) => i.id === selectedId);
@@ -245,7 +318,7 @@ const CrmCustomersPage: React.FC = () => {
 
       <div style={{ display: 'grid', gridTemplateColumns: selectedId ? '1fr 1fr' : '1fr', gap: 20 }}>
         <section className="catalog-surface">
-          <div className="catalog-registry-table catalog-registry-table--customers catalog-registry-table--crm-customers">
+          <div className="catalog-registry-table catalog-registry-table--crm-customers">
             <div className="catalog-registry-table__head" role="row">
               <CatalogSortableTh
                 label="Cliente"
@@ -276,6 +349,7 @@ const CrmCustomersPage: React.FC = () => {
                 onSort={handleSort}
               />
               <span>Fidelidade</span>
+              <span>Ações</span>
             </div>
             {items.length === 0 && !loading ? (
               <div className="catalog-empty">Nenhum cliente encontrado com os filtros atuais.</div>
@@ -302,6 +376,15 @@ const CrmCustomersPage: React.FC = () => {
                         ? `${item.loyaltyAccount.pointsBalance} pts · ${tierLabel[item.loyaltyAccount.tier]}`
                         : 'Sem fidelidade'}
                     </span>
+                    <CatalogRegistryIconActions
+                      editLabel={`Editar cliente ${item.name}`}
+                      deleteLabel={`Excluir cliente ${item.name}`}
+                      onEdit={() => openEditModal(item)}
+                      onDelete={() => {
+                        setConfirmTarget(item);
+                        setConfirmOpen(true);
+                      }}
+                    />
                   </li>
                 ))}
               </ul>
@@ -399,7 +482,26 @@ const CrmCustomersPage: React.FC = () => {
         </RegistryFormModal>
       </div>
 
+      <CustomerFormModal
+        isOpen={formModalOpen}
+        editing={editingItem}
+        isSaving={isSavingCustomer}
+        onClose={closeFormModal}
+        onSubmit={handleFormSubmit}
+      />
+
       <AlertModal isOpen={alert.isOpen} onClose={() => setAlert({ ...alert, isOpen: false })} message={alert.message} type={alert.type} />
+      <ConfirmModal
+        isOpen={confirmOpen}
+        title="Excluir cliente"
+        subtitle="Esta ação não pode ser desfeita."
+        message={confirmTarget ? `O cliente "${confirmTarget.name}" será removido permanentemente.` : ''}
+        confirmLabel="Excluir"
+        isLoading={isDeleting}
+        loadingLabel="Excluindo…"
+        onClose={() => !isDeleting && setConfirmOpen(false)}
+        onConfirm={handleDelete}
+      />
     </CatalogPageLayout>
   );
 };

@@ -17,6 +17,7 @@ import {
   Product,
 } from '../../types';
 import CatalogPagination from '../../components/catalog/CatalogPagination';
+import CatalogRegistryIconActions from '../../components/catalog/CatalogRegistryIconActions';
 import { normalizePaginatedResponse } from '../../utils/paginatedResponse';
 import { DEFAULT_PAGE_SIZE } from '../../types/pagination';
 import {
@@ -452,16 +453,12 @@ const CrmCampaignsPage: React.FC = () => {
                 </p>
               )}
               <div className="catalog-card-actions">
-                <button type="button" className="catalog-card-button" onClick={() => openEdit(c)}>
-                  Editar
-                </button>
-                <button
-                  type="button"
-                  className="catalog-card-button is-danger"
-                  onClick={() => setConfirmId(c.id)}
-                >
-                  Excluir
-                </button>
+                <CatalogRegistryIconActions
+                  editLabel={`Editar campanha ${c.name}`}
+                  deleteLabel={`Excluir campanha ${c.name}`}
+                  onEdit={() => openEdit(c)}
+                  onDelete={() => setConfirmId(c.id)}
+                />
               </div>
             </article>
           ))}
