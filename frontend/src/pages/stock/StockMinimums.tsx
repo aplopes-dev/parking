@@ -11,6 +11,7 @@ import { useStockCatalog } from './useStockCatalog';
 import { formatQty } from './stockUtils';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
 import RegistryFormModal, { registryModalFooterButtons } from '../../components/RegistryFormModal';
+import CatalogRegistryIconActions from '../../components/catalog/CatalogRegistryIconActions';
 
 const EMPTY_MINIMUM_FORM = { productId: '', locationId: '', minimumQuantity: '0', active: true };
 
@@ -24,6 +25,7 @@ const StockMinimumsPage: React.FC = () => {
   const [form, setForm] = useState(EMPTY_MINIMUM_FORM);
   const [isSaving, setIsSaving] = useState(false);
   const [alert, setAlert] = useState<AlertState>({ isOpen: false, message: '', type: 'error' });
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -47,15 +49,24 @@ const StockMinimumsPage: React.FC = () => {
     e.preventDefault();
     setIsSaving(true);
     try {
-      await api.post('/stock-minimums', {
+      const payload = {
         productId: form.productId,
         locationId: form.locationId || null,
         minimumQuantity: parseFloat(form.minimumQuantity),
         active: form.active,
-      });
+      };
+      if (editingId) {
+        await api.patch(`/stock-minimums/${editingId}`, payload);
+      } else {
+        await api.post('/stock-minimums', payload);
+      }
       closeForm();
       await load();
-      setAlert({ isOpen: true, message: 'Estoque mínimo cadastrado!', type: 'success' });
+      setAlert({
+        isOpen: true,
+        message: editingId ? 'Estoque mínimo atualizado!' : 'Estoque mínimo cadastrado!',
+        type: 'success',
+      });
     } catch (err: any) {
       setAlert({ isOpen: true, message: err.response?.data?.message || 'Erro', type: 'error' });
     } finally {
@@ -66,11 +77,24 @@ const StockMinimumsPage: React.FC = () => {
   const closeForm = () => {
     if (isSaving) return;
     setForm(EMPTY_MINIMUM_FORM);
+    setEditingId(null);
     setShowForm(false);
   };
 
   const openForm = () => {
+    setEditingId(null);
     setForm(EMPTY_MINIMUM_FORM);
+    setShowForm(true);
+  };
+
+  const openEdit = (item: StockMinimum) => {
+    setEditingId(item.id);
+    setForm({
+      productId: item.productId,
+      locationId: item.locationId ?? '',
+      minimumQuantity: String(item.minimumQuantity),
+      active: item.active,
+    });
     setShowForm(true);
   };
 
@@ -111,7 +135,7 @@ const StockMinimumsPage: React.FC = () => {
 
       <RegistryFormModal
         isOpen={showForm && !catalogLoading}
-        title="Novo estoque mínimo"
+        title={editingId ? 'Editar estoque mínimo' : 'Novo estoque mínimo'}
         subtitle="Defina limites de reposição por produto e local."
         isSaving={isSaving}
         onClose={closeForm}
@@ -119,7 +143,7 @@ const StockMinimumsPage: React.FC = () => {
         footer={registryModalFooterButtons({
           onClose: closeForm,
           isSaving,
-          submitLabel: 'Salvar mínimo',
+          submitLabel: editingId ? 'Salvar alterações' : 'Salvar mínimo',
         })}
       >
         <div className="catalog-form-grid">
@@ -139,7 +163,14 @@ const StockMinimumsPage: React.FC = () => {
               <strong>{item.product?.name}</strong>
               <span>{item.location?.name || 'Global'}</span>
               <p>Mínimo: {formatQty(item.minimumQuantity)}</p>
-              <button type="button" className="catalog-card-button is-danger" onClick={() => setConfirmId(item.id)}>Excluir</button>
+              <div className="catalog-card-actions">
+                <CatalogRegistryIconActions
+                  editLabel={`Editar mínimo ${item.product?.name ?? item.id}`}
+                  deleteLabel={`Excluir mínimo ${item.product?.name ?? item.id}`}
+                  onEdit={() => openEdit(item)}
+                  onDelete={() => setConfirmId(item.id)}
+                />
+              </div>
             </article>
           ))}
         </div>
