@@ -19,10 +19,13 @@ import {
   fetchRoutes,
   updateCourier,
   updateDeliveryAssignmentStatus,
+  updateRoute,
 } from '../../services/deliveryApi';
 import { formatMoney } from '../finance/financeShared';
 import { orderStatusLabel } from '../pdv/pdvUtils';
 import CatalogPagination from '../../components/catalog/CatalogPagination';
+import CatalogActiveToggle from '../../components/catalog/CatalogActiveToggle';
+import CatalogRegistryIconActions from '../../components/catalog/CatalogRegistryIconActions';
 import { DEFAULT_PAGE_SIZE, type PaginatedMeta } from '../../types/pagination';
 import './DeliveryPages.css';
 
@@ -298,6 +301,7 @@ export const DeliveryMotoboysPage: React.FC = () => {
   const [routeForm, setRouteForm] = useState({ name: '', zoneLabel: '', color: '#ea1d2c' });
   const [courierModalOpen, setCourierModalOpen] = useState(false);
   const [routeModalOpen, setRouteModalOpen] = useState(false);
+  const [editingRouteId, setEditingRouteId] = useState<string | null>(null);
   const [savingCourier, setSavingCourier] = useState(false);
   const [savingRoute, setSavingRoute] = useState(false);
   const [alert, setAlert] = useState<AlertState>({ open: false, message: '', type: 'success' });
@@ -363,7 +367,15 @@ export const DeliveryMotoboysPage: React.FC = () => {
           <button type="button" className="catalog-action-button" onClick={() => setCourierModalOpen(true)}>
             Novo entregador
           </button>
-          <button type="button" className="catalog-action-button" onClick={() => setRouteModalOpen(true)}>
+          <button
+            type="button"
+            className="catalog-action-button"
+            onClick={() => {
+              setEditingRouteId(null);
+              setRouteForm({ name: '', zoneLabel: '', color: '#ea1d2c' });
+              setRouteModalOpen(true);
+            }}
+          >
             Nova rota
           </button>
           <button
@@ -447,15 +459,22 @@ export const DeliveryMotoboysPage: React.FC = () => {
         {couriers.length === 0 ? (
           <div className="catalog-empty">Nenhum entregador cadastrado.</div>
         ) : (
-          <div className="delivery-table-wrap">
-            <table className="delivery-table">
+          <div className="catalog-data-table-wrap delivery-table-wrap">
+            <table className="delivery-table catalog-data-table catalog-data-table--status-wide">
+              <colgroup>
+                <col />
+                <col />
+                <col />
+                <col className="catalog-data-table__col--status" />
+                <col className="catalog-data-table__col--actions" />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Nome</th>
                   <th>Telefone</th>
                   <th>Veículo</th>
-                  <th>Status</th>
-                  <th aria-label="Ações" />
+                  <th className="catalog-data-table__status">Status</th>
+                  <th className="catalog-data-table__actions">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -464,41 +483,37 @@ export const DeliveryMotoboysPage: React.FC = () => {
                     <td>{c.name}</td>
                     <td>{c.phone ?? '—'}</td>
                     <td>{VEHICLE_OPTIONS.find((v) => v.value === c.vehicle)?.label ?? c.vehicle}</td>
-                    <td>
-                      <span className="catalog-pill is-muted">
-                        {COURIER_STATUS_LABEL[c.status] ?? c.status}
-                        {!c.active ? ' · inativo' : ''}
-                      </span>
+                    <td className="catalog-data-table__status">
+                      <div className="catalog-data-table__actions-group">
+                        <span className="catalog-pill is-muted">
+                          {COURIER_STATUS_LABEL[c.status] ?? c.status}
+                        </span>
+                        <CatalogActiveToggle
+                          checked={Boolean(c.active)}
+                          disabled={updatingCourierId === c.id}
+                          label={c.active ? 'Ativo' : 'Inativo'}
+                          onChange={async (active) => {
+                            setUpdatingCourierId(c.id);
+                            try {
+                              await updateCourier(c.id, { active });
+                              await load();
+                            } catch (err) {
+                              setAlert({ open: true, message: errMsg(err), type: 'error' });
+                            } finally {
+                              setUpdatingCourierId(null);
+                            }
+                          }}
+                        />
+                      </div>
                     </td>
-                    <td>
-                      <div className="delivery-table-actions">
-                        <label className="delivery-toggle" title={c.active ? 'Desativar entregador' : 'Ativar entregador'}>
-                          <input
-                            type="checkbox"
-                            checked={Boolean(c.active)}
-                            disabled={updatingCourierId === c.id}
-                            onChange={async () => {
-                              setUpdatingCourierId(c.id);
-                              try {
-                                await updateCourier(c.id, { active: !c.active });
-                                await load();
-                              } catch (err) {
-                                setAlert({ open: true, message: errMsg(err), type: 'error' });
-                              } finally {
-                                setUpdatingCourierId(null);
-                              }
-                            }}
-                          />
-                          <span className="delivery-toggle__slider" aria-hidden />
-                          <span className="delivery-toggle__label">{c.active ? 'Ativo' : 'Inativo'}</span>
-                        </label>
-                        <button
-                          type="button"
-                          className="catalog-action-button is-secondary"
-                          onClick={() => setConfirmDelete({ type: 'courier', id: c.id, label: c.name })}
-                        >
-                          Excluir
-                        </button>
+                    <td className="catalog-data-table__actions">
+                      <div className="catalog-data-table__actions-group">
+                        <CatalogRegistryIconActions
+                          editLabel=""
+                          deleteLabel={`Excluir entregador ${c.name}`}
+                          showEdit={false}
+                          onDelete={() => setConfirmDelete({ type: 'courier', id: c.id, label: c.name })}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -524,20 +539,35 @@ export const DeliveryMotoboysPage: React.FC = () => {
 
       <RegistryFormModal
         isOpen={routeModalOpen}
-        title="Nova rota / zona"
+        title={editingRouteId ? 'Editar rota / zona' : 'Nova rota / zona'}
         subtitle="Defina zonas de entrega para organização no mapa."
         isSaving={savingRoute}
-        onClose={() => !savingRoute && setRouteModalOpen(false)}
+        onClose={() => {
+          if (savingRoute) return;
+          setRouteModalOpen(false);
+          setEditingRouteId(null);
+          setRouteForm({ name: '', zoneLabel: '', color: '#ea1d2c' });
+        }}
         onSubmit={async (e) => {
           e.preventDefault();
           const body: Record<string, string> = { name: routeForm.name.trim(), color: routeForm.color };
           if (routeForm.zoneLabel.trim()) body.zoneLabel = routeForm.zoneLabel.trim();
           setSavingRoute(true);
+          const wasEditing = Boolean(editingRouteId);
           try {
-            await createRoute(body);
+            if (editingRouteId) {
+              await updateRoute(editingRouteId, body);
+            } else {
+              await createRoute(body);
+            }
             setRouteForm({ name: '', zoneLabel: '', color: '#ea1d2c' });
+            setEditingRouteId(null);
             setRouteModalOpen(false);
-            setAlert({ open: true, message: 'Rota cadastrada.', type: 'success' });
+            setAlert({
+              open: true,
+              message: wasEditing ? 'Rota atualizada.' : 'Rota cadastrada.',
+              type: 'success',
+            });
             try { await load(); } catch { /* silent */ }
           } catch (err) {
             setAlert({ open: true, message: errMsg(err), type: 'error' });
@@ -546,9 +576,12 @@ export const DeliveryMotoboysPage: React.FC = () => {
           }
         }}
         footer={registryModalFooterButtons({
-          onClose: () => setRouteModalOpen(false),
+          onClose: () => {
+            setRouteModalOpen(false);
+            setEditingRouteId(null);
+          },
           isSaving: savingRoute,
-          submitLabel: 'Adicionar rota',
+          submitLabel: editingRouteId ? 'Salvar rota' : 'Adicionar rota',
         })}
       >
         <div className="catalog-form-grid">
@@ -596,13 +629,18 @@ export const DeliveryMotoboysPage: React.FC = () => {
         {routes.length === 0 ? (
           <div className="catalog-empty">Nenhuma rota cadastrada.</div>
         ) : (
-          <div className="delivery-table-wrap">
-            <table className="delivery-table">
+          <div className="catalog-data-table-wrap delivery-table-wrap">
+            <table className="delivery-table catalog-data-table">
+              <colgroup>
+                <col />
+                <col />
+                <col className="catalog-data-table__col--actions" />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Rota</th>
                   <th>Zona</th>
-                  <th aria-label="Ações" />
+                  <th className="catalog-data-table__actions">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -617,15 +655,22 @@ export const DeliveryMotoboysPage: React.FC = () => {
                       {r.name}
                     </td>
                     <td>{r.zoneLabel ?? '—'}</td>
-                    <td>
-                      <div className="delivery-table-actions">
-                        <button
-                          type="button"
-                          className="catalog-action-button is-secondary"
-                          onClick={() => setConfirmDelete({ type: 'route', id: r.id, label: r.name })}
-                        >
-                          Excluir
-                        </button>
+                    <td className="catalog-data-table__actions">
+                      <div className="catalog-data-table__actions-group">
+                        <CatalogRegistryIconActions
+                          editLabel={`Editar rota ${r.name}`}
+                          deleteLabel={`Excluir rota ${r.name}`}
+                          onEdit={() => {
+                            setEditingRouteId(r.id);
+                            setRouteForm({
+                              name: r.name ?? '',
+                              zoneLabel: r.zoneLabel ?? '',
+                              color: r.color ?? '#ea1d2c',
+                            });
+                            setRouteModalOpen(true);
+                          }}
+                          onDelete={() => setConfirmDelete({ type: 'route', id: r.id, label: r.name })}
+                        />
                       </div>
                     </td>
                   </tr>
