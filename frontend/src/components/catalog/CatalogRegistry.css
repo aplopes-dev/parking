@@ -20,8 +20,8 @@
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 12px 20px;
-  padding: 20px 24px;
+  gap: var(--ui-toolbar-gap, 16px) 24px;
+  padding: 20px var(--ui-panel-padding, 24px);
   border-bottom: 1px solid var(--border-default, #e5e5e5);
   background: #ffffff;
 }
@@ -477,4 +477,171 @@
     max-width: none;
     width: 100%;
   }
+}
+
+/* —— Tabelas HTML com status + ações (padrão registry) —— */
+.catalog-data-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.catalog-data-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.catalog-data-table th {
+  vertical-align: middle;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  line-height: 1.3;
+  word-break: keep-all;
+}
+
+.catalog-data-table td {
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.catalog-data-table thead th {
+  background: #fafafa;
+}
+
+.catalog-data-table thead th .catalog-sortable-th {
+  white-space: normal;
+  text-align: inherit;
+  width: auto;
+  max-width: 100%;
+  line-height: 1.3;
+}
+
+.catalog-data-table tbody tr:hover {
+  background: #fcfcfc;
+}
+
+.catalog-data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.catalog-data-table th.catalog-data-table__status,
+.catalog-data-table td.catalog-data-table__status {
+  text-align: right;
+  width: 168px;
+  padding: 12px 10px;
+  box-sizing: border-box;
+}
+
+.catalog-data-table th.catalog-data-table__actions,
+.catalog-data-table td.catalog-data-table__actions {
+  text-align: right;
+  width: 112px;
+  padding: 12px 10px;
+  box-sizing: border-box;
+}
+
+.catalog-data-table td.catalog-data-table__status,
+.catalog-data-table td.catalog-data-table__actions {
+  white-space: nowrap;
+}
+
+.catalog-data-table th.catalog-data-table__status,
+.catalog-data-table th.catalog-data-table__actions {
+  white-space: nowrap;
+}
+
+.catalog-data-table .catalog-registry-icon-btn {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+}
+
+.catalog-data-table .catalog-registry-actions {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.catalog-data-table .catalog-active-toggle {
+  max-width: 100%;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.catalog-data-table .catalog-active-toggle__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.catalog-data-table td.catalog-data-table__status .catalog-active-toggle,
+.catalog-data-table td.catalog-data-table__actions .catalog-registry-actions {
+  display: inline-flex;
+  justify-content: flex-end;
+  vertical-align: middle;
+}
+
+.catalog-data-table td.catalog-data-table__status .catalog-data-table__actions-group,
+.catalog-data-table td.catalog-data-table__actions .catalog-data-table__actions-group {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.catalog-data-table--status-wide col.catalog-data-table__col--status,
+.catalog-data-table--status-wide th.catalog-data-table__status,
+.catalog-data-table--status-wide td.catalog-data-table__status {
+  width: 220px;
+}
+
+.catalog-data-table col.catalog-data-table__col--status {
+  width: 168px;
+}
+
+.catalog-data-table col.catalog-data-table__col--actions {
+  width: 112px;
+}
+
+.catalog-data-table--vehicles col.catalog-data-table__col--plate {
+  width: 96px;
+}
+
+.catalog-data-table--vehicles col.catalog-data-table__col--type {
+  width: 96px;
+}
+
+.catalog-data-table--vehicles col.catalog-data-table__col--access {
+  width: 18%;
+}
+
+.catalog-data-table--vehicles col.catalog-data-table__col--rfid {
+  width: 100px;
+}
+
+.catalog-data-table--vehicles col.catalog-data-table__col--visits {
+  width: 88px;
+}
+
+.catalog-data-table--facilities col.catalog-data-table__col--spots {
+  width: 72px;
+}
+
+.catalog-data-table--facilities col.catalog-data-table__col--system {
+  width: 22%;
+}
+
+.catalog-data-table--facilities col.catalog-data-table__col--segment {
+  width: 18%;
 }
