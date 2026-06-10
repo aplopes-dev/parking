@@ -40,6 +40,14 @@ function errMsg(e: unknown): string {
   return 'Erro ao processar.';
 }
 
+type CashAlert = {
+  open: boolean;
+  message: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+};
+
+const closedAlert: CashAlert = { open: false, message: '', type: 'success' };
+
 function useFacilityFilter(facilities: ParkingFacility[]) {
   const [facilityId, setFacilityId] = useState('');
   useEffect(() => {
@@ -62,7 +70,7 @@ export const ParkingCashPage: React.FC = () => {
   const [accountId, setAccountId] = useState('');
   const [loading, setLoading] = useState(true);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
-  const [alert, setAlert] = useState({ open: false, message: '' });
+  const [alert, setAlert] = useState<CashAlert>(closedAlert);
   const [ticketScan, setTicketScan] = useState('');
   const [cashSession, setCashSession] = useState<OperatorCashSession | null>(null);
   const [openingBalance, setOpeningBalance] = useState('0');
@@ -106,7 +114,7 @@ export const ParkingCashPage: React.FC = () => {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => setAlert({ open: true, message: 'Erro ao carregar caixa.' }))
+      .catch(() => setAlert({ open: true, message: 'Erro ao carregar caixa.', type: 'error' }))
       .finally(() => setLoading(false));
   }, [load]);
 
@@ -135,13 +143,14 @@ export const ParkingCashPage: React.FC = () => {
   const handleCheckout = async () => {
     if (!selectedId && !ticketScan.trim()) return;
     if (!cashSession?.open) {
-      setAlert({ open: true, message: 'Abra seu caixa de operador antes de cobrar.' });
+      setAlert({ open: true, message: 'Abra seu caixa de operador antes de cobrar.', type: 'warning' });
       return;
     }
     if (amount > 0 && !accountId) {
       setAlert({
         open: true,
         message: 'Cadastre uma conta Caixa em Gestão financeira → Contas.',
+        type: 'warning',
       });
       return;
     }
@@ -163,6 +172,7 @@ export const ParkingCashPage: React.FC = () => {
         closed.amountCharged != null ? formatMoney(closed.amountCharged) : 'R$ 0,00';
       setAlert({
         open: true,
+        type: 'success',
         message: isWaived
           ? `Saída liberada (isento). Ticket ${closed.ticketCode}.`
           : `Pagamento registrado: ${paid}. Lançamento criado no financeiro. Ticket ${closed.ticketCode}.`,
@@ -172,7 +182,7 @@ export const ParkingCashPage: React.FC = () => {
       setQuoteData(null);
       await load();
     } catch (err) {
-      setAlert({ open: true, message: errMsg(err) });
+      setAlert({ open: true, message: errMsg(err), type: 'error' });
     } finally {
       setCheckoutBusy(false);
     }
@@ -186,13 +196,13 @@ export const ParkingCashPage: React.FC = () => {
       setQuoteData(data);
       setSelectedId(data.session.id);
     } catch (err) {
-      setAlert({ open: true, message: errMsg(err) });
+      setAlert({ open: true, message: errMsg(err), type: 'error' });
     }
   };
 
   const handleOpenCash = async () => {
     if (!accountId) {
-      setAlert({ open: true, message: 'Selecione a conta caixa.' });
+      setAlert({ open: true, message: 'Selecione a conta caixa.', type: 'warning' });
       return;
     }
     try {
@@ -201,10 +211,10 @@ export const ParkingCashPage: React.FC = () => {
         openingBalance: Number(openingBalance) || 0,
         facilityId: facilityId || undefined,
       });
-      setAlert({ open: true, message: 'Caixa aberto para este operador.' });
+      setAlert({ open: true, message: 'Caixa aberto para este operador.', type: 'success' });
       await load();
     } catch (err) {
-      setAlert({ open: true, message: errMsg(err) });
+      setAlert({ open: true, message: errMsg(err), type: 'error' });
     }
   };
 
@@ -214,11 +224,11 @@ export const ParkingCashPage: React.FC = () => {
       await closeMyParkingCashSession(cashSession.session.id, {
         countedBalance: Number(countedBalance) || 0,
       });
-      setAlert({ open: true, message: 'Caixa fechado com sucesso.' });
+      setAlert({ open: true, message: 'Caixa fechado com sucesso.', type: 'success' });
       setCountedBalance('');
       await load();
     } catch (err) {
-      setAlert({ open: true, message: errMsg(err) });
+      setAlert({ open: true, message: errMsg(err), type: 'error' });
     }
   };
 
@@ -432,7 +442,12 @@ export const ParkingCashPage: React.FC = () => {
         </section>
       </div>
 
-      <AlertModal isOpen={alert.open} message={alert.message} onClose={() => setAlert({ open: false, message: '' })} />
+      <AlertModal
+        isOpen={alert.open}
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert(closedAlert)}
+      />
     </CatalogPageLayout>
   );
 };

@@ -5,6 +5,7 @@ import SectionTabBar from '../../components/SectionTabBar';
 import AlertModal from '../../components/AlertModal';
 import PremiumSelect from '../../components/PremiumSelect';
 import CatalogPagination from '../../components/catalog/CatalogPagination';
+import CatalogActiveToggle from '../../components/catalog/CatalogActiveToggle';
 import {
   createParkingDevice,
   fetchAllParkingFacilities,
@@ -90,6 +91,7 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
   const [simDeviceId, setSimDeviceId] = useState('');
   const [simPlate, setSimPlate] = useState('');
   const [simResult, setSimResult] = useState<HardwareLprResult | null>(null);
+  const [togglingDeviceId, setTogglingDeviceId] = useState<string | null>(null);
   const [devicesPage, setDevicesPage] = useState(1);
   const [devicesLimit, setDevicesLimit] = useState(10);
   const [devicesMeta, setDevicesMeta] = useState<PaginatedMeta | null>(null);
@@ -293,7 +295,7 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
       {tab === 'devices' && (
         <>
           <div className="parking-panel">
-            <div className="parking-actions-row" style={{ justifyContent: 'space-between', marginBottom: 14 }}>
+            <div className="parking-actions-row parking-actions-row--panel-header">
               <h3 style={{ margin: 0 }}>Dispositivos ({devicesMeta?.total ?? devices.length})</h3>
               <button
                 type="button"
@@ -340,7 +342,7 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
                         </td>
                         <td>{d.lastSeenAt ? formatDateTime(d.lastSeenAt) : '—'}</td>
                         <td>
-                          <div className="parking-actions-row" style={{ marginTop: 0 }}>
+                          <div className="parking-actions-row parking-actions-row--compact">
                             <button
                               type="button"
                               className="catalog-action-button is-secondary"
@@ -368,15 +370,20 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
                                 Abrir
                               </button>
                             )}
-                            <button
-                              type="button"
-                              className="catalog-action-button is-secondary"
-                              onClick={() =>
-                                void updateParkingDevice(d.id, { active: !d.active }).then(load)
-                              }
-                            >
-                              {d.active ? 'Desativar' : 'Ativar'}
-                            </button>
+                            <CatalogActiveToggle
+                              checked={Boolean(d.active)}
+                              disabled={togglingDeviceId === d.id}
+                              label={d.active ? 'Ativo' : 'Inativo'}
+                              onChange={(active) => {
+                                setTogglingDeviceId(d.id);
+                                void updateParkingDevice(d.id, { active })
+                                  .then(load)
+                                  .catch((err) =>
+                                    setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') }),
+                                  )
+                                  .finally(() => setTogglingDeviceId(null));
+                              }}
+                            />
                           </div>
                         </td>
                       </tr>

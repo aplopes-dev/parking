@@ -2,6 +2,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
 import CatalogPagination from '../../components/catalog/CatalogPagination';
+import CatalogActiveToggle from '../../components/catalog/CatalogActiveToggle';
+import CatalogRegistryIconActions from '../../components/catalog/CatalogRegistryIconActions';
+import ConfirmModal from '../../components/ConfirmModal';
 import RegistryFormModal, {
   registryModalFooterButtons,
 } from '../../components/RegistryFormModal';
@@ -13,6 +16,9 @@ import {
   bulkCreateParkingSpots,
   createParkingFacility,
   createParkingTariff,
+  deleteParkingFacility,
+  deleteParkingTariff,
+  updateParkingFacility,
   fetchParkingDashboard,
   fetchAllParkingFacilities,
   fetchAllParkingSpots,
@@ -467,6 +473,10 @@ export const ParkingFacilitiesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState({ open: false, message: '' });
   const [facilityModalOpen, setFacilityModalOpen] = useState(false);
+  const [editingFacilityId, setEditingFacilityId] = useState<string | null>(null);
+  const [togglingFacilityId, setTogglingFacilityId] = useState<string | null>(null);
+  const [confirmDeleteFacility, setConfirmDeleteFacility] = useState<ParkingFacility | null>(null);
+  const [isDeletingFacility, setIsDeletingFacility] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState(EMPTY_FACILITY_FORM);
 
@@ -490,24 +500,42 @@ export const ParkingFacilitiesPage: React.FC = () => {
   const closeFacilityModal = () => {
     if (isSaving) return;
     setForm(EMPTY_FACILITY_FORM);
+    setEditingFacilityId(null);
     setFacilityModalOpen(false);
   };
 
   const openFacilityModal = () => {
+    setEditingFacilityId(null);
     setForm(EMPTY_FACILITY_FORM);
+    setFacilityModalOpen(true);
+  };
+
+  const openEditFacility = (facility: ParkingFacility) => {
+    setEditingFacilityId(facility.id);
+    setForm({
+      name: facility.name,
+      systemType: facility.systemType,
+      segment: facility.segment,
+      address: facility.address ?? '',
+    });
     setFacilityModalOpen(true);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+    const payload = {
+      name: form.name,
+      systemType: form.systemType,
+      segment: form.segment,
+      address: form.address || undefined,
+    };
     try {
-      await createParkingFacility({
-        name: form.name,
-        systemType: form.systemType,
-        segment: form.segment,
-        address: form.address || undefined,
-      });
+      if (editingFacilityId) {
+        await updateParkingFacility(editingFacilityId, payload);
+      } else {
+        await createParkingFacility(payload);
+      }
       closeFacilityModal();
       await load();
     } catch (err) {
@@ -534,7 +562,7 @@ export const ParkingFacilitiesPage: React.FC = () => {
     >
       <RegistryFormModal
         isOpen={facilityModalOpen}
-        title="Nova unidade"
+        title={editingFacilityId ? 'Editar unidade' : 'Nova unidade'}
         subtitle="Cadastre garagens, valet ou estacionamentos públicos."
         isSaving={isSaving}
         onClose={closeFacilityModal}
@@ -542,7 +570,7 @@ export const ParkingFacilitiesPage: React.FC = () => {
         footer={registryModalFooterButtons({
           onClose: closeFacilityModal,
           isSaving,
-          submitLabel: 'Cadastrar unidade',
+          submitLabel: editingFacilityId ? 'Salvar unidade' : 'Cadastrar unidade',
         })}
       >
         <div className="parking-form-grid">
@@ -593,15 +621,24 @@ export const ParkingFacilitiesPage: React.FC = () => {
         {facilities.length === 0 ? (
           <p className="parking-empty">Nenhuma unidade cadastrada.</p>
         ) : (
-          <div className="parking-table-wrap">
-            <table className="parking-table">
+          <div className="catalog-data-table-wrap parking-table-wrap">
+            <table className="parking-table catalog-data-table catalog-data-table--facilities">
+              <colgroup>
+                <col />
+                <col className="catalog-data-table__col--system" />
+                <col className="catalog-data-table__col--segment" />
+                <col className="catalog-data-table__col--spots" />
+                <col className="catalog-data-table__col--status" />
+                <col className="catalog-data-table__col--actions" />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Nome</th>
                   <th>Sistema</th>
                   <th>Segmento</th>
                   <th>Vagas</th>
-                  <th>Status</th>
+                  <th className="catalog-data-table__status">Status</th>
+                  <th className="catalog-data-table__actions">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -611,7 +648,34 @@ export const ParkingFacilitiesPage: React.FC = () => {
                     <td>{PARKING_SYSTEM_TYPE_LABELS[f.systemType] ?? f.systemType}</td>
                     <td>{PARKING_SEGMENT_LABELS[f.segment] ?? f.segment}</td>
                     <td>{f.totalSpots}</td>
-                    <td>{f.active ? 'Ativa' : 'Inativa'}</td>
+                    <td className="catalog-data-table__status">
+                      <div className="catalog-data-table__actions-group">
+                        <CatalogActiveToggle
+                          checked={Boolean(f.active)}
+                          disabled={togglingFacilityId === f.id}
+                          label={f.active ? 'Ativa' : 'Inativa'}
+                          onChange={(active) => {
+                            setTogglingFacilityId(f.id);
+                            void updateParkingFacility(f.id, { active })
+                              .then(load)
+                              .catch((err) =>
+                                setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') }),
+                              )
+                              .finally(() => setTogglingFacilityId(null));
+                          }}
+                        />
+                      </div>
+                    </td>
+                    <td className="catalog-data-table__actions">
+                      <div className="catalog-data-table__actions-group">
+                        <CatalogRegistryIconActions
+                          editLabel={`Editar unidade ${f.name}`}
+                          deleteLabel={`Excluir unidade ${f.name}`}
+                          onEdit={() => openEditFacility(f)}
+                          onDelete={() => setConfirmDeleteFacility(f)}
+                        />
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -635,6 +699,34 @@ export const ParkingFacilitiesPage: React.FC = () => {
       </div>
 
       <AlertModal isOpen={alert.open} message={alert.message} onClose={() => setAlert({ open: false, message: '' })} />
+      <ConfirmModal
+        isOpen={Boolean(confirmDeleteFacility)}
+        title="Excluir unidade"
+        subtitle="Esta ação não pode ser desfeita."
+        message={
+          confirmDeleteFacility
+            ? `A unidade "${confirmDeleteFacility.name}" e dados vinculados serão removidos permanentemente.`
+            : ''
+        }
+        confirmLabel="Excluir"
+        isLoading={isDeletingFacility}
+        loadingLabel="Excluindo…"
+        onClose={() => !isDeletingFacility && setConfirmDeleteFacility(null)}
+        onConfirm={async () => {
+          if (!confirmDeleteFacility) return;
+          setIsDeletingFacility(true);
+          try {
+            await deleteParkingFacility(confirmDeleteFacility.id);
+            setConfirmDeleteFacility(null);
+            await load();
+            setAlert({ open: true, message: 'Unidade excluída.' });
+          } catch (err) {
+            setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao excluir unidade.') });
+          } finally {
+            setIsDeletingFacility(false);
+          }
+        }}
+      />
     </CatalogPageLayout>
   );
 };
@@ -1189,6 +1281,10 @@ export const ParkingTariffsPage: React.FC = () => {
   const { facilityId, setFacilityId } = useFacilityFilter(facilities);
   const [tab, setTab] = useState<'hourly' | 'daily' | 'monthly'>('hourly');
   const [tariffModalOpen, setTariffModalOpen] = useState(false);
+  const [editingTariffId, setEditingTariffId] = useState<string | null>(null);
+  const [togglingTariffId, setTogglingTariffId] = useState<string | null>(null);
+  const [confirmDeleteTariff, setConfirmDeleteTariff] = useState<ParkingTariff | null>(null);
+  const [isDeletingTariff, setIsDeletingTariff] = useState(false);
   const [isSavingTariff, setIsSavingTariff] = useState(false);
   const [form, setForm] = useState(EMPTY_TARIFF_FORM);
   const [quoteTariffId, setQuoteTariffId] = useState('');
@@ -1233,50 +1329,63 @@ export const ParkingTariffsPage: React.FC = () => {
 
   const closeTariffModal = () => {
     if (isSavingTariff) return;
+    setEditingTariffId(null);
     setForm({ ...EMPTY_TARIFF_FORM, billingType: tab });
     setTariffModalOpen(false);
   };
 
   const openTariffModal = () => {
+    setEditingTariffId(null);
     setForm({ ...EMPTY_TARIFF_FORM, billingType: tab });
+    setTariffModalOpen(true);
+  };
+
+  const openEditTariff = (tariff: ParkingTariff) => {
+    setEditingTariffId(tariff.id);
+    setForm({
+      name: tariff.name,
+      billingType: tariff.billingType as 'hourly' | 'daily' | 'monthly',
+      vehicleType: tariff.vehicleType ?? '',
+      price: String(tariff.price),
+      graceMinutes: String(tariff.graceMinutes ?? 0),
+      blockMinutes: String(tariff.blockMinutes ?? 60),
+      maxDailyPrice: tariff.maxDailyPrice != null ? String(tariff.maxDailyPrice) : '',
+      description: tariff.description ?? '',
+      isDefault: Boolean(tariff.isDefault),
+    });
     setTariffModalOpen(true);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!facilityId) return;
+    if (!facilityId && !editingTariffId) return;
     setIsSavingTariff(true);
+    const payload = {
+      name: form.name,
+      billingType: form.billingType,
+      vehicleType: form.vehicleType || undefined,
+      price: Number(form.price),
+      graceMinutes: form.billingType === 'hourly' ? Number(form.graceMinutes) : 0,
+      blockMinutes: form.billingType === 'hourly' ? Number(form.blockMinutes) : 60,
+      maxDailyPrice:
+        form.billingType === 'hourly' && form.maxDailyPrice
+          ? Number(form.maxDailyPrice)
+          : undefined,
+      description: form.description || undefined,
+      isDefault: form.isDefault,
+    };
     try {
-      await createParkingTariff({
-        facilityId,
-        name: form.name,
-        billingType: form.billingType,
-        vehicleType: form.vehicleType || undefined,
-        price: Number(form.price),
-        graceMinutes: form.billingType === 'hourly' ? Number(form.graceMinutes) : 0,
-        blockMinutes: form.billingType === 'hourly' ? Number(form.blockMinutes) : 60,
-        maxDailyPrice:
-          form.billingType === 'hourly' && form.maxDailyPrice
-            ? Number(form.maxDailyPrice)
-            : undefined,
-        description: form.description || undefined,
-        isDefault: form.isDefault,
-      });
+      if (editingTariffId) {
+        await updateParkingTariff(editingTariffId, payload);
+      } else {
+        await createParkingTariff({ facilityId, ...payload });
+      }
       closeTariffModal();
       await load();
     } catch (err) {
       setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
     } finally {
       setIsSavingTariff(false);
-    }
-  };
-
-  const toggleActive = async (tariff: ParkingTariff) => {
-    try {
-      await updateParkingTariff(tariff.id, { active: !tariff.active });
-      await load();
-    } catch (err) {
-      setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
     }
   };
 
@@ -1319,7 +1428,7 @@ export const ParkingTariffsPage: React.FC = () => {
         ) : undefined
       }
     >
-      <div className="parking-actions-row" style={{ marginBottom: 16 }}>
+      <div className="parking-actions-row parking-actions-row--toolbar">
         {(['hourly', 'daily', 'monthly'] as const).map((type) => (
           <button
             key={type}
@@ -1337,7 +1446,11 @@ export const ParkingTariffsPage: React.FC = () => {
 
       <RegistryFormModal
         isOpen={tariffModalOpen}
-        title={`Nova tarifa — ${TARIFF_BILLING_LABELS[tab]}`}
+        title={
+          editingTariffId
+            ? `Editar tarifa — ${TARIFF_BILLING_LABELS[form.billingType as keyof typeof TARIFF_BILLING_LABELS] ?? tab}`
+            : `Nova tarifa — ${TARIFF_BILLING_LABELS[tab]}`
+        }
         subtitle="Configure valores de cobrança para a unidade selecionada."
         isSaving={isSavingTariff}
         onClose={closeTariffModal}
@@ -1345,7 +1458,7 @@ export const ParkingTariffsPage: React.FC = () => {
         footer={registryModalFooterButtons({
           onClose: closeTariffModal,
           isSaving: isSavingTariff,
-          submitLabel: 'Salvar tarifa',
+          submitLabel: editingTariffId ? 'Salvar alterações' : 'Salvar tarifa',
         })}
       >
         <div className="catalog-form-grid">
@@ -1436,8 +1549,8 @@ export const ParkingTariffsPage: React.FC = () => {
         {tariffs.length === 0 ? (
           <p className="parking-empty">Nenhuma tarifa nesta categoria.</p>
         ) : (
-          <div className="parking-table-wrap">
-            <table className="parking-table">
+          <div className="catalog-data-table-wrap parking-table-wrap">
+            <table className="parking-table catalog-data-table">
               <thead>
                 <tr>
                   <th>Nome</th>
@@ -1446,8 +1559,8 @@ export const ParkingTariffsPage: React.FC = () => {
                   {tab === 'hourly' && <th>Teto/dia</th>}
                   {tab === 'monthly' && <th>Veículo</th>}
                   <th>Padrão</th>
-                  <th>Status</th>
-                  <th />
+                  <th className="catalog-data-table__status">Status</th>
+                  <th className="catalog-data-table__actions">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -1467,15 +1580,33 @@ export const ParkingTariffsPage: React.FC = () => {
                       </td>
                     )}
                     <td>{t.isDefault ? 'Sim' : '—'}</td>
-                    <td>{t.active ? 'Ativa' : 'Inativa'}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="catalog-action-button is-secondary"
-                        onClick={() => void toggleActive(t)}
-                      >
-                        {t.active ? 'Desativar' : 'Ativar'}
-                      </button>
+                    <td className="catalog-data-table__status">
+                      <div className="catalog-data-table__actions-group">
+                        <CatalogActiveToggle
+                          checked={Boolean(t.active)}
+                          disabled={togglingTariffId === t.id}
+                          label={t.active ? 'Ativa' : 'Inativa'}
+                          onChange={(active) => {
+                            setTogglingTariffId(t.id);
+                            void updateParkingTariff(t.id, { active })
+                              .then(load)
+                              .catch((err) =>
+                                setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') }),
+                              )
+                              .finally(() => setTogglingTariffId(null));
+                          }}
+                        />
+                      </div>
+                    </td>
+                    <td className="catalog-data-table__actions">
+                      <div className="catalog-data-table__actions-group">
+                        <CatalogRegistryIconActions
+                          editLabel={`Editar tarifa ${t.name}`}
+                          deleteLabel={`Excluir tarifa ${t.name}`}
+                          onEdit={() => openEditTariff(t)}
+                          onDelete={() => setConfirmDeleteTariff(t)}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1503,29 +1634,32 @@ export const ParkingTariffsPage: React.FC = () => {
         <div className="parking-panel">
           <h3>Simulador de cobrança</h3>
           <form onSubmit={(e) => void handleQuote(e)}>
-            <div className="parking-form-grid">
+            <div className="parking-form-grid parking-form-grid--quote">
               <PremiumSelect
                 id="quote-tariff"
                 label="Tarifa"
                 value={quoteTariffId}
                 options={tariffs.filter((t) => t.active).map((t) => ({ value: t.id, label: t.name }))}
+                wrapperClassName="form-group"
                 onChange={setQuoteTariffId}
               />
-              <div>
+              <div className="form-group">
                 <label htmlFor="quote-entry">Entrada</label>
                 <input
                   id="quote-entry"
                   type="datetime-local"
+                  className="premium-text-input"
                   value={quoteEntry}
                   onChange={(e) => setQuoteEntry(e.target.value)}
                   required
                 />
               </div>
-              <div>
+              <div className="form-group">
                 <label htmlFor="quote-exit">Saída</label>
                 <input
                   id="quote-exit"
                   type="datetime-local"
+                  className="premium-text-input"
                   value={quoteExit}
                   onChange={(e) => setQuoteExit(e.target.value)}
                 />
@@ -1547,6 +1681,32 @@ export const ParkingTariffsPage: React.FC = () => {
       )}
 
       <AlertModal isOpen={alert.open} message={alert.message} onClose={() => setAlert({ open: false, message: '' })} />
+      <ConfirmModal
+        isOpen={Boolean(confirmDeleteTariff)}
+        title="Excluir tarifa"
+        subtitle="Esta ação não pode ser desfeita."
+        message={
+          confirmDeleteTariff ? `A tarifa "${confirmDeleteTariff.name}" será removida permanentemente.` : ''
+        }
+        confirmLabel="Excluir"
+        isLoading={isDeletingTariff}
+        loadingLabel="Excluindo…"
+        onClose={() => !isDeletingTariff && setConfirmDeleteTariff(null)}
+        onConfirm={async () => {
+          if (!confirmDeleteTariff) return;
+          setIsDeletingTariff(true);
+          try {
+            await deleteParkingTariff(confirmDeleteTariff.id);
+            setConfirmDeleteTariff(null);
+            await load();
+            setAlert({ open: true, message: 'Tarifa excluída.' });
+          } catch (err) {
+            setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao excluir tarifa.') });
+          } finally {
+            setIsDeletingTariff(false);
+          }
+        }}
+      />
     </CatalogPageLayout>
   );
 };

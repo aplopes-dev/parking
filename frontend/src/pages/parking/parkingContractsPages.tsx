@@ -631,7 +631,7 @@ export const ParkingContractsPage: React.FC = () => {
       {tab === 'subscriptions' ? (
         <>
           <div className="parking-panel">
-            <div className="parking-actions-row" style={{ justifyContent: 'space-between', marginBottom: 14 }}>
+            <div className="parking-actions-row parking-actions-row--panel-header">
               <h3 style={{ margin: 0 }}>Contratos ativos ({subMeta?.total ?? subscriptions.length})</h3>
               <button type="button" className="catalog-action-button" onClick={openSubModal}>
                 Novo mensalista
@@ -733,7 +733,7 @@ export const ParkingContractsPage: React.FC = () => {
       ) : (
         <>
           <div className="parking-panel">
-            <div className="parking-actions-row" style={{ justifyContent: 'space-between', marginBottom: 14 }}>
+            <div className="parking-actions-row parking-actions-row--panel-header">
               <h3 style={{ margin: 0 }}>Convênios ({agrMeta?.total ?? agreements.length})</h3>
               <button type="button" className="catalog-action-button" onClick={openAgrModal}>
                 Novo convênio

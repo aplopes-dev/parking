@@ -1,14 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
 import CatalogPagination from '../../components/catalog/CatalogPagination';
+import CatalogActiveToggle from '../../components/catalog/CatalogActiveToggle';
+import CatalogRegistryIconActions from '../../components/catalog/CatalogRegistryIconActions';
 import RegistryFormModal, { registryModalFooterButtons } from '../../components/RegistryFormModal';
 import AlertModal from '../../components/AlertModal';
+import ConfirmModal from '../../components/ConfirmModal';
 import PremiumSelect from '../../components/PremiumSelect';
 import { useDebouncedRegistrySearch } from '../../hooks/useDebouncedRegistrySearch';
 import { getApiErrorMessage } from '../../utils/apiError';
 import {
   createParkingVehicle,
+  deleteParkingVehicle,
   fetchParkingVehicles,
   searchCustomers,
   updateParkingVehicle,
@@ -47,6 +50,9 @@ export const ParkingVehiclesPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [listMeta, setListMeta] = useState<PaginatedMeta | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<ParkingVehicleRecord | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [form, setForm] = useState({
     plate: '',
     vehicleType: 'car',
@@ -191,12 +197,15 @@ export const ParkingVehiclesPage: React.FC = () => {
     });
   };
 
-  const toggleActive = async (v: ParkingVehicleRecord) => {
+  const setVehicleActive = async (v: ParkingVehicleRecord, active: boolean) => {
+    setTogglingId(v.id);
     try {
-      await updateParkingVehicle(v.id, { active: !v.active });
+      await updateParkingVehicle(v.id, { active });
       await load();
     } catch (err) {
       setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -363,8 +372,18 @@ export const ParkingVehiclesPage: React.FC = () => {
             Nenhum veículo cadastrado. Veículos de mensalistas e convênios são sincronizados automaticamente.
           </p>
         ) : (
-          <div className="parking-table-wrap">
-            <table className="parking-table">
+          <div className="catalog-data-table-wrap parking-table-wrap">
+            <table className="parking-table catalog-data-table catalog-data-table--vehicles">
+              <colgroup>
+                <col className="catalog-data-table__col--plate" />
+                <col className="catalog-data-table__col--type" />
+                <col />
+                <col className="catalog-data-table__col--access" />
+                <col className="catalog-data-table__col--rfid" />
+                <col className="catalog-data-table__col--visits" />
+                <col className="catalog-data-table__col--status" />
+                <col className="catalog-data-table__col--actions" />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Placa</th>
@@ -373,8 +392,8 @@ export const ParkingVehiclesPage: React.FC = () => {
                   <th>Acesso</th>
                   <th>RFID</th>
                   <th>Visitas</th>
-                  <th>Status</th>
-                  <th />
+                  <th className="catalog-data-table__status">Status</th>
+                  <th className="catalog-data-table__actions">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -407,30 +426,24 @@ export const ParkingVehiclesPage: React.FC = () => {
                     </td>
                     <td>{v.rfidTag ?? '—'}</td>
                     <td>{v.sessionCount}</td>
-                    <td>
-                      <span className={`parking-badge parking-badge--${v.active ? 'available' : 'occupied'}`}>
-                        {v.active ? 'Ativo' : 'Inativo'}
-                      </span>
+                    <td className="catalog-data-table__status">
+                      <div className="catalog-data-table__actions-group">
+                        <CatalogActiveToggle
+                          checked={Boolean(v.active)}
+                          disabled={togglingId === v.id}
+                          label={v.active ? 'Ativo' : 'Inativo'}
+                          onChange={(active) => void setVehicleActive(v, active)}
+                        />
+                      </div>
                     </td>
-                    <td>
-                      <div className="parking-actions-row">
-                        <button
-                          type="button"
-                          className="catalog-action-button is-secondary"
-                          onClick={() => openEdit(v)}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          className="catalog-action-button is-secondary"
-                          onClick={() => void toggleActive(v)}
-                        >
-                          {v.active ? 'Desativar' : 'Ativar'}
-                        </button>
-                        <Link to="/operacao/sessoes" className="catalog-action-button is-secondary">
-                          Sessões
-                        </Link>
+                    <td className="catalog-data-table__actions">
+                      <div className="catalog-data-table__actions-group">
+                        <CatalogRegistryIconActions
+                          editLabel={`Editar veículo ${v.plate}`}
+                          deleteLabel={`Excluir veículo ${v.plate}`}
+                          onEdit={() => openEdit(v)}
+                          onDelete={() => setConfirmDelete(v)}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -456,6 +469,30 @@ export const ParkingVehiclesPage: React.FC = () => {
       </section>
 
       <AlertModal isOpen={alert.open} message={alert.message} onClose={() => setAlert({ open: false, message: '' })} />
+      <ConfirmModal
+        isOpen={Boolean(confirmDelete)}
+        title="Excluir veículo"
+        subtitle="Esta ação não pode ser desfeita."
+        message={confirmDelete ? `O veículo "${confirmDelete.plate}" será removido permanentemente.` : ''}
+        confirmLabel="Excluir"
+        isLoading={isDeleting}
+        loadingLabel="Excluindo…"
+        onClose={() => !isDeleting && setConfirmDelete(null)}
+        onConfirm={async () => {
+          if (!confirmDelete) return;
+          setIsDeleting(true);
+          try {
+            await deleteParkingVehicle(confirmDelete.id);
+            setConfirmDelete(null);
+            await load();
+            setAlert({ open: true, message: 'Veículo excluído.' });
+          } catch (err) {
+            setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao excluir veículo.') });
+          } finally {
+            setIsDeleting(false);
+          }
+        }}
+      />
     </CatalogPageLayout>
   );
 };

@@ -34,7 +34,7 @@
 }
 
 .parking-panel {
-  padding: 20px;
+  padding: var(--ui-panel-padding, 24px);
   border-radius: 12px;
   background: var(--surface-card, #fff);
   border: 1px solid var(--border-default, #e5e5e5);
@@ -50,26 +50,60 @@
 .parking-form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
+  gap: var(--ui-form-gap, 16px);
+  align-items: end;
+}
+
+.parking-form-grid--quote {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .parking-form-grid--quote {
+    grid-template-columns: 1fr;
+  }
+}
+
+.parking-form-grid > div,
+.parking-form-grid > .form-group,
+.parking-form-grid > .premium-select-field {
+  margin: 0;
+  min-width: 0;
 }
 
 .parking-form-grid label {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-primary, #1a1a1a);
 }
 
-.parking-form-grid input,
+.parking-form-grid input:not([type='checkbox']):not([type='radio']),
 .parking-form-grid select,
-.parking-form-grid textarea {
+.parking-form-grid textarea,
+.parking-form-grid .searchable-select-input,
+.parking-form-grid .premium-field-trigger {
   width: 100%;
   box-sizing: border-box;
-  padding: 10px 12px;
+  min-height: var(--premium-field-height, 52px);
+  padding: 0 16px;
   border: 1px solid var(--border-default, #e5e5e5);
   border-radius: 8px;
   font-size: 0.92rem;
+}
+
+.parking-form-grid input:not([type='checkbox']):not([type='radio']),
+.parking-form-grid select,
+.parking-form-grid .searchable-select-input,
+.parking-form-grid .premium-field-trigger {
+  height: var(--premium-field-height, 52px);
+}
+
+.parking-form-grid textarea {
+  height: auto;
+  min-height: 88px;
+  padding: 12px 16px;
 }
 
 .parking-table-wrap {
@@ -153,8 +187,36 @@
 .parking-actions-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 14px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.parking-actions-row--spread,
+.parking-actions-row--panel-header {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.parking-actions-row--toolbar {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.parking-actions-row--compact {
+  margin-top: 0;
+  justify-content: flex-end;
+}
+
+.parking-table td.parking-actions-row {
+  margin-top: 0;
+  white-space: nowrap;
+}
+
+.parking-table.catalog-data-table th:not(.catalog-data-table__status):not(.catalog-data-table__actions),
+.parking-table.catalog-data-table td:not(.catalog-data-table__status):not(.catalog-data-table__actions) {
+  padding: 12px 16px;
 }
 
 .parking-empty {
@@ -582,10 +644,6 @@
 .parking-boleto-barcode {
   font-size: 0.75rem;
   word-break: break-all;
-}
-
-.parking-reports-filters {
-  padding: 20px 24px;
 }
 
 .parking-reports-filters .catalog-toolbar {
