@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import AlertModal from '../../components/AlertModal';
+import ConfirmModal from '../../components/ConfirmModal';
 import PremiumSelect from '../../components/PremiumSelect';
 import RegistryFormModal, { registryModalFooterButtons } from '../../components/RegistryFormModal';
 import {
   cancelFiscalInvoice,
   createAccountant,
+  deleteAccountant,
   createFiscalOrder,
   createFiscalOrderFromPdv,
   createFiscalReturn,
@@ -27,6 +29,7 @@ import {
 import type { FiscalInvoiceType, FiscalOrderType } from '../../types/fiscal';
 import { DEFAULT_PAGE_SIZE, type PaginatedMeta, type SortDirection } from '../../types/pagination';
 import CatalogPagination from '../../components/catalog/CatalogPagination';
+import CatalogRegistryIconActions from '../../components/catalog/CatalogRegistryIconActions';
 import CatalogSortableTh from '../../components/catalog/CatalogSortableTh';
 import {
   AccessDenied,
@@ -45,25 +48,34 @@ import {
   useFiscalAccess,
 } from './fiscalShared';
 
-function SettingsForm({ onSaved }: { onSaved?: () => void }) {
-  const [form, setForm] = useState({
-    legalName: '',
-    tradeName: '',
-    cnpj: '',
-    stateRegistration: '',
-    environment: 'homologation' as 'homologation' | 'production',
-    nfeSeries: '1',
-    nfceSeries: '1',
-    certificateHint: '',
-    sefazNotes: '',
-  });
-  const [alert, setAlert] = useState<{
-    open: boolean;
-    message: string;
-    type: 'success' | 'error';
-  }>({ open: false, message: '', type: 'success' });
+const emptyEmitterSettingsForm = () => ({
+  legalName: '',
+  tradeName: '',
+  cnpj: '',
+  stateRegistration: '',
+  environment: 'homologation' as 'homologation' | 'production',
+  nfeSeries: '1',
+  nfceSeries: '1',
+  certificateHint: '',
+  sefazNotes: '',
+});
+
+function EmitterSettingsModal({
+  isOpen,
+  onClose,
+  onSaved,
+  onError,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSaved?: () => void;
+  onError?: (message: string) => void;
+}) {
+  const [form, setForm] = useState(emptyEmitterSettingsForm);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    if (!isOpen) return;
     fetchFiscalSettings().then((s) =>
       setForm({
         legalName: s.legalName ?? '',
@@ -77,96 +89,107 @@ function SettingsForm({ onSaved }: { onSaved?: () => void }) {
         sefazNotes: s.sefazNotes ?? '',
       }),
     );
-  }, []);
+  }, [isOpen]);
+
+  const closeModal = () => {
+    if (isSaving) return;
+    onClose();
+  };
 
   return (
-    <FiscalSection title="Configuração do emitente">
-      <form
-        className="catalog-form"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          try {
-            await updateFiscalSettings({
-              ...form,
-              nfeSeries: parseInt(form.nfeSeries, 10),
-              nfceSeries: parseInt(form.nfceSeries, 10),
-            });
-            onSaved?.();
-            setAlert({ open: true, message: 'Configurações salvas.', type: 'success' });
-          } catch (err) {
-            setAlert({ open: true, message: errMsg(err), type: 'error' });
-          }
-        }}
-      >
-        <div className="catalog-form-grid">
-          <FiscalField label="Razão social">
-            <input
-              className="premium-text-input"
-              value={form.legalName}
-              onChange={(e) => setForm({ ...form, legalName: e.target.value })}
-              required
-            />
-          </FiscalField>
-          <FiscalField label="Nome fantasia">
-            <input
-              className="premium-text-input"
-              value={form.tradeName}
-              onChange={(e) => setForm({ ...form, tradeName: e.target.value })}
-            />
-          </FiscalField>
-          <FiscalField label="CNPJ">
-            <input
-              className="premium-text-input"
-              value={form.cnpj}
-              onChange={(e) => setForm({ ...form, cnpj: e.target.value })}
-            />
-          </FiscalField>
-          <FiscalField label="Inscrição estadual">
-            <input
-              className="premium-text-input"
-              value={form.stateRegistration}
-              onChange={(e) => setForm({ ...form, stateRegistration: e.target.value })}
-            />
-          </FiscalField>
-          <PremiumSelect
-            label="Ambiente"
-            value={form.environment}
-            options={[
-              { value: 'homologation', label: 'Homologação' },
-              { value: 'production', label: 'Produção' },
-            ]}
-            onChange={(v) => setForm({ ...form, environment: v as 'homologation' | 'production' })}
+    <RegistryFormModal
+      isOpen={isOpen}
+      wide
+      title="Configuração do emitente"
+      subtitle="Dados cadastrais, ambiente SEFAZ e séries de documentos fiscais."
+      isSaving={isSaving}
+      onClose={closeModal}
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setIsSaving(true);
+        try {
+          await updateFiscalSettings({
+            ...form,
+            nfeSeries: parseInt(form.nfeSeries, 10),
+            nfceSeries: parseInt(form.nfceSeries, 10),
+          });
+          onClose();
+          onSaved?.();
+        } catch (err) {
+          onError?.(errMsg(err));
+        } finally {
+          setIsSaving(false);
+        }
+      }}
+      footer={registryModalFooterButtons({
+        onClose: closeModal,
+        isSaving,
+        submitLabel: 'Salvar configurações',
+      })}
+    >
+      <div className="catalog-form-grid">
+        <FiscalField label="Razão social" htmlFor="emitter-legal-name">
+          <input
+            id="emitter-legal-name"
+            className="premium-text-input"
+            value={form.legalName}
+            onChange={(e) => setForm({ ...form, legalName: e.target.value })}
+            required
           />
-          <FiscalField label="Série NF-e">
-            <input
-              type="number"
-              className="premium-text-input"
-              value={form.nfeSeries}
-              onChange={(e) => setForm({ ...form, nfeSeries: e.target.value })}
-            />
-          </FiscalField>
-          <FiscalField label="Série NFC-e">
-            <input
-              type="number"
-              className="premium-text-input"
-              value={form.nfceSeries}
-              onChange={(e) => setForm({ ...form, nfceSeries: e.target.value })}
-            />
-          </FiscalField>
-        </div>
-        <FiscalFormActions>
-          <button type="submit" className="catalog-form-footer-btn catalog-form-footer-btn--primary">
-            Salvar configurações
-          </button>
-        </FiscalFormActions>
-      </form>
-      <AlertModal
-        isOpen={alert.open}
-        message={alert.message}
-        type={alert.type}
-        onClose={() => setAlert({ open: false, message: '', type: 'success' })}
-      />
-    </FiscalSection>
+        </FiscalField>
+        <FiscalField label="Nome fantasia" htmlFor="emitter-trade-name">
+          <input
+            id="emitter-trade-name"
+            className="premium-text-input"
+            value={form.tradeName}
+            onChange={(e) => setForm({ ...form, tradeName: e.target.value })}
+          />
+        </FiscalField>
+        <FiscalField label="CNPJ" htmlFor="emitter-cnpj">
+          <input
+            id="emitter-cnpj"
+            className="premium-text-input"
+            value={form.cnpj}
+            onChange={(e) => setForm({ ...form, cnpj: e.target.value })}
+          />
+        </FiscalField>
+        <FiscalField label="Inscrição estadual" htmlFor="emitter-state-registration">
+          <input
+            id="emitter-state-registration"
+            className="premium-text-input"
+            value={form.stateRegistration}
+            onChange={(e) => setForm({ ...form, stateRegistration: e.target.value })}
+          />
+        </FiscalField>
+        <PremiumSelect
+          label="Ambiente"
+          value={form.environment}
+          options={[
+            { value: 'homologation', label: 'Homologação' },
+            { value: 'production', label: 'Produção' },
+          ]}
+          onChange={(v) => setForm({ ...form, environment: v as 'homologation' | 'production' })}
+        />
+        <FiscalField label="Série NF-e" htmlFor="emitter-nfe-series">
+          <input
+            id="emitter-nfe-series"
+            type="number"
+            className="premium-text-input"
+            value={form.nfeSeries}
+            onChange={(e) => setForm({ ...form, nfeSeries: e.target.value })}
+          />
+        </FiscalField>
+        <FiscalField label="Série NFC-e" htmlFor="emitter-nfce-series">
+          <input
+            id="emitter-nfce-series"
+            type="number"
+            className="premium-text-input"
+            value={form.nfceSeries}
+            onChange={(e) => setForm({ ...form, nfceSeries: e.target.value })}
+          />
+        </FiscalField>
+      </div>
+    </RegistryFormModal>
   );
 }
 
@@ -187,6 +210,7 @@ export const FiscalOrdersPage: React.FC = () => {
   const [form, setForm] = useState(emptyManualOrderForm);
   const [pdvOrderId, setPdvOrderId] = useState('');
   const [showManualOrder, setShowManualOrder] = useState(false);
+  const [showEmitterSettings, setShowEmitterSettings] = useState(false);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
   const [alert, setAlert] = useState({ open: false, message: '' });
 
@@ -203,12 +227,26 @@ export const FiscalOrdersPage: React.FC = () => {
       title="Pedidos de venda e compra"
       description="Registre pedidos fiscais manuais ou importe do PDV."
       actions={
-        <button type="button" className="catalog-action-button" onClick={() => setShowManualOrder(true)}>
-          Novo pedido
-        </button>
+        <>
+          <button
+            type="button"
+            className="catalog-action-button is-secondary"
+            onClick={() => setShowEmitterSettings(true)}
+          >
+            Configuração do emitente
+          </button>
+          <button type="button" className="catalog-action-button" onClick={() => setShowManualOrder(true)}>
+            Novo pedido
+          </button>
+        </>
       }
     >
-      <SettingsForm />
+      <EmitterSettingsModal
+        isOpen={showEmitterSettings}
+        onClose={() => setShowEmitterSettings(false)}
+        onSaved={() => setAlert({ open: true, message: 'Configurações salvas.' })}
+        onError={(message) => setAlert({ open: true, message })}
+      />
       <FiscalSection title="Importar do PDV">
         <section className="finance-toolbar" aria-label="Pedido PDV">
           <FiscalField label="ID do pedido PDV">
@@ -488,6 +526,8 @@ export const FiscalReturnsPage: React.FC = () => {
   };
   const [showForm, setShowForm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const emptyForm = () => ({
     returnType: 'sale_return' as 'sale_return' | 'purchase_return',
@@ -743,40 +783,24 @@ export const FiscalReturnsPage: React.FC = () => {
                   <p className="catalog-registry-cell--message" title={r.reason}>
                     {r.reason}
                   </p>
-                  <div className="catalog-card-actions fiscal-returns-actions">
-                    <button
-                      type="button"
-                      className="catalog-card-button"
-                      onClick={() => {
-                        setEditingId(r.id);
-                        setForm({
-                          returnType: r.returnType,
-                          reason: r.reason ?? '',
-                          returnDate: (r.returnDate ?? '').slice(0, 10),
-                          totalAmount: String(Number(r.totalAmount) || ''),
-                          fiscalOrderId: r.fiscalOrderId ?? '',
-                        });
-                        setShowForm(true);
-                      }}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      className="catalog-card-button"
-                      onClick={async () => {
-                        try {
-                          await deleteFiscalReturn(r.id);
-                          setAlert({ open: true, message: 'Devolução excluída.', type: 'success' });
-                          await loadReturns();
-                        } catch (err) {
-                          setAlert({ open: true, message: errMsg(err), type: 'error' });
-                        }
-                      }}
-                    >
-                      Excluir
-                    </button>
-                  </div>
+                  <CatalogRegistryIconActions
+                    editLabel={`Editar devolução ${r.reason ?? r.id}`}
+                    deleteLabel={`Excluir devolução ${r.reason ?? r.id}`}
+                    onEdit={() => {
+                      setEditingId(r.id);
+                      setForm({
+                        returnType: r.returnType,
+                        reason: r.reason ?? '',
+                        returnDate: (r.returnDate ?? '').slice(0, 10),
+                        totalAmount: String(Number(r.totalAmount) || ''),
+                        fiscalOrderId: r.fiscalOrderId ?? '',
+                      });
+                      setShowForm(true);
+                    }}
+                    onDelete={() => {
+                      setConfirmDelete({ id: r.id, label: r.reason ?? 'devolução' });
+                    }}
+                  />
                 </li>
               ))}
             </ul>
@@ -801,6 +825,30 @@ export const FiscalReturnsPage: React.FC = () => {
         message={alert.message}
         type={alert.type}
         onClose={() => setAlert((a) => ({ ...a, open: false, message: '' }))}
+      />
+      <ConfirmModal
+        isOpen={Boolean(confirmDelete)}
+        title="Excluir devolução"
+        subtitle="Esta ação não pode ser desfeita."
+        message={confirmDelete ? `A devolução "${confirmDelete.label}" será removida permanentemente.` : ''}
+        confirmLabel="Excluir"
+        isLoading={isDeleting}
+        loadingLabel="Excluindo…"
+        onClose={() => !isDeleting && setConfirmDelete(null)}
+        onConfirm={async () => {
+          if (!confirmDelete) return;
+          setIsDeleting(true);
+          try {
+            await deleteFiscalReturn(confirmDelete.id);
+            setConfirmDelete(null);
+            setAlert({ open: true, message: 'Devolução excluída.', type: 'success' });
+            await loadReturns();
+          } catch (err) {
+            setAlert({ open: true, message: errMsg(err), type: 'error' });
+          } finally {
+            setIsDeleting(false);
+          }
+        }}
       />
     </FiscalPageLayout>
   );
@@ -958,6 +1006,7 @@ export const FiscalEmitPage: React.FC = () => {
   const [fiscalOrderId, setFiscalOrderId] = useState('');
   const [pdvOrderId, setPdvOrderId] = useState('');
   const [orders, setOrders] = useState<any[]>([]);
+  const [showEmitterSettings, setShowEmitterSettings] = useState(false);
   const [alert, setAlert] = useState({ open: false, message: '' });
 
   useEffect(() => {
@@ -970,8 +1019,22 @@ export const FiscalEmitPage: React.FC = () => {
     <FiscalPageLayout
       title="Emissão NF-e / NFC-e"
       description="Emita nota a partir de pedido fiscal ou pedido PDV (homologação simula autorização)."
+      actions={
+        <button
+          type="button"
+          className="catalog-action-button is-secondary"
+          onClick={() => setShowEmitterSettings(true)}
+        >
+          Configuração do emitente
+        </button>
+      }
     >
-      <SettingsForm />
+      <EmitterSettingsModal
+        isOpen={showEmitterSettings}
+        onClose={() => setShowEmitterSettings(false)}
+        onSaved={() => setAlert({ open: true, message: 'Configurações salvas.' })}
+        onError={(message) => setAlert({ open: true, message })}
+      />
       <FiscalSection title="Emitir documento">
         <section className="finance-toolbar">
           <PremiumSelect
@@ -1275,8 +1338,11 @@ export const FiscalAccountantsPage: React.FC = () => {
   const [limit, setLimit] = useState(DEFAULT_PAGE_SIZE);
   const [meta, setMeta] = useState<PaginatedMeta | null>(null);
   const [form, setForm] = useState(emptyAccountantForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [alert, setAlert] = useState({ open: false, message: '' });
 
   const load = useCallback(async () => {
@@ -1292,7 +1358,20 @@ export const FiscalAccountantsPage: React.FC = () => {
   const closeAccountantModal = () => {
     if (isSaving) return;
     setShowForm(false);
+    setEditingId(null);
     setForm(emptyAccountantForm());
+  };
+
+  const openEditAccountant = (row: any) => {
+    setEditingId(row.id);
+    setForm({
+      name: row.name ?? '',
+      email: row.email ?? '',
+      crc: row.crc ?? '',
+      canExport: row.canExport ?? true,
+      canEmit: row.canEmit ?? false,
+    });
+    setShowForm(true);
   };
 
   if (!can) return <AccessDenied />;
@@ -1302,26 +1381,40 @@ export const FiscalAccountantsPage: React.FC = () => {
       title="Usuário contador"
       description="Acesso do escritório contábil para exportação e consulta."
       actions={
-        <button type="button" className="catalog-action-button" onClick={() => setShowForm(true)}>
+        <button
+          type="button"
+          className="catalog-action-button"
+          onClick={() => {
+            setEditingId(null);
+            setForm(emptyAccountantForm());
+            setShowForm(true);
+          }}
+        >
           Novo contador
         </button>
       }
     >
       <RegistryFormModal
         isOpen={showForm}
-        title="Novo contador"
+        title={editingId ? 'Editar contador' : 'Novo contador'}
         subtitle="Cadastre o acesso do escritório contábil para exportação e consulta."
         isSaving={isSaving}
         onClose={closeAccountantModal}
         onSubmit={async (e) => {
           e.preventDefault();
           setIsSaving(true);
+          const wasEditing = Boolean(editingId);
           try {
-            await createAccountant(form);
+            if (editingId) {
+              await updateAccountant(editingId, form);
+            } else {
+              await createAccountant(form);
+            }
             await load();
             setShowForm(false);
+            setEditingId(null);
             setForm(emptyAccountantForm());
-            setAlert({ open: true, message: 'Contador cadastrado.' });
+            setAlert({ open: true, message: wasEditing ? 'Contador atualizado.' : 'Contador cadastrado.' });
           } catch (err) {
             setAlert({ open: true, message: errMsg(err) });
           } finally {
@@ -1331,7 +1424,7 @@ export const FiscalAccountantsPage: React.FC = () => {
         footer={registryModalFooterButtons({
           onClose: closeAccountantModal,
           isSaving,
-          submitLabel: 'Adicionar contador',
+          submitLabel: editingId ? 'Salvar contador' : 'Adicionar contador',
         })}
       >
         <div className="catalog-form-grid">
@@ -1363,23 +1456,20 @@ export const FiscalAccountantsPage: React.FC = () => {
       </RegistryFormModal>
       <FiscalTable
         title="Contadores cadastrados"
-        headers={['Nome', 'E-mail', 'Exportar', 'Ativo', '']}
+        headers={['Nome', 'E-mail', 'Exportar', 'Ativo', 'Ações']}
         rows={rows.map((r) => [
           r.name,
           r.email,
           r.canExport ? 'Sim' : 'Não',
           r.active ? 'Sim' : 'Não',
-          <button
-            key={r.id}
-            type="button"
-            className="catalog-form-footer-btn catalog-form-footer-btn--ghost"
-            onClick={async () => {
-              await updateAccountant(r.id, { active: !r.active });
-              await load();
-            }}
-          >
-            {r.active ? 'Desativar' : 'Ativar'}
-          </button>,
+          <div key={r.id} className="finance-table-actions">
+            <CatalogRegistryIconActions
+              editLabel={`Editar contador ${r.name}`}
+              deleteLabel={`Excluir contador ${r.name}`}
+              onEdit={() => openEditAccountant(r)}
+              onDelete={() => setConfirmDelete({ id: r.id, label: r.name })}
+            />
+          </div>,
         ])}
         pagination={
           meta && meta.total > 0
@@ -1398,6 +1488,30 @@ export const FiscalAccountantsPage: React.FC = () => {
         }
       />
       <AlertModal isOpen={alert.open} message={alert.message} onClose={() => setAlert({ open: false, message: '' })} />
+      <ConfirmModal
+        isOpen={Boolean(confirmDelete)}
+        title="Excluir contador"
+        subtitle="Esta ação não pode ser desfeita."
+        message={confirmDelete ? `O contador "${confirmDelete.label}" será removido permanentemente.` : ''}
+        confirmLabel="Excluir"
+        isLoading={isDeleting}
+        loadingLabel="Excluindo…"
+        onClose={() => !isDeleting && setConfirmDelete(null)}
+        onConfirm={async () => {
+          if (!confirmDelete) return;
+          setIsDeleting(true);
+          try {
+            await deleteAccountant(confirmDelete.id);
+            setConfirmDelete(null);
+            await load();
+            setAlert({ open: true, message: 'Contador excluído.' });
+          } catch (err) {
+            setAlert({ open: true, message: errMsg(err) });
+          } finally {
+            setIsDeleting(false);
+          }
+        }}
+      />
     </FiscalPageLayout>
   );
 };
