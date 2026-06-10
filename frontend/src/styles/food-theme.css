@@ -59,4 +59,9 @@
   --btn-hover-bg: #fafafa;
   --btn-hover-border: #d4d4d4;
   --btn-muted-surface: var(--surface-muted, #f5f5f4);
+
+  /* Caixas com colunas + botões (toolbars e formulários) */
+  --ui-toolbar-gap: 16px;
+  --ui-form-gap: 16px;
+  --ui-panel-padding: 24px;
 }
