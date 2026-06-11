@@ -44,6 +44,19 @@
 
 .app-modal--wide .registry-form-modal-body {
   padding: 20px var(--modal-padding, 24px) 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.app-modal--wide .registry-form-modal-body--plain {
+  padding-bottom: var(--modal-padding, 24px);
+}
+
+.registry-form-modal-form > .registry-form-modal-body {
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .app-modal-header {

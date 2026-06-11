@@ -7,6 +7,7 @@ export type RegistryFormModalProps = {
   title: string;
   subtitle?: string;
   wide?: boolean;
+  modalClassName?: string;
   isSaving?: boolean;
   onClose: () => void;
   children: React.ReactNode;
@@ -22,6 +23,7 @@ const RegistryFormModal: React.FC<RegistryFormModalProps> = ({
   title,
   subtitle,
   wide = false,
+  modalClassName = '',
   isSaving = false,
   onClose,
   children,
@@ -46,7 +48,7 @@ const RegistryFormModal: React.FC<RegistryFormModalProps> = ({
         role="presentation"
       >
         <div
-          className={`app-modal registry-form-modal${wide ? ' app-modal--wide' : ''}`}
+          className={`app-modal registry-form-modal${wide ? ' app-modal--wide' : ''}${modalClassName ? ` ${modalClassName}` : ''}`.trim()}
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"
