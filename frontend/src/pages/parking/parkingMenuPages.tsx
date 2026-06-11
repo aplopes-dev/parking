@@ -52,6 +52,7 @@ import {
   vehicleTypeSelectOptions,
 } from './parkingConstants';
 import { ParkingTicketReceipt } from './ParkingTicketQr';
+import ParkingCashCheckoutModal from './ParkingCashCheckoutModal';
 import ParkingEntryFormModal from './ParkingEntryFormModal';
 import type { PaginatedMeta } from '../../types/pagination';
 import './ParkingPages.css';
@@ -940,6 +941,12 @@ export const ParkingEntryPage: React.FC = () => {
   const { facilityId, setFacilityId } = useFacilityFilter(facilities);
   const [lastTicket, setLastTicket] = useState<ParkingSession | null>(null);
   const [entryModalOpen, setEntryModalOpen] = useState(false);
+  const [cashSession, setCashSession] = useState<ParkingSession | null>(null);
+  const [cashAlert, setCashAlert] = useState<{
+    open: boolean;
+    message: string;
+    type: 'success' | 'error' | 'warning';
+  }>({ open: false, message: '', type: 'success' });
 
   const load = useCallback(async () => {
     const facs = await fetchAllParkingFacilities();
@@ -1000,6 +1007,15 @@ export const ParkingEntryPage: React.FC = () => {
         onError={(message) => setAlert({ open: true, message })}
       />
 
+      <ParkingCashCheckoutModal
+        isOpen={Boolean(cashSession)}
+        facilityId={facilityId}
+        session={cashSession}
+        onClose={() => setCashSession(null)}
+        onSuccess={() => void load()}
+        onNotify={(message, type) => setCashAlert({ open: true, message, type })}
+      />
+
       {lastTicket ? (
         <div className="parking-panel parking-ticket-panel">
           <ParkingTicketReceipt
@@ -1017,8 +1033,7 @@ export const ParkingEntryPage: React.FC = () => {
       <div className="parking-panel">
         <h3>Veículos no pátio ({activeSessions.length})</h3>
         <p className="parking-hint" style={{ marginBottom: 12 }}>
-          Cobrança e liberação de saída em{' '}
-          <Link to="/operacao/caixa">Operação → Caixa</Link>.
+          Clique em <strong>Caixa</strong> na linha do veículo para cobrar e liberar a saída.
         </p>
         {activeSessions.length === 0 ? (
           <p className="parking-empty">Nenhum veículo no pátio.</p>
@@ -1051,12 +1066,13 @@ export const ParkingEntryPage: React.FC = () => {
                     <td>{formatDateTime(s.entryAt)}</td>
                     <td>{formatDurationMinutes(s.entryAt)}</td>
                     <td>
-                      <Link
-                        to="/operacao/caixa"
+                      <button
+                        type="button"
                         className="catalog-action-button is-secondary"
+                        onClick={() => setCashSession(s)}
                       >
                         Caixa
-                      </Link>
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -1067,6 +1083,12 @@ export const ParkingEntryPage: React.FC = () => {
       </div>
 
       <AlertModal isOpen={alert.open} message={alert.message} onClose={() => setAlert({ open: false, message: '' })} />
+      <AlertModal
+        isOpen={cashAlert.open}
+        message={cashAlert.message}
+        type={cashAlert.type}
+        onClose={() => setCashAlert({ open: false, message: '', type: 'success' })}
+      />
     </CatalogPageLayout>
   );
 };
