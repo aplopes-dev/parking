@@ -506,6 +506,118 @@
   gap: 8px;
 }
 
+.parking-cash-checkout-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.parking-cash-checkout-modal .registry-form-modal-body {
+  gap: 0;
+}
+
+.parking-cash-checkout-panel .catalog-operation-panel.catalog-surface {
+  padding: 16px 18px;
+  margin: 0;
+}
+
+.parking-cash-checkout-panel .catalog-operation-panel__header {
+  margin-bottom: 10px;
+}
+
+.parking-cash-checkout-ticket-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px 24px;
+  align-items: start;
+}
+
+.parking-cash-checkout-ticket-row--solo {
+  grid-template-columns: 1fr;
+}
+
+@media (max-width: 640px) {
+  .parking-cash-checkout-ticket-row {
+    grid-template-columns: 1fr;
+  }
+
+  .parking-cash-checkout-panel__tariff {
+    align-self: stretch;
+  }
+}
+
+.parking-cash-checkout-panel .parking-cash-checkout-meta {
+  line-height: 1.55;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.parking-cash-checkout-panel__tariff {
+  min-width: 0;
+}
+
+.parking-cash-checkout-panel__tariff-field {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  margin: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+.parking-cash-checkout-panel__tariff-field label {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.parking-cash-checkout-panel__tariff .searchable-select-wrapper,
+.parking-cash-checkout-panel__tariff .premium-field-trigger,
+.parking-cash-checkout-panel__tariff .searchable-select-input {
+  min-height: var(--premium-field-height, 52px);
+  height: var(--premium-field-height, 52px);
+  padding-left: 14px;
+  padding-right: 14px;
+  font-size: 0.9rem;
+}
+
+.parking-cash-checkout-panel__tariff .premium-field-trigger {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.parking-cash-checkout-panel .parking-cash-amount {
+  margin: 8px 0 12px;
+}
+
+.parking-cash-checkout-panel .parking-cash-amount span,
+.parking-cash-checkout-panel .parking-cash-amount .parking-hint {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.45;
+}
+
+.parking-cash-checkout-panel .parking-cash-amount strong {
+  font-size: 1.75rem;
+}
+
+.parking-cash-checkout-panel .parking-cash-methods {
+  margin-bottom: 4px;
+}
+
+.parking-cash-checkout-panel__actions {
+  margin-top: 4px;
+  padding-bottom: 4px;
+}
+
+.parking-cash-checkout-panel__account {
+  margin-top: 0;
+}
+
 .parking-hardware-key-banner {
   margin-bottom: 16px;
   background: #fef3c7;
