@@ -1,0 +1,71 @@
+/* Fundação responsiva — sem scroll horizontal; conteúdo acompanha a largura */
+
+html,
+body,
+#root,
+.layout-shell,
+.layout-main-column {
+  overflow-x: clip;
+}
+
+.layout-main-column,
+.app-main,
+.app-main--sidebar,
+.app-main-inner,
+.app-topbar,
+.catalog-page,
+.catalog-surface,
+.catalog-registry-page {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.app-topbar {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .app-topbar-user {
+    flex-shrink: 1;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 1080px) {
+  .catalog-action-button {
+    min-width: 0;
+  }
+
+  .catalog-filter-toolbar__field,
+  .catalog-search,
+  .catalog-filter-search.catalog-filter-search--wide,
+  .catalog-registry-panel__search {
+    min-width: 0;
+    max-width: none;
+    flex: 1 1 100%;
+  }
+
+  .finance-toolbar .form-group,
+  .finance-toolbar > label,
+  .finance-filters .form-group,
+  .finance-filters > label,
+  .finance-toolbar__actions .form-group {
+    min-width: 0;
+    max-width: none;
+    flex: 1 1 100%;
+  }
+}
+
+/* Layouts em duas colunas inline — empilham em telas estreitas */
+.catalog-responsive-split {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  min-width: 0;
+}
+
+@media (min-width: 1101px) {
+  .catalog-responsive-split--2col {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}

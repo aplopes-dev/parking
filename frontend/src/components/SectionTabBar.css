@@ -5,10 +5,10 @@
   display: flex;
   width: 100%;
   min-width: 0;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-  overflow-x: auto;
+  overflow-x: visible;
   padding: 4px;
   border: 1px solid var(--border-default, #e5e5e5);
   border-radius: var(--radius-md, 8px);

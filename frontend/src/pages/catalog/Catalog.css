@@ -2,6 +2,8 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  min-width: 0;
+  max-width: 100%;
   font-family: var(--premium-font);
 }
 
@@ -430,7 +432,7 @@
 
 .catalog-registry-table--fiscal-returns .catalog-registry-table__head,
 .catalog-registry-table--fiscal-returns .catalog-registry-row {
-  grid-template-columns: minmax(140px, 0.8fr) 112px 120px minmax(200px, 1.2fr) 88px;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 112px) minmax(0, 120px) minmax(0, 1.2fr) minmax(72px, 88px);
 }
 
 .catalog-registry-table--fiscal-returns .catalog-registry-cell--message {
@@ -468,7 +470,7 @@
 
 .catalog-registry-table--crm-customers .catalog-registry-table__head,
 .catalog-registry-table--crm-customers .catalog-registry-row {
-  grid-template-columns: minmax(180px, 1.1fr) minmax(180px, 1fr) 140px 110px minmax(260px, 1.2fr) 88px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 140px) minmax(0, 110px) minmax(0, 1.2fr) minmax(72px, 88px);
 }
 
 .catalog-registry-table--crm-customers .catalog-registry-table__head > * {
@@ -615,6 +617,8 @@
 
 .catalog-surface {
   padding: var(--ui-panel-padding, 24px);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .catalog-surface > .catalog-toolbar,

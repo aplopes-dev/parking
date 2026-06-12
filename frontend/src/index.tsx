@@ -7,6 +7,7 @@ import './styles/smartpos-tokens.css';
 import './styles/premium-ui.css';
 import './pages/catalog/Catalog.css';
 import './components/catalog/CatalogRegistry.css';
+import './styles/responsive-layout.css';
 import App from './App';
 
 const root = ReactDOM.createRoot(

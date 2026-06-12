@@ -316,7 +316,9 @@ const CrmCustomersPage: React.FC = () => {
         </div>
       </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: selectedId ? '1fr 1fr' : '1fr', gap: 20 }}>
+      <div
+        className={`catalog-responsive-split${selectedId ? ' catalog-responsive-split--2col' : ''}`}
+      >
         <section className="catalog-surface">
           <div className="catalog-registry-table catalog-registry-table--crm-customers">
             <div className="catalog-registry-table__head" role="row">
