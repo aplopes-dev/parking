@@ -48,7 +48,7 @@ const RegistryFormModal: React.FC<RegistryFormModalProps> = ({
         role="presentation"
       >
         <div
-          className={`app-modal registry-form-modal${wide ? ' app-modal--wide' : ''}${modalClassName ? ` ${modalClassName}` : ''}`.trim()}
+          className={`app-modal app-modal--responsive registry-form-modal${wide ? ' app-modal--wide' : ''}${modalClassName ? ` ${modalClassName}` : ''}`.trim()}
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"
