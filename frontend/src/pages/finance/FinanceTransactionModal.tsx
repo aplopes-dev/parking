@@ -82,7 +82,7 @@ const FinanceTransactionModal: React.FC<FinanceTransactionModalProps> = ({
         onClick={saving ? undefined : onClose}
       >
         <div
-          className="app-modal finance-tx-modal"
+          className="app-modal app-modal--wide finance-tx-modal finance-tx-modal--fit"
           role="dialog"
           aria-modal="true"
           aria-labelledby="finance-tx-modal-title"
@@ -108,101 +108,107 @@ const FinanceTransactionModal: React.FC<FinanceTransactionModalProps> = ({
             </button>
           </div>
 
-          <form className="finance-tx-modal-body" onSubmit={handleSubmit}>
-            <div className="catalog-form-grid">
-              <PremiumSelect
-                label="Tipo"
-                value={form.type}
-                onChange={(v) => onTypeChange(v as FinanceTransactionType)}
-                options={[
-                  { value: 'expense', label: 'Despesa' },
-                  { value: 'income', label: 'Receita' },
-                ]}
-              />
-              <div className="form-group">
-                <label htmlFor="finance-tx-date">Data</label>
-                <input
-                  id="finance-tx-date"
-                  type="date"
-                  className="premium-text-input"
-                  value={form.transactionDate}
-                  onChange={(e) => onChange({ transactionDate: e.target.value })}
+          <form className="finance-tx-modal-form" onSubmit={handleSubmit}>
+            <div className="finance-tx-modal-body">
+              <div className="finance-tx-modal-form-grid">
+                <PremiumSelect
+                  label="Tipo"
+                  value={form.type}
+                  onChange={(v) => onTypeChange(v as FinanceTransactionType)}
+                  options={[
+                    { value: 'expense', label: 'Despesa' },
+                    { value: 'income', label: 'Receita' },
+                  ]}
+                />
+                <div className="form-group">
+                  <label htmlFor="finance-tx-date">Data</label>
+                  <input
+                    id="finance-tx-date"
+                    type="date"
+                    className="premium-text-input"
+                    value={form.transactionDate}
+                    onChange={(e) => onChange({ transactionDate: e.target.value })}
+                  />
+                </div>
+                <div className="form-group form-group--full">
+                  <label htmlFor="finance-tx-description">Descrição</label>
+                  <input
+                    id="finance-tx-description"
+                    className="premium-text-input"
+                    value={form.description}
+                    onChange={(e) => onChange({ description: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="finance-tx-amount">Valor (R$)</label>
+                  <input
+                    id="finance-tx-amount"
+                    className="premium-text-input"
+                    inputMode="decimal"
+                    value={form.amount}
+                    onChange={(e) => onChange({ amount: e.target.value })}
+                    required
+                  />
+                </div>
+                <PremiumSelect
+                  label="Conta"
+                  value={form.accountId}
+                  onChange={(v) => onChange({ accountId: v })}
+                  options={[{ value: '', label: '—' }, ...accountOptions]}
+                />
+                <PremiumSelect
+                  label="Fonte"
+                  value={form.sourceId}
+                  onChange={(v) => onChange({ sourceId: v })}
+                  options={[{ value: '', label: '—' }, ...sourceOptions]}
+                />
+                <PremiumSelect
+                  label="Categoria"
+                  value={form.categoryId}
+                  onChange={(v) => onChange({ categoryId: v })}
+                  options={[{ value: '', label: '—' }, ...categoryOptions]}
                 />
               </div>
-              <div className="form-group form-group--full">
-                <label htmlFor="finance-tx-description">Descrição</label>
-                <input
-                  id="finance-tx-description"
-                  className="premium-text-input"
-                  value={form.description}
-                  onChange={(e) => onChange({ description: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="finance-tx-amount">Valor (R$)</label>
-                <input
-                  id="finance-tx-amount"
-                  className="premium-text-input"
-                  inputMode="decimal"
-                  value={form.amount}
-                  onChange={(e) => onChange({ amount: e.target.value })}
-                  required
-                />
-              </div>
-              <PremiumSelect
-                label="Conta"
-                value={form.accountId}
-                onChange={(v) => onChange({ accountId: v })}
-                options={[{ value: '', label: '—' }, ...accountOptions]}
-              />
-              <PremiumSelect
-                label="Fonte"
-                value={form.sourceId}
-                onChange={(v) => onChange({ sourceId: v })}
-                options={[{ value: '', label: '—' }, ...sourceOptions]}
-              />
-              <PremiumSelect
-                label="Categoria"
-                value={form.categoryId}
-                onChange={(v) => onChange({ categoryId: v })}
-                options={[{ value: '', label: '—' }, ...categoryOptions]}
-              />
-            </div>
 
-            <div className="form-group">
-              <label htmlFor="finance-tx-notes">Observações</label>
-              <textarea
-                id="finance-tx-notes"
-                className="premium-text-input"
-                rows={2}
-                value={form.notes}
-                onChange={(e) => onChange({ notes: e.target.value })}
-              />
-            </div>
+              <div className="finance-tx-modal-extra-row">
+                <div className="form-group">
+                  <label htmlFor="finance-tx-notes">Observações</label>
+                  <textarea
+                    id="finance-tx-notes"
+                    className="premium-text-input finance-tx-modal__notes"
+                    rows={1}
+                    value={form.notes}
+                    onChange={(e) => onChange({ notes: e.target.value })}
+                    placeholder="Opcional"
+                  />
+                </div>
 
-            <div className="form-group">
-              <label htmlFor={fileInputId}>Comprovante</label>
-              <input
-                ref={fileInputRef}
-                id={fileInputId}
-                type="file"
-                className="catalog-photo-file-input"
-                accept=".pdf,image/*,application/pdf"
-                onChange={handleFileChange}
-              />
-              <button
-                type="button"
-                className="catalog-photo-choose-btn"
-                onClick={openFilePicker}
-                disabled={saving}
-              >
-                {fileName ? 'Trocar arquivo' : 'Escolher arquivo'}
-              </button>
-              {fileName ? (
-                <p className="catalog-photo-hint finance-tx-modal__file-name">{fileName}</p>
-              ) : null}
-              <p className="catalog-photo-hint">PDF ou imagem · opcional</p>
+                <div className="form-group finance-tx-modal__file-field">
+                  <label htmlFor={fileInputId}>Comprovante</label>
+                  <input
+                    ref={fileInputRef}
+                    id={fileInputId}
+                    type="file"
+                    className="catalog-photo-file-input"
+                    accept=".pdf,image/*,application/pdf"
+                    onChange={handleFileChange}
+                  />
+                  <button
+                    type="button"
+                    className="catalog-photo-choose-btn"
+                    onClick={openFilePicker}
+                    disabled={saving}
+                  >
+                    {fileName ? 'Trocar arquivo' : 'Escolher arquivo'}
+                  </button>
+                  {fileName ? (
+                    <p className="catalog-photo-hint finance-tx-modal__file-name">{fileName}</p>
+                  ) : (
+                    <p className="catalog-photo-hint">PDF ou imagem · opcional</p>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="app-modal-footer finance-tx-modal-footer">

@@ -1,13 +1,62 @@
-/* Modal de lançamento — layout unificado em AppModal.css */
-.finance-tx-modal.app-modal {
-  width: min(520px, calc(100vw - 32px));
-  max-height: 92vh;
+/* Modal de lançamento — cabe na tela; scroll só quando o viewport encolhe */
+.finance-tx-modal.finance-tx-modal--fit.app-modal {
+  width: min(760px, calc(100vw - 40px));
+  max-height: min(92vh, calc(100dvh - 40px));
+  height: auto;
+}
+
+.app-modal-overlay:has(.finance-tx-modal--fit) {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.finance-tx-modal--fit .finance-tx-modal-form {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.finance-tx-modal.finance-tx-modal--fit.app-modal .finance-tx-modal-body {
   display: flex;
   flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  padding: 16px var(--modal-padding, 24px) 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.finance-tx-modal--fit .finance-tx-modal-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  align-items: end;
+}
+
+.finance-tx-modal--fit .finance-tx-modal-form-grid .form-group--full {
+  grid-column: 1 / -1;
+}
+
+.finance-tx-modal--fit .finance-tx-modal-form-grid .form-group,
+.finance-tx-modal--fit .finance-tx-modal-form-grid .premium-select-field {
+  margin: 0;
+  min-width: 0;
+}
+
+.finance-tx-modal--fit .finance-tx-modal-extra-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  align-items: start;
 }
 
 .finance-tx-modal-body .form-group {
   margin-bottom: 0;
+  min-width: 0;
 }
 
 .finance-tx-modal-body .form-group label {
@@ -18,18 +67,61 @@
   font-weight: 650;
 }
 
-.finance-tx-modal-body .catalog-photo-choose-btn {
+.finance-tx-modal__notes {
+  min-height: var(--modal-field-height, 48px);
+  height: var(--modal-field-height, 48px);
+  resize: none;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.finance-tx-modal__file-field .catalog-photo-choose-btn {
   margin-top: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .finance-tx-modal__file-name {
   margin-top: 6px;
   color: var(--text-primary, #141c28);
   font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.finance-tx-modal__file-field .catalog-photo-hint {
+  margin-top: 6px;
 }
 
 .finance-tx-modal-footer {
   flex-shrink: 0;
   margin-top: 0;
-  padding: 0;
+  padding: 16px var(--modal-padding, 24px) var(--modal-padding, 24px);
+}
+
+@media (max-width: 720px) {
+  .finance-tx-modal.finance-tx-modal--fit.app-modal {
+    width: calc(100vw - 24px);
+  }
+
+  .finance-tx-modal--fit .finance-tx-modal-form-grid,
+  .finance-tx-modal--fit .finance-tx-modal-extra-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-height: 720px) {
+  .app-modal-overlay:has(.finance-tx-modal--fit) {
+    align-items: flex-start;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 520px) {
+  .finance-tx-modal--fit .finance-tx-modal-footer {
+    flex-direction: column-reverse;
+  }
+
+  .finance-tx-modal--fit .finance-tx-modal-footer .catalog-form-footer-btn {
+    width: 100%;
+  }
 }
