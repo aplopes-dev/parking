@@ -1265,41 +1265,130 @@ export const FinancePayrollPage: React.FC = () => {
 };
 
 // —— Recibos ——
+const emptyReceiptForm = () => ({
+  issuedTo: '',
+  amount: '',
+  issuedAt: todayIso(),
+  description: '',
+});
+
 export const FinanceReceiptsPage: React.FC = () => {
   const can = useFinanceAccess();
   const loadReceipts = useCallback((page: number, limit: number) => fetchReceipts({ page, limit }), []);
   const { items: rows, reload, pagination } = useFinanceTableData(loadReceipts, [can]);
-  const [form, setForm] = useState({ issuedTo: '', amount: '', issuedAt: todayIso(), description: '' });
+  const [form, setForm] = useState(emptyReceiptForm);
+  const [showNewReceiptModal, setShowNewReceiptModal] = useState(false);
+  const [isSavingReceipt, setIsSavingReceipt] = useState(false);
   const [alert, setAlert] = useState<FinanceAlert>(closedAlert);
+
+  const closeNewReceiptModal = () => {
+    if (isSavingReceipt) return;
+    setShowNewReceiptModal(false);
+    setForm(emptyReceiptForm());
+  };
 
   if (!can) return <AccessDenied />;
 
   return (
-    <CatalogPageLayout className="finance-page" moduleLabel="Gestão financeira" modulePath="/financeiro/lancamentos" title="Geração de recibos" description="Comprovantes de pagamento ou recebimento.">
-      <FinanceSection title="Novo recibo">
-        <form className="catalog-form" onSubmit={async (e) => {
+    <CatalogPageLayout
+      className="finance-page"
+      moduleLabel="Gestão financeira"
+      modulePath="/financeiro/recibos"
+      title="Geração de recibos"
+      description="Comprovantes de pagamento ou recebimento."
+      actions={
+        <button type="button" className="catalog-action-button" onClick={() => setShowNewReceiptModal(true)}>
+          Novo recibo
+        </button>
+      }
+    >
+      <RegistryFormModal
+        isOpen={showNewReceiptModal}
+        title="Novo recibo"
+        subtitle="Emita um comprovante de pagamento ou recebimento."
+        isSaving={isSavingReceipt}
+        onClose={closeNewReceiptModal}
+        onSubmit={async (e) => {
           e.preventDefault();
+          setIsSavingReceipt(true);
           try {
-            await createReceipt({ ...form, amount: parseFloat(form.amount) });
+            await createReceipt({
+              issuedTo: form.issuedTo.trim(),
+              amount: parseFloat(form.amount),
+              issuedAt: form.issuedAt,
+              description: form.description.trim() || undefined,
+            });
+            setShowNewReceiptModal(false);
+            setForm(emptyReceiptForm());
             await reload();
             setAlert(successAlert('Recibo criado.'));
           } catch (err) {
             setAlert(errorAlert(err));
+          } finally {
+            setIsSavingReceipt(false);
           }
-        }}>
-          <div className="catalog-form-grid">
-            <label>Emitido para<input className="premium-text-input" value={form.issuedTo} onChange={(e) => setForm({ ...form, issuedTo: e.target.value })} required /></label>
-            <label>Valor<input type="number" className="premium-text-input" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required /></label>
-            <label>Data<input type="date" className="premium-text-input" value={form.issuedAt} onChange={(e) => setForm({ ...form, issuedAt: e.target.value })} /></label>
-            <label>Descrição<input className="premium-text-input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
-          </div>
-          <button type="submit" className="catalog-form-footer-btn catalog-form-footer-btn--primary">Emitir</button>
-        </form>
-      </FinanceSection>
+        }}
+        footer={registryModalFooterButtons({
+          onClose: closeNewReceiptModal,
+          isSaving: isSavingReceipt,
+          submitLabel: 'Emitir recibo',
+        })}
+      >
+        <div className="catalog-form-grid">
+          <FinanceField label="Emitido para" htmlFor="receipt-issued-to">
+            <input
+              id="receipt-issued-to"
+              className="premium-text-input"
+              value={form.issuedTo}
+              onChange={(e) => setForm({ ...form, issuedTo: e.target.value })}
+              required
+            />
+          </FinanceField>
+          <FinanceField label="Valor (R$)" htmlFor="receipt-amount">
+            <input
+              id="receipt-amount"
+              type="number"
+              step="0.01"
+              min="0"
+              className="premium-text-input"
+              value={form.amount}
+              onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              required
+            />
+          </FinanceField>
+          <FinanceField label="Data" htmlFor="receipt-issued-at">
+            <input
+              id="receipt-issued-at"
+              type="date"
+              className="premium-text-input"
+              value={form.issuedAt}
+              onChange={(e) => setForm({ ...form, issuedAt: e.target.value })}
+              required
+            />
+          </FinanceField>
+          <FinanceField label="Descrição" htmlFor="receipt-description">
+            <input
+              id="receipt-description"
+              className="premium-text-input"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="Opcional"
+            />
+          </FinanceField>
+        </div>
+      </RegistryFormModal>
+
       <FinanceTable
+        title="Recibos emitidos"
         headers={['Nº', 'Para', 'Valor', 'Data']}
-        rows={rows.map((r) => [r.receiptNumber, r.issuedTo, formatMoney(r.amount), r.issuedAt?.slice(0, 10)])}
+        rows={rows.map((r) => [
+          r.receiptNumber,
+          r.issuedTo,
+          formatMoney(r.amount),
+          r.issuedAt ? formatDateBr(r.issuedAt.slice(0, 10)) : '—',
+        ])}
         pagination={pagination}
+        emptyMessage="Nenhum recibo emitido. Clique em Novo recibo para começar."
       />
       <AlertModal isOpen={alert.open} message={alert.message} type={alert.type} onClose={() => setAlert(closedAlert)} />
     </CatalogPageLayout>
