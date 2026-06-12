@@ -107,7 +107,8 @@
 }
 
 .parking-table-wrap {
-  overflow-x: auto;
+  min-width: 0;
+  overflow-x: visible;
 }
 
 .parking-table {
@@ -618,6 +619,15 @@
   margin-top: 0;
 }
 
+.parking-contracts-table__status {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.parking-contracts-table__status .catalog-active-toggle {
+  justify-content: flex-start;
+}
+
 .parking-hardware-key-banner {
   margin-bottom: 16px;
   background: #fef3c7;
@@ -639,7 +649,9 @@
   padding: 10px;
   border-radius: 8px;
   font-size: 0.82rem;
-  overflow-x: auto;
+  overflow-x: visible;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .parking-hardware-endpoints {

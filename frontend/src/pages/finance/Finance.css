@@ -117,7 +117,8 @@
 
 .finance-list-panel {
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
+  min-width: 0;
 }
 
 .finance-list-panel__title {
@@ -228,7 +229,8 @@
 /* —— Tabela —— */
 .finance-table-wrap {
   width: 100%;
-  overflow-x: auto;
+  min-width: 0;
+  overflow-x: visible;
 }
 
 .finance-table {
@@ -299,7 +301,7 @@
 
 .catalog-registry-table--finance-master .catalog-registry-table__head,
 .catalog-registry-table--finance-master .catalog-registry-row {
-  grid-template-columns: minmax(180px, 1.2fr) minmax(140px, 1fr) 100px 88px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 100px) minmax(72px, 88px);
 }
 
 .finance-tag-swatch {

@@ -46,12 +46,11 @@
 
 .add-item-modal-categories {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 12px 24px;
-  overflow-x: auto;
+  overflow-x: visible;
   border-bottom: 1px solid var(--border-default, #ddd9d0);
-  scrollbar-width: thin;
 }
 
 .add-item-modal-tab {
