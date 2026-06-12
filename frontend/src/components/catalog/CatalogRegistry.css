@@ -9,10 +9,11 @@
 
 .catalog-registry-panel {
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--border-default, #e5e5e5);
   border-radius: 8px;
   background: var(--surface-card, #ffffff);
+  min-width: 0;
 }
 
 .catalog-registry-panel__header {
@@ -64,12 +65,14 @@
 .catalog-registry-table {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  overflow-x: visible;
 }
 
 .catalog-registry-table__head,
 .catalog-registry-row {
   display: grid;
-  grid-template-columns: 48px minmax(160px, 1fr) minmax(120px, 0.85fr) 120px 112px 88px;
+  grid-template-columns: 48px minmax(0, 1fr) minmax(0, 0.85fr) minmax(0, 120px) minmax(0, 112px) minmax(72px, 88px);
   align-items: center;
   gap: 12px 16px;
   padding-left: 24px;
@@ -78,22 +81,22 @@
 
 .catalog-registry-table--5col .catalog-registry-table__head,
 .catalog-registry-table--5col .catalog-registry-row {
-  grid-template-columns: 48px minmax(160px, 1fr) 120px 112px 88px;
+  grid-template-columns: 48px minmax(0, 1fr) minmax(0, 120px) minmax(0, 112px) minmax(72px, 88px);
 }
 
 .catalog-registry-table--products .catalog-registry-table__head,
 .catalog-registry-table--products .catalog-registry-row {
-  grid-template-columns: 48px 52px minmax(140px, 1fr) minmax(100px, 0.75fr) 108px 88px;
+  grid-template-columns: 48px 52px minmax(0, 1fr) minmax(0, 0.75fr) minmax(0, 108px) minmax(72px, 88px);
 }
 
 .catalog-registry-table--customers .catalog-registry-table__head,
 .catalog-registry-table--customers .catalog-registry-row {
-  grid-template-columns: minmax(180px, 1.2fr) minmax(140px, 1fr) 100px 112px 88px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 100px) minmax(0, 112px) minmax(72px, 88px);
 }
 
 .catalog-registry-table--logs .catalog-registry-table__head,
 .catalog-registry-table--logs .catalog-registry-row {
-  grid-template-columns: 152px minmax(100px, 0.55fr) 88px minmax(100px, 0.45fr) minmax(160px, 1fr);
+  grid-template-columns: minmax(0, 152px) minmax(0, 0.55fr) minmax(0, 88px) minmax(0, 0.45fr) minmax(0, 1fr);
 }
 
 .catalog-registry-cell--message {
@@ -399,9 +402,147 @@
   background: var(--btn-hover-bg, #fafafa);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .catalog-registry-table__head {
     display: none;
+  }
+
+  .catalog-registry-table__head,
+  .catalog-registry-table .catalog-registry-row {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .catalog-registry-table--stock-movements .catalog-registry-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .catalog-registry-table--stock-movements .stock-movements-table__reason {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+
+  .catalog-registry-table--customers .catalog-registry-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'main actions'
+      'contact contact'
+      'status date';
+  }
+
+  .catalog-registry-table--customers .catalog-registry-main {
+    grid-area: main;
+  }
+
+  .catalog-registry-table--customers .catalog-registry-contact {
+    grid-area: contact;
+  }
+
+  .catalog-registry-table--customers .catalog-registry-status {
+    grid-area: status;
+  }
+
+  .catalog-registry-table--customers .catalog-registry-date {
+    grid-area: date;
+  }
+
+  .catalog-registry-table--customers .catalog-registry-actions {
+    grid-area: actions;
+  }
+
+  .catalog-registry-table--fiscal-returns .catalog-registry-row {
+    grid-template-columns: 1fr 1fr auto;
+    grid-template-areas:
+      'main main actions'
+      'date amount amount'
+      'message message message';
+  }
+
+  .catalog-registry-table--fiscal-returns .catalog-registry-name {
+    grid-area: main;
+  }
+
+  .catalog-registry-table--fiscal-returns .catalog-registry-row > .catalog-registry-contact:nth-child(2) {
+    grid-area: date;
+  }
+
+  .catalog-registry-table--fiscal-returns .catalog-registry-row > .catalog-registry-contact:nth-child(3) {
+    grid-area: amount;
+  }
+
+  .catalog-registry-table--fiscal-returns .catalog-registry-cell--message {
+    grid-area: message;
+    white-space: normal;
+    display: block;
+    -webkit-line-clamp: unset;
+  }
+
+  .catalog-registry-table--fiscal-returns .catalog-registry-actions {
+    grid-area: actions;
+  }
+
+  .catalog-registry-table--crm-customers .catalog-registry-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'main actions'
+      'contact contact'
+      'segment interactions'
+      'loyalty loyalty';
+  }
+
+  .catalog-registry-table--crm-customers .catalog-registry-main {
+    grid-area: main;
+  }
+
+  .catalog-registry-table--crm-customers .catalog-registry-row > .catalog-registry-contact:nth-child(2) {
+    grid-area: contact;
+  }
+
+  .catalog-registry-table--crm-customers .catalog-registry-row > .catalog-registry-contact:nth-child(3) {
+    grid-area: segment;
+  }
+
+  .catalog-registry-table--crm-customers .catalog-registry-row > .catalog-registry-contact:nth-child(4) {
+    grid-area: interactions;
+  }
+
+  .catalog-registry-table--crm-customers .catalog-registry-cell--loyalty {
+    grid-area: loyalty;
+  }
+
+  .catalog-registry-table--crm-customers .catalog-registry-actions {
+    grid-area: actions;
+  }
+
+  .catalog-registry-table--finance-master .catalog-registry-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'main actions'
+      'desc desc'
+      'status status';
+  }
+
+  .catalog-registry-table--finance-master .catalog-registry-main {
+    grid-area: main;
+  }
+
+  .catalog-registry-table--finance-master .catalog-registry-desc {
+    grid-area: desc;
+  }
+
+  .catalog-registry-table--finance-master .catalog-registry-status {
+    grid-area: status;
+  }
+
+  .catalog-registry-table--finance-master .catalog-registry-actions {
+    grid-area: actions;
   }
 
   .catalog-registry-table--logs .catalog-registry-row {
@@ -482,7 +623,119 @@
 /* —— Tabelas HTML com status + ações (padrão registry) —— */
 .catalog-data-table-wrap {
   width: 100%;
-  overflow-x: auto;
+  min-width: 0;
+  overflow-x: visible;
+}
+
+/* Tabelas HTML — viram cards empilhados (sem scroll horizontal) */
+@media (max-width: 1100px) {
+  .catalog-data-table-wrap,
+  .finance-table-wrap,
+  .parking-table-wrap,
+  .delivery-table-wrap,
+  .multistore-table-wrap,
+  .production-notifications-table-wrap,
+  .report-section .report-table-wrap {
+    overflow-x: visible;
+  }
+
+  .catalog-data-table,
+  .finance-table,
+  .parking-table,
+  .delivery-table,
+  .multistore-table,
+  .production-notifications-table,
+  .report-table {
+    display: block;
+    width: 100%;
+    table-layout: auto;
+  }
+
+  .catalog-data-table thead,
+  .finance-table thead,
+  .parking-table thead,
+  .delivery-table thead,
+  .multistore-table thead,
+  .production-notifications-table thead,
+  .report-table thead {
+    display: none;
+  }
+
+  .catalog-data-table tbody,
+  .finance-table tbody,
+  .parking-table tbody,
+  .delivery-table tbody,
+  .multistore-table tbody,
+  .production-notifications-table tbody,
+  .report-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .catalog-data-table tbody tr,
+  .finance-table tbody tr,
+  .parking-table tbody tr,
+  .delivery-table tbody tr,
+  .multistore-table tbody tr,
+  .production-notifications-table tbody tr,
+  .report-table tbody tr {
+    display: block;
+    width: 100%;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-default, #e5e5e5);
+    box-sizing: border-box;
+  }
+
+  .catalog-data-table tbody tr:hover,
+  .finance-table tbody tr:hover,
+  .parking-table tbody tr:hover,
+  .delivery-table tbody tr:hover {
+    background: #fcfcfc;
+  }
+
+  .catalog-data-table td,
+  .finance-table td,
+  .parking-table td,
+  .delivery-table td,
+  .multistore-table td,
+  .production-notifications-table td,
+  .report-table td {
+    display: block;
+    width: 100% !important;
+    max-width: 100%;
+    padding: 5px 0;
+    border-bottom: none;
+    overflow: visible;
+    white-space: normal;
+    text-overflow: clip;
+    word-break: break-word;
+    text-align: left !important;
+  }
+
+  .catalog-data-table td.catalog-data-table__status,
+  .catalog-data-table td.catalog-data-table__actions,
+  .finance-table td.catalog-data-table__status,
+  .finance-table td.catalog-data-table__actions,
+  .finance-table td.finance-table-actions,
+  .parking-table td.catalog-data-table__actions,
+  .delivery-table td.catalog-data-table__actions {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-default, #e5e5e5);
+  }
+
+  .catalog-data-table tbody tr:last-child td,
+  .finance-table tbody tr:last-child td,
+  .parking-table tbody tr:last-child td,
+  .delivery-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .catalog-data-table .catalog-data-table__actions-group,
+  .catalog-data-table .catalog-registry-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
 }
 
 .catalog-data-table {
