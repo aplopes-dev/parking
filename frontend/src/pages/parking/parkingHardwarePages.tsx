@@ -69,7 +69,11 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
   const [devices, setDevices] = useState<ParkingAccessDevice[]>([]);
   const [events, setEvents] = useState<ParkingAccessEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [alert, setAlert] = useState({ open: false, message: '' });
+  const [alert, setAlert] = useState<{
+    open: boolean;
+    message: string;
+    type: 'error' | 'success';
+  }>({ open: false, message: '', type: 'error' });
   const [newKey, setNewKey] = useState<string | null>(null);
   const [deviceModalOpen, setDeviceModalOpen] = useState(false);
   const [isSavingDevice, setIsSavingDevice] = useState(false);
@@ -123,7 +127,7 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => setAlert({ open: true, message: 'Erro ao carregar integrações.' }))
+      .catch(() => setAlert({ open: true, message: 'Erro ao carregar integrações.', type: 'error' }))
       .finally(() => setLoading(false));
   }, [load]);
 
@@ -157,9 +161,9 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
       setNewKey(created.apiKeyPlain ?? null);
       closeDeviceModal();
       await load();
-      setAlert({ open: true, message: 'Dispositivo cadastrado. Copie a chave API abaixo.' });
+      setAlert({ open: true, message: 'Dispositivo cadastrado. Copie a chave API abaixo.', type: 'success' });
     } catch (err) {
-      setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
+      setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.'), type: 'error' });
     } finally {
       setIsSavingDevice(false);
     }
@@ -177,7 +181,7 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
       setSimResult(result);
       await load();
     } catch (err) {
-      setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
+      setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.'), type: 'error' });
     }
   };
 
@@ -343,6 +347,24 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
                         <td>{d.lastSeenAt ? formatDateTime(d.lastSeenAt) : '—'}</td>
                         <td>
                           <div className="parking-actions-row parking-actions-row--compact">
+                            <CatalogActiveToggle
+                              checked={Boolean(d.active)}
+                              disabled={togglingDeviceId === d.id}
+                              label={d.active ? 'Ativo' : 'Inativo'}
+                              onChange={(active) => {
+                                setTogglingDeviceId(d.id);
+                                void updateParkingDevice(d.id, { active })
+                                  .then(load)
+                                  .catch((err) =>
+                                    setAlert({
+                                      open: true,
+                                      message: getApiErrorMessage(err, 'Erro ao processar.'),
+                                      type: 'error',
+                                    }),
+                                  )
+                                  .finally(() => setTogglingDeviceId(null));
+                              }}
+                            />
                             <button
                               type="button"
                               className="catalog-action-button is-secondary"
@@ -350,9 +372,15 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
                                 void regenerateDeviceApiKey(d.id)
                                   .then((r) => {
                                     setNewKey(r.apiKeyPlain);
-                                    setAlert({ open: true, message: 'Nova chave gerada.' });
+                                    setAlert({ open: true, message: 'Nova chave gerada.', type: 'success' });
                                   })
-                                  .catch((err) => setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') }))
+                                  .catch((err) =>
+                                    setAlert({
+                                      open: true,
+                                      message: getApiErrorMessage(err, 'Erro ao processar.'),
+                                      type: 'error',
+                                    }),
+                                  )
                               }
                             >
                               Nova chave
@@ -363,27 +391,25 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
                                 className="catalog-action-button"
                                 onClick={() =>
                                   void openGateManually(d.id, { reason: 'Teste manual' })
-                                    .then(() => setAlert({ open: true, message: 'Comando de abertura enviado.' }))
-                                    .catch((err) => setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') }))
+                                    .then(() =>
+                                      setAlert({
+                                        open: true,
+                                        message: 'Comando de abertura enviado.',
+                                        type: 'success',
+                                      }),
+                                    )
+                                    .catch((err) =>
+                                      setAlert({
+                                        open: true,
+                                        message: getApiErrorMessage(err, 'Erro ao processar.'),
+                                        type: 'error',
+                                      }),
+                                    )
                                 }
                               >
                                 Abrir
                               </button>
                             )}
-                            <CatalogActiveToggle
-                              checked={Boolean(d.active)}
-                              disabled={togglingDeviceId === d.id}
-                              label={d.active ? 'Ativo' : 'Inativo'}
-                              onChange={(active) => {
-                                setTogglingDeviceId(d.id);
-                                void updateParkingDevice(d.id, { active })
-                                  .then(load)
-                                  .catch((err) =>
-                                    setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') }),
-                                  )
-                                  .finally(() => setTogglingDeviceId(null));
-                              }}
-                            />
                           </div>
                         </td>
                       </tr>
@@ -554,7 +580,12 @@ export const ParkingHardwarePage: React.FC<HardwarePageProps> = ({
         </div>
       )}
 
-      <AlertModal isOpen={alert.open} message={alert.message} onClose={() => setAlert({ open: false, message: '' })} />
+      <AlertModal
+        isOpen={alert.open}
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert({ open: false, message: '', type: 'error' })}
+      />
     </CatalogPageLayout>
   );
 };
