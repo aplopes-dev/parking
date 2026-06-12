@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CatalogPageLayout from '../../components/CatalogPageLayout';
+import CatalogActiveToggle from '../../components/catalog/CatalogActiveToggle';
 import CatalogPagination from '../../components/catalog/CatalogPagination';
 import RegistryFormModal, { registryModalFooterButtons } from '../../components/RegistryFormModal';
 import { useDebouncedRegistrySearch } from '../../hooks/useDebouncedRegistrySearch';
@@ -198,6 +199,8 @@ export const ParkingContractsPage: React.FC = () => {
   const [agrPage, setAgrPage] = useState(1);
   const [agrLimit, setAgrLimit] = useState(10);
   const [agrMeta, setAgrMeta] = useState<PaginatedMeta | null>(null);
+  const [togglingSubId, setTogglingSubId] = useState<string | null>(null);
+  const [togglingAgrId, setTogglingAgrId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const facs = await fetchAllParkingFacilities();
@@ -356,25 +359,27 @@ export const ParkingContractsPage: React.FC = () => {
     }
   };
 
-  const suspendSubscription = async (sub: ParkingSubscription) => {
+  const setSubscriptionActive = async (sub: ParkingSubscription, active: boolean) => {
+    setTogglingSubId(sub.id);
     try {
-      await updateParkingSubscription(sub.id, {
-        status: sub.status === 'active' ? 'suspended' : 'active',
-      });
+      await updateParkingSubscription(sub.id, { status: active ? 'active' : 'suspended' });
       await load();
     } catch (err) {
       setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
+    } finally {
+      setTogglingSubId(null);
     }
   };
 
-  const suspendAgreement = async (agr: ParkingAgreement) => {
+  const setAgreementActive = async (agr: ParkingAgreement, active: boolean) => {
+    setTogglingAgrId(agr.id);
     try {
-      await updateParkingAgreement(agr.id, {
-        status: agr.status === 'active' ? 'suspended' : 'active',
-      });
+      await updateParkingAgreement(agr.id, { status: active ? 'active' : 'suspended' });
       await load();
     } catch (err) {
       setAlert({ open: true, message: getApiErrorMessage(err, 'Erro ao processar.') });
+    } finally {
+      setTogglingAgrId(null);
     }
   };
 
@@ -673,11 +678,21 @@ export const ParkingContractsPage: React.FC = () => {
                             </span>
                           ))}
                         </td>
-                        <td>
-                          <ContractStatusBadge status={s.status} />
+                        <td className="parking-contracts-table__status">
+                          {s.status === 'canceled' || s.status === 'expired' ? (
+                            <ContractStatusBadge status={s.status} />
+                          ) : (
+                            <CatalogActiveToggle
+                              checked={s.status === 'active'}
+                              disabled={togglingSubId === s.id}
+                              label={s.status === 'active' ? 'Ativo' : 'Suspenso'}
+                              title={s.status === 'active' ? 'Suspender contrato' : 'Reativar contrato'}
+                              onChange={(active) => void setSubscriptionActive(s, active)}
+                            />
+                          )}
                         </td>
                         <td>
-                          <div className="parking-actions-row">
+                          <div className="parking-actions-row parking-actions-row--compact">
                             <button
                               type="button"
                               className="catalog-action-button is-secondary"
@@ -690,13 +705,6 @@ export const ParkingContractsPage: React.FC = () => {
                               }
                             >
                               + Placa
-                            </button>
-                            <button
-                              type="button"
-                              className="catalog-action-button is-secondary"
-                              onClick={() => void suspendSubscription(s)}
-                            >
-                              {s.status === 'active' ? 'Suspender' : 'Reativar'}
                             </button>
                             {s.customerId ? (
                               <Link
@@ -777,11 +785,21 @@ export const ParkingContractsPage: React.FC = () => {
                             </span>
                           ))}
                         </td>
-                        <td>
-                          <ContractStatusBadge status={a.status} />
+                        <td className="parking-contracts-table__status">
+                          {a.status === 'canceled' || a.status === 'expired' ? (
+                            <ContractStatusBadge status={a.status} />
+                          ) : (
+                            <CatalogActiveToggle
+                              checked={a.status === 'active'}
+                              disabled={togglingAgrId === a.id}
+                              label={a.status === 'active' ? 'Ativo' : 'Suspenso'}
+                              title={a.status === 'active' ? 'Suspender convênio' : 'Reativar convênio'}
+                              onChange={(active) => void setAgreementActive(a, active)}
+                            />
+                          )}
                         </td>
                         <td>
-                          <div className="parking-actions-row">
+                          <div className="parking-actions-row parking-actions-row--compact">
                             <button
                               type="button"
                               className="catalog-action-button is-secondary"
@@ -794,13 +812,6 @@ export const ParkingContractsPage: React.FC = () => {
                               }
                             >
                               + Placa
-                            </button>
-                            <button
-                              type="button"
-                              className="catalog-action-button is-secondary"
-                              onClick={() => void suspendAgreement(a)}
-                            >
-                              {a.status === 'active' ? 'Suspender' : 'Reativar'}
                             </button>
                           </div>
                         </td>
